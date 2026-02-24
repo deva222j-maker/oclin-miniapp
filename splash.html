@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oclin Vote - البداية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Tajawal', sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; }
+
+        .splash {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .glass-card {
+            backdrop-filter: blur(25px);
+            background: rgba(255,255,255,0.08);
+            padding: 50px;
+            border-radius: 30px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.2);
+            width: 300px;
+        }
+
+        .logo { width: 120px; margin-bottom: 20px; }
+
+        .app-title { color: white; font-size: 28px; margin-bottom: 30px; }
+
+        .glass-btn {
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            color: white;
+            background: linear-gradient(135deg,#00c6ff,#0072ff);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 30px rgba(0,114,255,0.5);
+            transition: 0.3s;
+        }
+
+        .glass-btn:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+<div class="splash">
+    <div class="glass-card">
+        <img id="appLogo" src="logo.png" class="logo">
+        <h1 class="app-title">Oclin Vote</h1>
+        <button class="glass-btn" onclick="startApp()">ابدأ</button>
+    </div>
+</div>
+
+<script>
+    const REFERRAL_REWARD = 15;
+
+    function startApp() {
+        // إنشاء المستخدم إذا لم يكن موجود
+        if (!localStorage.getItem("oclin_user")) {
+            const newUser = {
+                id: generateSecureId(),
+                username: "user_" + Math.floor(Math.random()*100000),
+                balance: 0,
+                referrals: 0,
+                referralPoints: 0,
+                votedCoins: {},
+                createdAt: Date.now(),
+                referralLink: generateReferralLink()
+            };
+            localStorage.setItem("oclin_user", JSON.stringify(newUser));
+        }
+
+        // الانتقال مباشرة إلى الصفحة الرئيسية
+        window.location.href = "index.html";
+    }
+
+    function generateSecureId() {
+        return 'usr_' + crypto.randomUUID();
+    }
+
+    function generateReferralLink() {
+        const uid = crypto.randomUUID().slice(0,8);
+        return `${window.location.origin}/index.html?ref=${uid}`;
+    }
+
+    // منع النشاط المريب (بوتات)
+    let clickCount = 0;
+    document.addEventListener("click", () => {
+        clickCount++;
+        if(clickCount > 50){
+            alert("تم الكشف عن نشاط غير طبيعي");
+            document.body.innerHTML = "";
+        }
+    });
+</script>
+
+</body>
+</html>
