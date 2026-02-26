@@ -106,26 +106,37 @@ flex-direction:column;
 gap:12px;
 }
 
-.coin-card{
-background:rgba(255,255,255,0.04);
-border-radius:20px;
-padding:15px;
-display:flex;
-align-items:center;
-gap:12px;
-cursor:pointer;
-transition:.3s;
-border:2px solid transparent;
+/* تنسيق حاوية كل عملة مع الأزرار الخاصة بها */
+.coin-vote-container {
+    display: flex;
+    flex-direction: column;
+    background: rgba(255,255,255,0.02);
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
 }
 
-.coin-card.selected{
-border-color:#ffd966;
-background:rgba(255,215,0,0.1);
+.coin-vote-container.selected {
+    border-color: #ffd966;
+    background: rgba(255,215,0,0.1);
+    transform: scale(1.02);
+    margin: 5px 0;
 }
 
-.coin-card.voted{
-opacity:.6;
-pointer-events:none;
+.coin-card {
+    background: transparent;
+    border-radius: 20px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: .3s;
+}
+
+.coin-card.voted {
+    opacity: .6;
+    pointer-events: none;
 }
 
 .coin-icon{
@@ -151,12 +162,12 @@ font-size:13px;
 color:#a5b3d9;
 }
 
-/* كل تغيير: زر التصويت يظهر مباشرة تحت البطاقة المختارة */
+/* أزرار التصويت - تظهر تحت كل عملة محددة */
 .vote-options {
     display: none;
     justify-content: center;
     gap: 20px;
-    margin: 10px 0 20px 0;  /* تقليل المسافات */
+    padding: 0 15px 15px 15px;
     width: 100%;
 }
 
@@ -165,16 +176,23 @@ color:#a5b3d9;
 }
 
 .vote-btn{
-padding:12px 25px;
+padding:10px 20px;
 border-radius:50px;
 font-weight:700;
 cursor:pointer;
 border:2px solid;
 background:rgba(10,15,30,0.9);
+font-size:14px;
 }
 
-.vote-up{border-color:#2ecc71;color:#2ecc71;}
-.vote-down{border-color:#e74c3c;color:#e74c3c;}
+.vote-up{
+border-color:#2ecc71;
+color:#2ecc71;
+}
+.vote-down{
+border-color:#e74c3c;
+color:#e74c3c;
+}
 
 /* ---- Profile Page Styles ---- */
 .profile-card {
@@ -440,16 +458,8 @@ opacity:1;
 <div id="homePage">
 <div class="welcome-message">👋 اختر عملة للتصويت</div>
 
-<!-- حاوية العملات + زر التصويت الذي سينتقل تحت البطاقة -->
-<div id="coinsContainer">
-    <div class="coins-title">📊 العملات المتاحة</div>
-    <div class="coins-grid" id="coinsGrid"></div>
-    <!-- زر التصويت أصبح هنا داخل container، تحت العملات مباشرة -->
-    <div class="vote-options" id="voteOptions">
-        <div class="vote-btn vote-up" onclick="castVote('up')">⬆️ Up</div>
-        <div class="vote-btn vote-down" onclick="castVote('down')">⬇️ Down</div>
-    </div>
-</div>
+<div class="coins-title">📊 العملات المتاحة</div>
+<div class="coins-grid" id="coinsGrid"></div>
 
 </div>
 
@@ -567,7 +577,7 @@ let userData = JSON.parse(localStorage.getItem("oclin_user")) || {
 
 function checkForReferral() {
     const urlParams = new URLSearchParams(window.location.search);
-    const referrerId = urlParams.get('ref');
+    const referrerId = urlParams.get('start');
 
     if (referrerId) {
         const isNewUser = !localStorage.getItem("oclin_user");
@@ -622,14 +632,12 @@ function mergeReferralDataWithUser() {
 
 let selectedIndex = -1;
 const coinsGrid = document.getElementById("coinsGrid");
-const voteOptions = document.getElementById("voteOptions");
+let voteContainers = []; // لتخزين المراجع للحاويات
 
 // دالة محسنة لجلب العملات
 async function fetchCoins(forceRefresh = false) {
-    // منع الطلبات المتكررة
     if (isFetchingCoins) return;
     
-    // إذا كان لدينا كاش وما طلبنا تحديث قسري، نعرض الكاش
     if (!forceRefresh && cachedCoins.length > 0 && (Date.now() - lastFetchTime) < CACHE_DURATION) {
         displayCoins(cachedCoins);
         return;
@@ -637,8 +645,6 @@ async function fetchCoins(forceRefresh = false) {
     
     try {
         isFetchingCoins = true;
-        
-        // نعرض رسالة تحميل لطيفة
         coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل العملات...</p>';
         
         const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=15&page=1");
@@ -648,18 +654,13 @@ async function fetchCoins(forceRefresh = false) {
         }
         
         const data = await res.json();
-        
-        // تخزين في الكاش
         cachedCoins = data;
         lastFetchTime = Date.now();
-        
-        // عرض العملات
         displayCoins(data);
         
     } catch (error) {
         console.error("Error fetching coins:", error);
         
-        // إذا كان لدينا كاش، نعرضه حتى لو قديم
         if (cachedCoins.length > 0) {
             displayCoins(cachedCoins);
             showToast("جاري عرض آخر العملات المتاحة");
@@ -671,7 +672,7 @@ async function fetchCoins(forceRefresh = false) {
     }
 }
 
-// دالة عرض العملات
+// دالة عرض العملات مع حاوية منفصلة لكل عملة
 function displayCoins(coins) {
     if (!coins || coins.length === 0) {
         coinsGrid.innerHTML = '<p style="color:white;text-align:center;">لا توجد عملات متاحة</p>';
@@ -679,42 +680,85 @@ function displayCoins(coins) {
     }
     
     coinsGrid.innerHTML = "";
+    voteContainers = [];
+    
     coins.forEach((coin, i) => {
-        const div = document.createElement("div");
-        div.className = "coin-card";
+        const container = document.createElement("div");
+        container.className = "coin-vote-container";
+        container.dataset.index = i;
         
-        // التحقق من التصويت
+        const coinCard = document.createElement("div");
+        coinCard.className = "coin-card";
+        
         if (userData.votedCoins && userData.votedCoins[i]) {
-            div.classList.add("voted");
+            coinCard.classList.add("voted");
         }
 
-        div.innerHTML = `
+        coinCard.innerHTML = `
             <div class="coin-icon"><img src="${coin.image}" alt="${coin.name}" onerror="this.src='https://via.placeholder.com/45'"></div>
             <div>
                 <div class="coin-name">${coin.name}</div>
                 <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
             </div>`;
 
-        div.onclick = () => selectCoin(i, div);
-        coinsGrid.appendChild(div);
+        // أزرار التصويت الخاصة بهذه العملة
+        const voteOptions = document.createElement("div");
+        voteOptions.className = "vote-options";
+        voteOptions.innerHTML = `
+            <div class="vote-btn vote-up" onclick="castVote(${i}, 'up')">⬆️ Up</div>
+            <div class="vote-btn vote-down" onclick="castVote(${i}, 'down')">⬇️ Down</div>
+        `;
+
+        container.appendChild(coinCard);
+        container.appendChild(voteOptions);
+        
+        coinCard.onclick = (e) => {
+            e.stopPropagation();
+            selectCoin(i, container);
+        };
+        
+        coinsGrid.appendChild(container);
+        voteContainers.push(container);
     });
 }
 
-function selectCoin(i, el) {
-    if (userData.votedCoins && userData.votedCoins[i]) {
+function selectCoin(index, container) {
+    // إذا كان المستخدم اختار نفس العملة مرة أخرى
+    if (selectedIndex === index) {
+        // إلغاء التحديد
+        voteContainers.forEach(c => {
+            c.classList.remove("selected");
+            const voteOpts = c.querySelector('.vote-options');
+            if (voteOpts) voteOpts.classList.remove('show');
+        });
+        selectedIndex = -1;
+        return;
+    }
+    
+    // التحقق من التصويت السابق
+    if (userData.votedCoins && userData.votedCoins[index]) {
         showToast("لقد صوتت لهذه العملة مسبقاً");
         return;
     }
     
-    document.querySelectorAll(".coin-card").forEach(c => c.classList.remove("selected"));
-    el.classList.add("selected");
-    selectedIndex = i;
-    voteOptions.classList.add("show");
+    // إزالة التحديد من جميع الحاويات وإخفاء أزرارها
+    voteContainers.forEach(c => {
+        c.classList.remove("selected");
+        const voteOpts = c.querySelector('.vote-options');
+        if (voteOpts) voteOpts.classList.remove('show');
+    });
+    
+    // تحديد الحاوية الحالية وإظهار أزرارها
+    container.classList.add("selected");
+    const voteOptions = container.querySelector('.vote-options');
+    if (voteOptions) voteOptions.classList.add('show');
+    
+    selectedIndex = index;
 }
 
-function castVote(voteType) {
-    if (selectedIndex === -1) {
-        showToast("اختر عملة أولاً");
+function castVote(index, voteType) {
+    if (selectedIndex !== index) {
+        showToast("اختر العملة أولاً");
         return;
     }
     
@@ -723,15 +767,19 @@ function castVote(voteType) {
         return;
     }
     
+    if (userData.votedCoins && userData.votedCoins[index]) {
+        showToast("لقد صوتت لهذه العملة مسبقاً");
+        return;
+    }
+    
     // حفظ التصويت
     userData.balance += VOTE_REWARD;
     userData.dailyVotes++;
     
-    // التأكد من وجود votedCoins
     if (!userData.votedCoins) {
         userData.votedCoins = {};
     }
-    userData.votedCoins[selectedIndex] = true;
+    userData.votedCoins[index] = true;
     
     localStorage.setItem("oclin_user", JSON.stringify(userData));
     
@@ -739,18 +787,22 @@ function castVote(voteType) {
     document.getElementById("profileBalance").innerText = userData.balance;
     showToast(`✅ تم التصويت بنجاح! حصلت على ${VOTE_REWARD} نقاط`);
     
-    // إخفاء خيارات التصويت
-    voteOptions.classList.remove("show");
-    // إزالة التحديد
-    document.querySelectorAll(".coin-card").forEach(c => c.classList.remove("selected"));
+    // إخفاء خيارات التصويت للعملة المحددة
+    if (voteContainers[index]) {
+        voteContainers[index].classList.remove("selected");
+        const voteOpts = voteContainers[index].querySelector('.vote-options');
+        if (voteOpts) voteOpts.classList.remove('show');
+    }
+    
+    // تحديث مظهر العملة إلى "تم التصويت"
+    const coinCard = voteContainers[index]?.querySelector('.coin-card');
+    if (coinCard) coinCard.classList.add('voted');
+    
     selectedIndex = -1;
     
-    // تحديث العملات مع الحفاظ على الكاش
-    displayCoins(cachedCoins);
-    
-    // تحديث من الخلفية (بدون انتظار)
+    // تحديث من الخلفية
     setTimeout(() => {
-        if (Date.now() - lastFetchTime > 30000) { // إذا مر 30 ثانية على آخر تحديث
+        if (Date.now() - lastFetchTime > 30000) {
             fetchCoins(true);
         }
     }, 1000);
@@ -771,15 +823,13 @@ function showPage(page, event) {
     if (page === 'referral') {
         updateReferralDisplay();
     } else if (page === 'home') {
-        // تحديث العملات عند العودة للصفحة الرئيسية (تظهر فورًا من الكاش)
+        // إعادة تعيين التحديد
+        selectedIndex = -1;
         if (cachedCoins.length > 0) {
             displayCoins(cachedCoins);
         } else {
             fetchCoins();
         }
-        // إخفاء الـ vote options عند الرجوع للصفحة الرئيسية
-        voteOptions.classList.remove("show");
-        selectedIndex = -1;
     }
 }
 
@@ -802,8 +852,8 @@ function copyReferralLink() {
 }
 
 function updateReferralDisplay() {
-    // تعديل الرابط ليكون deep link داخل التليجرام يعود إلى البوت
-    const botUsername = "oclin_bot"; // ضع معرف البوت هنا
+    // تم التعديل: استخدام معرف البوت الصحيح oclin_vote_bot
+    const botUsername = "oclin_vote_bot";
     document.getElementById("referralLink").value = "https://t.me/" + botUsername + "?start=" + userData.id;
     document.getElementById("referralBalance").innerText = userData.referralBalance;
     document.getElementById("totalReferrals").innerText = userData.referralsCount;
