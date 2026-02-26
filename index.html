@@ -1,731 +1,519 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Oclon.bot</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Oclin Vote - البداية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { 
+            margin:0; 
+            padding:0; 
+            box-sizing:border-box; 
+            font-family:'Tajawal', sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body, html { 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden;
+            background: linear-gradient(135deg, #0b0e1a 0%, #1a1f2f 100%);
+        }
 
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+        .splash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 30%, #2a3f5e, #0b0f1a);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            padding: 20px;
+        }
 
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Tajawal',sans-serif;}
+        .glass-card {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.05);
+            padding: clamp(30px, 8vw, 50px);
+            border-radius: clamp(30px, 6vw, 50px);
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: min(90%, 400px);
+            animation: fadeInUp 0.8s ease-out;
+        }
 
-html,body{
-height:100%;
-overflow:hidden;
-background:#0a0e17;
-}
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-.app{
-width:100%;
-height:100vh;
-max-width:500px;
-margin:auto;
-display:flex;
-flex-direction:column;
-background:linear-gradient(180deg,#12182b 0%,#1a2340 100%);
-position:relative;
-overflow:hidden;
-}
+        .logo {
+            width: min(120px, 30vw);
+            height: min(120px, 30vw);
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(40px, 10vw, 60px);
+            color: white;
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+        }
 
-/* -- Splash Screen Styles -- */
-.splash-screen {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #1a1f2f, #0b0e1a);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-    transition: opacity 0.5s ease-out;
-    pointer-events: none;
-}
-.splash-screen.hidden {
-    opacity: 0;
-}
-.splash-content {
-    text-align: center;
-    color: white;
-}
-.splash-content h1 {
-    font-size: 42px;
-    font-weight: 800;
-    background: linear-gradient(135deg,#ffffff,#b886ff);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-    margin-bottom: 20px;
-}
-.splash-content p {
-    color: #a5b3d9;
-    font-size: 18px;
-}
-/* ------------------------- */
+        .app-title {
+            color: white;
+            font-size: clamp(24px, 6vw, 32px);
+            font-weight: 800;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #ffffff, #c7b9ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-.header{
-padding:15px;
-text-align:center;
-flex-shrink:0;
-}
+        .app-subtitle {
+            color: rgba(255,255,255,0.6);
+            font-size: clamp(14px, 4vw, 16px);
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
 
-.title{
-font-size:26px;
-font-weight:800;
-background:linear-gradient(135deg,#ffffff,#b886ff);
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-}
+        .glass-btn {
+            padding: clamp(12px, 4vw, 15px) clamp(30px, 8vw, 50px);
+            font-size: clamp(16px, 5vw, 18px);
+            font-weight: 700;
+            border-radius: 60px;
+            border: none;
+            cursor: pointer;
+            color: white;
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(236, 72, 153, 0.4);
+            transition: all 0.3s ease;
+            width: fit-content;
+            margin: 0 auto;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
 
-.main-content{
-flex:1;
-overflow-y:auto;
-padding:10px 15px 90px 15px;
-scrollbar-width:none;
-}
-.main-content::-webkit-scrollbar{display:none;}
+        .glass-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: 0.5s;
+        }
 
-.welcome-message{
-text-align:center;
-color:#a5b3d9;
-margin-bottom:20px;
-font-size:14px;
-}
+        .glass-btn:hover::before {
+            left: 100%;
+        }
 
-.coins-title{
-color:#fff;
-font-size:18px;
-font-weight:700;
-margin-bottom:15px;
-}
+        .glass-btn:active {
+            transform: scale(0.95);
+        }
 
-.coins-grid{
-display:flex;
-flex-direction:column;
-gap:12px;
-}
+        .status-message {
+            margin-top: 20px;
+            color: rgba(255,255,255,0.5);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
 
-.coin-card{
-background:rgba(255,255,255,0.04);
-border-radius:20px;
-padding:15px;
-display:flex;
-align-items:center;
-gap:12px;
-cursor:pointer;
-transition:.3s;
-border:2px solid transparent;
-}
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #4CAF50;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+        }
 
-.coin-card.selected{
-border-color:#ffd966;
-background:rgba(255,215,0,0.1);
-}
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
 
-.coin-card.voted{
-opacity:.6;
-pointer-events:none;
-}
-
-.coin-icon{
-width:45px;
-height:45px;
-border-radius:50%;
-overflow:hidden;
-flex-shrink:0;
-}
-
-.coin-icon img{
-width:100%;
-height:100%;
-}
-
-.coin-name{
-font-weight:700;
-color:#fff;
-}
-
-.coin-symbol{
-font-size:13px;
-color:#a5b3d9;
-}
-
-.vote-options{
-display:none;
-justify-content:center;
-gap:20px;
-margin-bottom:20px;
-}
-
-.vote-options.show{
-display:flex;
-}
-
-.vote-btn{
-padding:12px 25px;
-border-radius:50px;
-font-weight:700;
-cursor:pointer;
-border:2px solid;
-background:rgba(10,15,30,0.9);
-}
-
-.vote-up{border-color:#2ecc71;color:#2ecc71;}
-.vote-down{border-color:#e74c3c;color:#e74c3c;}
-
-/* ---- Profile Page Styles (مطابق للصورة) ---- */
-.profile-card {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 30px;
-    padding: 25px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.profile-avatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #8B5CF6, #EC4899);
-    margin: 0 auto 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40px;
-    color: white;
-}
-
-.profile-name {
-    color: white;
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
-
-.profile-username {
-    color: #8B5CF6;
-    font-size: 14px;
-    margin-bottom: 20px;
-}
-
-.profile-balance {
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.balance-label {
-    color: #a5b3d9;
-    font-size: 14px;
-    margin-bottom: 5px;
-}
-
-.balance-amount {
-    color: white;
-    font-size: 32px;
-    font-weight: 800;
-}
-
-.balance-amount span {
-    font-size: 16px;
-    color: #8B5CF6;
-    margin-left: 5px;
-}
-
-.profile-actions {
-    display: flex;
-    gap: 15px;
-}
-
-.profile-action-btn {
-    flex: 1;
-    padding: 15px;
-    border-radius: 20px;
-    border: none;
-    font-weight: 700;
-    font-size: 16px;
-    cursor: pointer;
-    transition: 0.3s;
-    background: rgba(255, 255, 255, 0.03);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.profile-action-btn.primary {
-    background: linear-gradient(135deg, #8B5CF6, #EC4899);
-    border: none;
-}
-
-.profile-action-btn:hover {
-    transform: translateY(-2px);
-}
-/* -------------------------------------------- */
-
-/* ---- Referral Page Styles (مطابق للصورة) ---- */
-.referral-container {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 30px;
-    padding: 25px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.referral-title {
-    color: white;
-    font-size: 28px;
-    font-weight: 800;
-    margin-bottom: 10px;
-    text-align: center;
-}
-
-.referral-desc {
-    color: #a5b3d9;
-    font-size: 14px;
-    text-align: center;
-    margin-bottom: 25px;
-    line-height: 1.5;
-}
-
-.referral-link-box {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 30px;
-}
-
-.referral-link-box input {
-    flex: 1;
-    padding: 15px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.03);
-    color: white;
-    font-size: 14px;
-    direction: ltr;
-}
-
-.referral-link-box button {
-    padding: 15px 25px;
-    border-radius: 20px;
-    border: none;
-    background: linear-gradient(135deg, #8B5CF6, #EC4899);
-    color: white;
-    font-weight: 700;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-.referral-link-box button:hover {
-    transform: scale(0.95);
-}
-
-.referral-stats-grid {
-    display: flex;
-    gap: 15px;
-}
-
-.referral-stat-item {
-    flex: 1;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 20px;
-    padding: 20px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.referral-stat-number {
-    color: white;
-    font-size: 36px;
-    font-weight: 800;
-    margin-bottom: 5px;
-}
-
-.referral-stat-label {
-    color: #a5b3d9;
-    font-size: 14px;
-}
-/* -------------------------------------------- */
-
-/* ---- Bottom Nav Glassmorphism ---- */
-.bottom-nav {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    display: flex;
-    justify-content: space-around;
-    background: rgba(20, 25, 40, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    padding: 12px;
-    border-radius: 40px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
-
-.nav-item {
-    color: #a5b3d9;
-    text-align: center;
-    cursor: pointer;
-    font-size: 20px;
-    transition: 0.3s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}
-
-.nav-item span {
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.nav-item.active {
-    color: #8B5CF6;
-    transform: translateY(-2px);
-}
-
-.nav-item.active span {
-    color: #8B5CF6;
-}
-/* --------------------------------- */
-
-.toast{
-position:absolute;
-bottom:100px;
-left:50%;
-transform:translateX(-50%);
-background:#2ecc71;
-color:#fff;
-padding:10px 25px;
-border-radius:50px;
-opacity:0;
-transition:.3s;
-z-index: 200;
-}
-
-.toast.show{
-opacity:1;
-}
-
-.hidden{display:none;}
-</style>
+        /* حماية إضافية */
+        .no-click {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+    </style>
 </head>
 <body>
 
-<div class="app">
-
-    <!-- splash screen -->
-    <div id="splashScreen" class="splash-screen">
-        <div class="splash-content">
-            <h1>OCLIN COIN</h1>
-            <p id="splashMessage">جاري التحميل...</p>
-        </div>
-    </div>
-
-<div class="header">
-<div class="title">OCLIN COIN</div>
-</div>
-
-<div class="main-content">
-
-<!-- HOME -->
-<div id="homePage">
-<div class="welcome-message">👋 Select a coin to vote</div>
-
-<div class="vote-options" id="voteOptions">
-<div class="vote-btn vote-up" onclick="castVote('up')">⬆️ Up</div>
-<div class="vote-btn vote-down" onclick="castVote('down')">⬇️ Down</div>
-</div>
-
-<div class="coins-title">📊 Available Coins</div>
-<div class="coins-grid" id="coinsGrid"></div>
-</div>
-
-<!-- PROFILE (مطابق للصورة) -->
-<div id="profilePage" class="hidden">
-<div class="profile-card">
-    <div class="profile-avatar">👤</div>
-    <div class="profile-name">Random User</div>
-    <div class="profile-username">@random_user</div>
-    
-    <div class="profile-balance">
-        <div class="balance-label">Balance</div>
-        <div class="balance-amount">
-            <span id="profileBalance">0</span> <span>USD</span>
-        </div>
-    </div>
-    
-    <div class="profile-actions">
-        <button class="profile-action-btn" onclick="showToast('Connect Wallet feature coming soon!')">Connect Wallet</button>
-        <button class="profile-action-btn primary" onclick="showToast('Withdraw feature coming soon!')">Withdraw</button>
-    </div>
-</div>
-</div>
-
-<!-- REFERRAL (مطابق للصورة) -->
-<div id="referralPage" class="hidden">
-<div class="referral-container">
-    <h2 class="referral-title"># Invite Friends</h2>
-    <p class="referral-desc">Get 5 points for each friend who signs up with your link.</p>
-    
-    <div class="referral-link-box">
-        <input type="text" id="referralLink" readonly>
-        <button onclick="copyReferralLink()">Copy</button>
-    </div>
-    
-    <div class="referral-stats-grid">
-        <div class="referral-stat-item">
-            <div class="referral-stat-number" id="totalReferrals">0</div>
-            <div class="referral-stat-label">Friends</div>
-        </div>
-        <div class="referral-stat-item">
-            <div class="referral-stat-number" id="referralBalance">0</div>
-            <div class="referral-stat-label">Points</div>
+<div class="splash" id="splash">
+    <div class="glass-card">
+        <div class="logo">🎯</div>
+        <h1 class="app-title">Oclin Vote</h1>
+        <p class="app-subtitle" id="subtitleMessage">منصة التصويت على العملات الرقمية</p>
+        
+        <!-- زر البدء يظهر فقط إذا كان المستخدم ما ضغط على رابط إحالة -->
+        <button class="glass-btn" id="startBtn" onclick="handleStartClick()">ابدأ الآن</button>
+        
+        <div class="status-message" id="statusMessage">
+            <span class="dot"></span>
+            <span id="statusText">جاري تجهيز المنصة...</span>
         </div>
     </div>
 </div>
-</div>
 
-</div>
-
-<!-- NAV (مع أسماء الأيقونات) -->
-<div class="bottom-nav">
-<div class="nav-item active" onclick="showPage('home')">
-    🏠
-    <span>Home</span>
-</div>
-<div class="nav-item" onclick="showPage('profile')">
-    👤
-    <span>Profile</span>
-</div>
-<div class="nav-item" onclick="showPage('referral')">
-    ↗️
-    <span>Referral</span>
-</div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-</div>
-
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
-if(window.Telegram.WebApp){
-Telegram.WebApp.expand();
-Telegram.WebApp.disableVerticalSwipes();
-}
+    // ==================== ثوابت النظام ====================
+    const REFERRAL_REWARD = 15;
+    const APP_DOMAIN = "https://oclon-bot.com"; // غير هذا لدومينك الفعلي
+    const MAX_CLICKS = 50;
+    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 دقيقة
 
-const DAILY_LIMIT=5;
-const VOTE_REWARD=10;
-const REFERRAL_REWARD = 5; // مكافأة الإحالة (5 نقاط حسب الصورة)
+    // ==================== نظام الحماية المتقدم ====================
+    const Security = {
+        // كشف البوتات
+        detectBot: function() {
+            const bots = [
+                'bot', 'crawler', 'spider', 'scraper', 'curl', 'wget',
+                'python', 'java', 'perl', 'php', 'ruby', 'go-http',
+                'headless', 'selenium', 'puppeteer', 'playwright'
+            ];
+            
+            const ua = navigator.userAgent.toLowerCase();
+            return bots.some(bot => ua.includes(bot));
+        },
 
-function playSound() {
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.2);
-    } catch (e) {
-        console.log("Audio not supported or blocked.");
-    }
-}
-
-let userData = JSON.parse(localStorage.getItem("oclin_user")) || {
-    id: "user_" + Math.random().toString(36).substr(2, 9),
-    balance: 0,
-    dailyVotes: 0,
-    votedCoins: {},
-    referralBalance: 0,
-    referralsCount: 0,
-    hasReceivedReferralReward: false
-};
-
-function checkForReferral() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const referrerId = urlParams.get('ref');
-
-    if (referrerId) {
-        const isNewUser = !localStorage.getItem("oclin_user");
-
-        if (isNewUser && !userData.hasReceivedReferralReward) {
-            giveReferralReward(referrerId);
-            userData.hasReceivedReferralReward = true;
-            document.getElementById('splashMessage').innerText = '🎉 مرحباً! تم تفعيل رابط الإحالة بنجاح';
-            localStorage.setItem("oclin_user", JSON.stringify(userData));
-            playSound();
-        } else {
-            document.getElementById('splashMessage').innerText = 'مرحباً بعودتك!';
-            if (!userData.hasOwnProperty('hasReceivedReferralReward')) {
-                userData.hasReceivedReferralReward = true;
-                localStorage.setItem("oclin_user", JSON.stringify(userData));
+        // كشف الزيارات المزيفة
+        detectFraud: function() {
+            // كشف الزيارات السريعة جداً
+            const lastVisit = localStorage.getItem('last_visit');
+            const now = Date.now();
+            
+            if (lastVisit && (now - parseInt(lastVisit)) < 2000) { // أقل من ثانيتين
+                return true;
             }
+            
+            localStorage.setItem('last_visit', now);
+            return false;
+        },
+
+        // كشف النشاط المريب
+        suspiciousActivity: function() {
+            let clickCount = parseInt(sessionStorage.getItem('click_count') || '0');
+            clickCount++;
+            sessionStorage.setItem('click_count', clickCount);
+            
+            return clickCount > MAX_CLICKS;
+        },
+
+        // التحقق من صحة الجلسة
+        validateSession: function() {
+            const sessionStart = sessionStorage.getItem('session_start');
+            const now = Date.now();
+            
+            if (!sessionStart) {
+                sessionStorage.setItem('session_start', now);
+                return true;
+            }
+            
+            return (now - parseInt(sessionStart)) < SESSION_TIMEOUT;
+        },
+
+        // تنفيذ الحماية
+        run: function() {
+            // 1. كشف البوتات
+            if (this.detectBot()) {
+                this.blockAccess('تم اكتشاف بوت - الوصول غير مسموح');
+                return false;
+            }
+
+            // 2. كشف الزيارات المزيفة
+            if (this.detectFraud()) {
+                console.warn('تحذير: زيارة سريعة جداً');
+            }
+
+            // 3. كشف النشاط المريب
+            if (this.suspiciousActivity()) {
+                this.blockAccess('نشاط غير طبيعي - تم الحظر المؤقت');
+                return false;
+            }
+
+            // 4. التحقق من الجلسة
+            if (!this.validateSession()) {
+                sessionStorage.clear();
+                window.location.reload();
+                return false;
+            }
+
+            return true;
+        },
+
+        blockAccess: function(message) {
+            document.body.innerHTML = `
+                <div style="display:flex; justify-content:center; align-items:center; height:100vh; background:#0b0e1a; color:white; text-align:center; padding:20px;">
+                    <div>
+                        <h1 style="color:#ef4444; margin-bottom:20px;">⚠️ وصول محظور</h1>
+                        <p style="color:#a5b3d9;">${message}</p>
+                    </div>
+                </div>
+            `;
         }
-    } else {
-        document.getElementById('splashMessage').innerText = 'مرحباً بك!';
+    };
+
+    // ==================== نظام الإحالة المتقدم ====================
+    const ReferralSystem = {
+        // إنشاء معرف آمن
+        generateSecureId: function() {
+            return 'usr_' + Array.from(crypto.getRandomValues(new Uint8Array(8)))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        },
+
+        // إنشاء رابط إحالة فريد
+        generateReferralLink: function(userId) {
+            const refCode = userId.slice(-8);
+            return `${APP_DOMAIN}/?ref=${refCode}`;
+        },
+
+        // التحقق من رابط الإحالة
+        checkReferral: function() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const referrerCode = urlParams.get('ref');
+                
+                if (!referrerCode) return null;
+
+                // التحقق من صحة الكود
+                if (!referrerCode.match(/^[a-f0-9]{8}$/i)) {
+                    console.warn('كود إحالة غير صالح');
+                    return null;
+                }
+
+                return referrerCode;
+            } catch (e) {
+                console.error('خطأ في قراءة رابط الإحالة', e);
+                return null;
+            }
+        },
+
+        // معالجة الإحالة
+        processReferral: function(referrerCode) {
+            // التحقق من أن المستخدم جديد
+            if (localStorage.getItem('oclin_user')) {
+                return { success: false, reason: 'existing_user' };
+            }
+
+            // التحقق من عدم تكرار الإحالة من نفس الجهاز
+            if (localStorage.getItem('referred_by_' + referrerCode)) {
+                return { success: false, reason: 'already_referred' };
+            }
+
+            // التحقق من أن المحيل ليس نفسه (حماية)
+            const tempUserId = 'temp_' + referrerCode;
+            if (localStorage.getItem('referrer_' + referrerCode)) {
+                // هذا محيل موجود، نضيف له نقاط
+                this.addPointsToReferrer(referrerCode);
+                
+                // نسجل أن هذا الجهاز استخدم الرابط
+                localStorage.setItem('referred_by_' + referrerCode, Date.now());
+                
+                return { success: true, referrer: referrerCode };
+            }
+
+            return { success: false, reason: 'invalid_referrer' };
+        },
+
+        // إضافة نقاط للمحيل
+        addPointsToReferrer: function(referrerCode) {
+            try {
+                let referrerData = JSON.parse(localStorage.getItem('referrer_' + referrerCode));
+                
+                if (referrerData) {
+                    referrerData.referralPoints = (referrerData.referralPoints || 0) + REFERRAL_REWARD;
+                    referrerData.referralsCount = (referrerData.referralsCount || 0) + 1;
+                    referrerData.lastReferral = Date.now();
+                } else {
+                    referrerData = {
+                        id: referrerCode,
+                        referralPoints: REFERRAL_REWARD,
+                        referralsCount: 1,
+                        createdAt: Date.now(),
+                        lastReferral: Date.now()
+                    };
+                }
+                
+                localStorage.setItem('referrer_' + referrerCode, JSON.stringify(referrerData));
+                
+                // تشغيل صوت تنبيهي خفيف (اختياري)
+                try {
+                    const audio = new Audio('data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8');
+                    audio.volume = 0.3;
+                    audio.play().catch(() => {});
+                } catch (e) {}
+                
+                return true;
+            } catch (e) {
+                console.error('خطأ في إضافة النقاط', e);
+                return false;
+            }
+        },
+
+        // إنشاء مستخدم جديد
+        createUser: function() {
+            const userId = this.generateSecureId();
+            const newUser = {
+                id: userId,
+                username: 'user_' + Math.floor(100000 + Math.random() * 900000),
+                balance: 0,
+                referralPoints: 0,
+                referralsCount: 0,
+                votedCoins: {},
+                createdAt: Date.now(),
+                lastActive: Date.now(),
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            };
+            
+            // تخزين المستخدم
+            localStorage.setItem('oclin_user', JSON.stringify(newUser));
+            
+            // تخزين بيانات المحيل للإحالات المستقبلية
+            const referrerData = {
+                id: userId.slice(-8),
+                userId: userId,
+                referralPoints: 0,
+                referralsCount: 0
+            };
+            localStorage.setItem('referrer_' + referrerData.id, JSON.stringify(referrerData));
+            
+            return newUser;
+        }
+    };
+
+    // ==================== معالج الصفحة الرئيسي ====================
+    async function handleStartClick() {
+        const startBtn = document.getElementById('startBtn');
+        const statusText = document.getElementById('statusText');
+        
+        try {
+            startBtn.disabled = true;
+            startBtn.style.opacity = '0.5';
+            statusText.innerText = 'جاري تجهيز حسابك...';
+            
+            // تأخير بسيط لتجنب السبام
+            await new Promise(r => setTimeout(r, 800));
+            
+            // إنشاء المستخدم إذا ما موجود
+            if (!localStorage.getItem('oclin_user')) {
+                ReferralSystem.createUser();
+            }
+            
+            statusText.innerText = 'تم بنجاح! جاري التحويل...';
+            
+            // تحويل للصفحة الرئيسية
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 500);
+            
+        } catch (error) {
+            console.error(error);
+            statusText.innerText = 'حدث خطأ، حاول مرة أخرى';
+            startBtn.disabled = false;
+            startBtn.style.opacity = '1';
+        }
     }
-}
 
-function giveReferralReward(referrerId) {
-    let referrerData = JSON.parse(localStorage.getItem("referrer_" + referrerId));
-    
-    if (referrerData) {
-        referrerData.referralBalance = (referrerData.referralBalance || 0) + REFERRAL_REWARD;
-        referrerData.referralsCount = (referrerData.referralsCount || 0) + 1;
-        localStorage.setItem("referrer_" + referrerId, JSON.stringify(referrerData));
-    } else {
-        const newReferrerData = {
-            id: referrerId,
-            referralBalance: REFERRAL_REWARD,
-            referralsCount: 1
-        };
-        localStorage.setItem("referrer_" + referrerId, JSON.stringify(newReferrerData));
+    // ==================== التهيئة والبدء ====================
+    async function init() {
+        try {
+            // 1. تشغيل نظام الحماية
+            if (!Security.run()) {
+                return;
+            }
+
+            // 2. التحقق من رابط الإحالة
+            const referrerCode = ReferralSystem.checkReferral();
+            const statusText = document.getElementById('statusText');
+            const startBtn = document.getElementById('startBtn');
+
+            if (referrerCode && !localStorage.getItem('oclin_user')) {
+                // معالجة الإحالة
+                const result = ReferralSystem.processReferral(referrerCode);
+                
+                if (result.success) {
+                    statusText.innerText = '🎉 مرحباً! تم تفعيل رابط الإحالة';
+                    document.querySelector('.app-subtitle').innerText = 'تم إضافة 15 نقطة للمحيل';
+                    
+                    // إنشاء المستخدم تلقائياً بدون ما يضغط زر
+                    setTimeout(() => {
+                        const newUser = ReferralSystem.createUser();
+                        statusText.innerText = 'تم إنشاء حسابك! جاري التحويل...';
+                        
+                        // تحويل للصفحة الرئيسية
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 1500);
+                    }, 1000);
+                    
+                    // إخفاء زر البدء لأنه مش رح يحتاجه
+                    if (startBtn) startBtn.style.display = 'none';
+                }
+            } else {
+                statusText.innerText = 'مرحباً بك! اضغط ابدأ للمتابعة';
+            }
+
+            // 3. تجهيز واجهة المستخدم
+            document.querySelector('.glass-card').style.opacity = '1';
+            
+        } catch (error) {
+            console.error('خطأ في التهيئة:', error);
+            document.getElementById('statusText').innerText = 'حدث خطأ في التحميل';
+        }
     }
-}
 
-function mergeReferralDataWithUser() {
-    const storedReferralData = localStorage.getItem("referrer_" + userData.id);
-    if (storedReferralData) {
-        const refData = JSON.parse(storedReferralData);
-        userData.referralBalance = refData.referralBalance || 0;
-        userData.referralsCount = refData.referralsCount || 0;
-    } else {
-        userData.referralBalance = userData.referralBalance || 0;
-        userData.referralsCount = userData.referralsCount || 0;
-    }
-    localStorage.setItem("oclin_user", JSON.stringify(userData));
-}
+    // ==================== بدء التشغيل ====================
+    document.addEventListener('DOMContentLoaded', init);
 
-let selectedIndex = -1;
-const coinsGrid = document.getElementById("coinsGrid");
-const voteOptions = document.getElementById("voteOptions");
-
-async function fetchCoins(){
-    try {
-        const res=await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=15&page=1");
-        const data=await res.json();
-
-        coinsGrid.innerHTML="";
-        data.forEach((coin,i)=>{
-            const div=document.createElement("div");
-            div.className="coin-card";
-            if(userData.votedCoins[i])div.classList.add("voted");
-
-            div.innerHTML=`
-                <div class="coin-icon"><img src="${coin.image}"></div>
-                <div>
-                    <div class="coin-name">${coin.name}</div>
-                    <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
-                </div>`;
-
-            div.onclick=()=>selectCoin(i,div);
-            coinsGrid.appendChild(div);
-        });
-    } catch (error) {
-        console.error("Error fetching coins:", error);
-        coinsGrid.innerHTML = '<p style="color:white;text-align:center;">Failed to load coins. Please refresh.</p>';
-    }
-}
-
-function selectCoin(i,el){
-    if(userData.votedCoins[i]) return;
-    document.querySelectorAll(".coin-card").forEach(c=>c.classList.remove("selected"));
-    el.classList.add("selected");
-    selectedIndex=i;
-    voteOptions.classList.add("show");
-}
-
-function castVote(voteType){
-    if(selectedIndex===-1){
-        showToast("Select a coin first");
-        return;
-    }
-    if(userData.dailyVotes>=DAILY_LIMIT){
-        showToast("Daily limit reached");
-        return;
-    }
-    
-    userData.balance += VOTE_REWARD;
-    userData.dailyVotes++;
-    userData.votedCoins[selectedIndex] = true;
-    
-    localStorage.setItem("oclin_user",JSON.stringify(userData));
-    
-    document.getElementById("profileBalance").innerText = userData.balance;
-    showToast(`You earned ${VOTE_REWARD} points for voting ${voteType}`);
-    
-    voteOptions.classList.remove("show");
-    selectedIndex = -1;
-    fetchCoins();
-}
-
-function showPage(page){
-    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
-    if (event) event.currentTarget.classList.add("active");
-
-    document.getElementById("homePage").classList.add("hidden");
-    document.getElementById("profilePage").classList.add("hidden");
-    document.getElementById("referralPage").classList.add("hidden");
-
-    document.getElementById(page+"Page").classList.remove("hidden");
-    
-    if (page === 'referral') {
-        updateReferralDisplay();
-    }
-}
-
-function showToast(msg){
-    const t=document.getElementById("toast");
-    t.innerText=msg;
-    t.classList.add("show");
-    setTimeout(()=>t.classList.remove("show"),2000);
-}
-
-function copyReferralLink() {
-    const linkInput = document.getElementById("referralLink");
-    linkInput.select();
-    linkInput.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(linkInput.value).then(() => {
-        showToast("Link copied!");
-    }).catch(err => {
-        showToast("Failed to copy");
+    // ==================== حماية إضافية للمتصفح ====================
+    // منع فتح أدوات المطور
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', e => {
+        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+            e.preventDefault();
+        }
     });
-}
 
-function updateReferralDisplay() {
-    document.getElementById("referralLink").value = "https://oclon-bot.com/?ref=" + userData.id;
-    document.getElementById("referralBalance").innerText = userData.referralBalance;
-    document.getElementById("totalReferrals").innerText = userData.referralsCount;
-}
+    // منع التكبير والتصغير على الهواتف
+    document.addEventListener('touchmove', e => {
+        if (e.scale !== 1) { e.preventDefault(); }
+    }, { passive: false });
 
-function init() {
-    checkForReferral();
-    mergeReferralDataWithUser();
-    
-    document.getElementById("profileBalance").innerText = userData.balance;
-    updateReferralDisplay();
-    
-    fetchCoins();
-    
-    setTimeout(() => {
-        document.getElementById('splashScreen').classList.add('hidden');
-    }, 2000);
-}
+    // كشف الأجهزة المحمولة
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
 
-document.addEventListener("DOMContentLoaded", init);
-
+    if (!isMobile()) {
+        console.warn('يفضل استخدام هذا التطبيق على الهاتف');
+    }
 </script>
 
 </body>
