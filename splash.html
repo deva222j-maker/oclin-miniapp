@@ -151,15 +151,17 @@ font-size:13px;
 color:#a5b3d9;
 }
 
-.vote-options{
-display:none;
-justify-content:center;
-gap:20px;
-margin-bottom:20px;
+/* كل تغيير: زر التصويت يظهر مباشرة تحت البطاقة المختارة */
+.vote-options {
+    display: none;
+    justify-content: center;
+    gap: 20px;
+    margin: 10px 0 20px 0;  /* تقليل المسافات */
+    width: 100%;
 }
 
-.vote-options.show{
-display:flex;
+.vote-options.show {
+    display: flex;
 }
 
 .vote-btn{
@@ -436,15 +438,19 @@ opacity:1;
 
 <!-- HOME -->
 <div id="homePage">
-<div class="welcome-message">👋 Select a coin to vote</div>
+<div class="welcome-message">👋 اختر عملة للتصويت</div>
 
-<div class="vote-options" id="voteOptions">
-<div class="vote-btn vote-up" onclick="castVote('up')">⬆️ Up</div>
-<div class="vote-btn vote-down" onclick="castVote('down')">⬇️ Down</div>
+<!-- حاوية العملات + زر التصويت الذي سينتقل تحت البطاقة -->
+<div id="coinsContainer">
+    <div class="coins-title">📊 العملات المتاحة</div>
+    <div class="coins-grid" id="coinsGrid"></div>
+    <!-- زر التصويت أصبح هنا داخل container، تحت العملات مباشرة -->
+    <div class="vote-options" id="voteOptions">
+        <div class="vote-btn vote-up" onclick="castVote('up')">⬆️ Up</div>
+        <div class="vote-btn vote-down" onclick="castVote('down')">⬇️ Down</div>
+    </div>
 </div>
 
-<div class="coins-title">📊 Available Coins</div>
-<div class="coins-grid" id="coinsGrid"></div>
 </div>
 
 <!-- PROFILE -->
@@ -455,15 +461,15 @@ opacity:1;
     <div class="profile-username">@random_user</div>
     
     <div class="profile-balance">
-        <div class="balance-label">Balance</div>
+        <div class="balance-label">الرصيد</div>
         <div class="balance-amount">
             <span id="profileBalance">0</span> <span>USD</span>
         </div>
     </div>
     
     <div class="profile-actions">
-        <button class="profile-action-btn" onclick="showToast('Connect Wallet feature coming soon!')">Connect Wallet</button>
-        <button class="profile-action-btn primary" onclick="showToast('Withdraw feature coming soon!')">Withdraw</button>
+        <button class="profile-action-btn" onclick="showToast('قريباً: ربط المحفظة')">ربط المحفظة</button>
+        <button class="profile-action-btn primary" onclick="showToast('قريباً: السحب')">سحب</button>
     </div>
 </div>
 </div>
@@ -471,22 +477,22 @@ opacity:1;
 <!-- REFERRAL -->
 <div id="referralPage" class="hidden">
 <div class="referral-container">
-    <h2 class="referral-title"># Invite Friends</h2>
-    <p class="referral-desc">Get 5 points for each friend who signs up with your link.</p>
+    <h2 class="referral-title">🎁 دعوة الأصدقاء</h2>
+    <p class="referral-desc">احصل على 5 نقاط عن كل صديق ينضم عبر رابطك</p>
     
     <div class="referral-link-box">
         <input type="text" id="referralLink" readonly>
-        <button onclick="copyReferralLink()">Copy</button>
+        <button onclick="copyReferralLink()">نسخ</button>
     </div>
     
     <div class="referral-stats-grid">
         <div class="referral-stat-item">
             <div class="referral-stat-number" id="totalReferrals">0</div>
-            <div class="referral-stat-label">Friends</div>
+            <div class="referral-stat-label">الأصدقاء</div>
         </div>
         <div class="referral-stat-item">
             <div class="referral-stat-number" id="referralBalance">0</div>
-            <div class="referral-stat-label">Points</div>
+            <div class="referral-stat-label">النقاط</div>
         </div>
     </div>
 </div>
@@ -496,17 +502,17 @@ opacity:1;
 
 <!-- NAV -->
 <div class="bottom-nav">
-<div class="nav-item active" onclick="showPage('home')">
+<div class="nav-item active" onclick="showPage('home', event)">
     🏠
-    <span>Home</span>
+    <span>الرئيسية</span>
 </div>
-<div class="nav-item" onclick="showPage('profile')">
+<div class="nav-item" onclick="showPage('profile', event)">
     👤
-    <span>Profile</span>
+    <span>الملف</span>
 </div>
-<div class="nav-item" onclick="showPage('referral')">
+<div class="nav-item" onclick="showPage('referral', event)">
     ↗️
-    <span>Referral</span>
+    <span>الدعوة</span>
 </div>
 </div>
 
@@ -735,6 +741,8 @@ function castVote(voteType) {
     
     // إخفاء خيارات التصويت
     voteOptions.classList.remove("show");
+    // إزالة التحديد
+    document.querySelectorAll(".coin-card").forEach(c => c.classList.remove("selected"));
     selectedIndex = -1;
     
     // تحديث العملات مع الحفاظ على الكاش
@@ -748,9 +756,11 @@ function castVote(voteType) {
     }, 1000);
 }
 
-function showPage(page) {
-    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-    if (event) event.currentTarget.classList.add("active");
+function showPage(page, event) {
+    if (event) {
+        document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+        event.currentTarget.classList.add("active");
+    }
 
     document.getElementById("homePage").classList.add("hidden");
     document.getElementById("profilePage").classList.add("hidden");
@@ -761,8 +771,15 @@ function showPage(page) {
     if (page === 'referral') {
         updateReferralDisplay();
     } else if (page === 'home') {
-        // تحديث العملات عند العودة للصفحة الرئيسية
-        fetchCoins();
+        // تحديث العملات عند العودة للصفحة الرئيسية (تظهر فورًا من الكاش)
+        if (cachedCoins.length > 0) {
+            displayCoins(cachedCoins);
+        } else {
+            fetchCoins();
+        }
+        // إخفاء الـ vote options عند الرجوع للصفحة الرئيسية
+        voteOptions.classList.remove("show");
+        selectedIndex = -1;
     }
 }
 
@@ -785,7 +802,9 @@ function copyReferralLink() {
 }
 
 function updateReferralDisplay() {
-    document.getElementById("referralLink").value = "https://oclon-bot.com/?ref=" + userData.id;
+    // تعديل الرابط ليكون deep link داخل التليجرام يعود إلى البوت
+    const botUsername = "oclin_bot"; // ضع معرف البوت هنا
+    document.getElementById("referralLink").value = "https://t.me/" + botUsername + "?start=" + userData.id;
     document.getElementById("referralBalance").innerText = userData.referralBalance;
     document.getElementById("totalReferrals").innerText = userData.referralsCount;
 }
@@ -811,4 +830,3 @@ document.addEventListener("DOMContentLoaded", init);
 
 </body>
 </html>
-
