@@ -139,6 +139,11 @@ gap:12px;
     pointer-events: none;
 }
 
+.coin-card.disabled {
+    opacity: .6;
+    pointer-events: none;
+}
+
 .coin-icon{
 width:45px;
 height:45px;
@@ -192,6 +197,11 @@ color:#2ecc71;
 .vote-down{
 border-color:#e74c3c;
 color:#e74c3c;
+}
+
+.vote-btn.disabled {
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 /* ---- Profile Page Styles ---- */
@@ -456,7 +466,7 @@ opacity:1;
 
 <!-- HOME -->
 <div id="homePage">
-<div class="welcome-message">👋 اختر عملة للتصويت</div>
+<div class="welcome-message">👋 اختر عملة للتصويت <span id="votesCounter" style="color: #ffd966; font-weight: bold;">(5/5)</span></div>
 
 <div class="coins-title">📊 العملات المتاحة</div>
 <div class="coins-grid" id="coinsGrid"></div>
@@ -537,7 +547,7 @@ Telegram.WebApp.expand();
 Telegram.WebApp.disableVerticalSwipes();
 }
 
-const DAILY_LIMIT = 5;
+const DAILY_LIMIT = 5; // 5 تصويتات فقط في اليوم
 const VOTE_REWARD = 10;
 const REFERRAL_REWARD = 5;
 
@@ -572,8 +582,20 @@ let userData = JSON.parse(localStorage.getItem("oclin_user")) || {
     votedCoins: {},
     referralBalance: 0,
     referralsCount: 0,
-    hasReceivedReferralReward: false
+    hasReceivedReferralReward: false,
+    lastVoteDate: new Date().toDateString() // تتبع تاريخ آخر تصويت
 };
+
+// التحقق من إعادة تعيين التصويتات اليومية إذا كان يوم جديد
+function checkAndResetDailyVotes() {
+    const today = new Date().toDateString();
+    if (userData.lastVoteDate !== today) {
+        userData.dailyVotes = 0;
+        userData.votedCoins = {}; // إعادة تعيين العملات المصوت عليها
+        userData.lastVoteDate = today;
+        localStorage.setItem("oclin_user", JSON.stringify(userData));
+    }
+}
 
 function checkForReferral() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -634,6 +656,15 @@ let selectedIndex = -1;
 const coinsGrid = document.getElementById("coinsGrid");
 let voteContainers = []; // لتخزين المراجع للحاويات
 
+// تحديث عداد التصويتات المتبقية
+function updateVotesCounter() {
+    const remainingVotes = DAILY_LIMIT - userData.dailyVotes;
+    const counterElement = document.querySelector('#votesCounter');
+    if (counterElement) {
+        counterElement.textContent = `(${remainingVotes}/${DAILY_LIMIT})`;
+    }
+}
+
 // دالة محسنة لجلب العملات
 async function fetchCoins(forceRefresh = false) {
     if (isFetchingCoins) return;
@@ -681,6 +712,7 @@ function displayCoins(coins) {
     
     coinsGrid.innerHTML = "";
     voteContainers = [];
+    const hasVotesLeft = userData.dailyVotes < DAILY_LIMIT;
     
     coins.forEach((coin, i) => {
         const container = document.createElement("div");
@@ -692,6 +724,9 @@ function displayCoins(coins) {
         
         if (userData.votedCoins && userData.votedCoins[i]) {
             coinCard.classList.add("voted");
+        } else if (!hasVotesLeft) {
+            // إذا لم يتبقى تصويتات، نعطل اختيار العملات
+            coinCard.classList.add("disabled");
         }
 
         coinCard.innerHTML = `
@@ -705,17 +740,19 @@ function displayCoins(coins) {
         const voteOptions = document.createElement("div");
         voteOptions.className = "vote-options";
         voteOptions.innerHTML = `
-            <div class="vote-btn vote-up" onclick="castVote(${i}, 'up')">⬆️ Up</div>
-            <div class="vote-btn vote-down" onclick="castVote(${i}, 'down')">⬇️ Down</div>
+            <div class="vote-btn vote-up ${!hasVotesLeft ? 'disabled' : ''}" onclick="castVote(${i}, 'up')">⬆️ Up</div>
+            <div class="vote-btn vote-down ${!hasVotesLeft ? 'disabled' : ''}" onclick="castVote(${i}, 'down')">⬇️ Down</div>
         `;
 
         container.appendChild(coinCard);
         container.appendChild(voteOptions);
         
-        coinCard.onclick = (e) => {
-            e.stopPropagation();
-            selectCoin(i, container);
-        };
+        if (hasVotesLeft && !userData.votedCoins?.[i]) {
+            coinCard.onclick = (e) => {
+                e.stopPropagation();
+                selectCoin(i, container);
+            };
+        }
         
         coinsGrid.appendChild(container);
         voteContainers.push(container);
@@ -723,6 +760,12 @@ function displayCoins(coins) {
 }
 
 function selectCoin(index, container) {
+    // إذا لم يتبقى تصويتات، نمنع التحديد
+    if (userData.dailyVotes >= DAILY_LIMIT) {
+        showToast("لقد استنفذت حد التصويت اليومي");
+        return;
+    }
+    
     // إذا كان المستخدم اختار نفس العملة مرة أخرى
     if (selectedIndex === index) {
         // إلغاء التحديد
@@ -785,6 +828,7 @@ function castVote(index, voteType) {
     
     // تحديث الواجهة
     document.getElementById("profileBalance").innerText = userData.balance;
+    updateVotesCounter();
     showToast(`✅ تم التصويت بنجاح! حصلت على ${VOTE_REWARD} نقاط`);
     
     // إخفاء خيارات التصويت للعملة المحددة
@@ -799,6 +843,13 @@ function castVote(index, voteType) {
     if (coinCard) coinCard.classList.add('voted');
     
     selectedIndex = -1;
+    
+    // إذا وصلنا للحد الأقصى، نعطل جميع العملات
+    if (userData.dailyVotes >= DAILY_LIMIT) {
+        setTimeout(() => {
+            displayCoins(cachedCoins);
+        }, 500);
+    }
     
     // تحديث من الخلفية
     setTimeout(() => {
@@ -823,6 +874,9 @@ function showPage(page, event) {
     if (page === 'referral') {
         updateReferralDisplay();
     } else if (page === 'home') {
+        // التحقق من إعادة تعيين التصويتات اليومية
+        checkAndResetDailyVotes();
+        updateVotesCounter();
         // إعادة تعيين التحديد
         selectedIndex = -1;
         if (cachedCoins.length > 0) {
@@ -852,7 +906,7 @@ function copyReferralLink() {
 }
 
 function updateReferralDisplay() {
-    // تم التعديل: استخدام معرف البوت الصحيح oclin_vote_bot
+    // استخدام معرف البوت الصحيح oclin_vote_bot
     const botUsername = "oclin_vote_bot";
     document.getElementById("referralLink").value = "https://t.me/" + botUsername + "?start=" + userData.id;
     document.getElementById("referralBalance").innerText = userData.referralBalance;
@@ -860,10 +914,12 @@ function updateReferralDisplay() {
 }
 
 function init() {
+    checkAndResetDailyVotes(); // التحقق من إعادة تعيين التصويتات
     checkForReferral();
     mergeReferralDataWithUser();
     
     document.getElementById("profileBalance").innerText = userData.balance;
+    updateVotesCounter();
     updateReferralDisplay();
     
     // جلب العملات
