@@ -468,7 +468,7 @@ opacity:1;
 <div id="homePage">
 <div class="welcome-message">👋 اختر عملة للتصويت <span id="votesCounter" style="color: #ffd966; font-weight: bold;">(5/5)</span></div>
 
-<div class="coins-title">📊 العملات المتاحة</div>
+<div class="coins-title">📊 عملات Solana المتاحة</div>
 <div class="coins-grid" id="coinsGrid"></div>
 
 </div>
@@ -665,7 +665,7 @@ function updateVotesCounter() {
     }
 }
 
-// دالة محسنة لجلب العملات
+// دالة محسنة لجلب العملات من DexScreener
 async function fetchCoins(forceRefresh = false) {
     if (isFetchingCoins) return;
     
@@ -676,21 +676,39 @@ async function fetchCoins(forceRefresh = false) {
     
     try {
         isFetchingCoins = true;
-        coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل العملات...</p>';
+        coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل عملات Solana...</p>';
         
-        const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=15&page=1");
+        // استخدام API DexScreener للبحث عن عملات Solana
+        const res = await fetch("https://api.dexscreener.com/latest/dex/search?q=solana");
         
         if (!res.ok) {
             throw new Error(`HTTP error! status: ${res.status}`);
         }
         
         const data = await res.json();
-        cachedCoins = data;
+        
+        if (!data.pairs || data.pairs.length === 0) {
+            throw new Error("لا توجد عملات متاحة");
+        }
+        
+        // تحويل البيانات من DexScreener إلى تنسيق مشابه لـ CoinGecko
+        const formattedCoins = data.pairs
+            .filter(pair => pair.chainId === 'solana') // التأكد من أنها على Solana
+            .slice(0, 15) // أخذ أول 15 عملة فقط
+            .map(pair => ({
+                id: pair.pairAddress,
+                name: pair.baseToken.name,
+                symbol: pair.baseToken.symbol,
+                image: pair.info?.imageUrl || `https://via.placeholder.com/45?text=${pair.baseToken.symbol}`,
+                current_price: pair.priceUsd || 0
+            }));
+        
+        cachedCoins = formattedCoins;
         lastFetchTime = Date.now();
-        displayCoins(data);
+        displayCoins(formattedCoins);
         
     } catch (error) {
-        console.error("Error fetching coins:", error);
+        console.error("Error fetching coins from DexScreener:", error);
         
         if (cachedCoins.length > 0) {
             displayCoins(cachedCoins);
@@ -730,10 +748,11 @@ function displayCoins(coins) {
         }
 
         coinCard.innerHTML = `
-            <div class="coin-icon"><img src="${coin.image}" alt="${coin.name}" onerror="this.src='https://via.placeholder.com/45'"></div>
+            <div class="coin-icon"><img src="${coin.image}" alt="${coin.name}" onerror="this.src='https://via.placeholder.com/45?text=${coin.symbol}'"></div>
             <div>
                 <div class="coin-name">${coin.name}</div>
                 <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
+                ${coin.current_price ? `<div class="coin-symbol" style="color:#2ecc71;">$${parseFloat(coin.current_price).toFixed(4)}</div>` : ''}
             </div>`;
 
         // أزرار التصويت الخاصة بهذه العملة
@@ -922,7 +941,7 @@ function init() {
     updateVotesCounter();
     updateReferralDisplay();
     
-    // جلب العملات
+    // جلب العملات من DexScreener
     fetchCoins();
     
     setTimeout(() => {
