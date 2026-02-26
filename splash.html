@@ -174,7 +174,7 @@ background:rgba(10,15,30,0.9);
 .vote-up{border-color:#2ecc71;color:#2ecc71;}
 .vote-down{border-color:#e74c3c;color:#e74c3c;}
 
-/* ---- Profile Page Styles (مطابق للصورة) ---- */
+/* ---- Profile Page Styles ---- */
 .profile-card {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
@@ -265,7 +265,7 @@ background:rgba(10,15,30,0.9);
 }
 /* -------------------------------------------- */
 
-/* ---- Referral Page Styles (مطابق للصورة) ---- */
+/* ---- Referral Page Styles ---- */
 .referral-container {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
@@ -447,7 +447,7 @@ opacity:1;
 <div class="coins-grid" id="coinsGrid"></div>
 </div>
 
-<!-- PROFILE (مطابق للصورة) -->
+<!-- PROFILE -->
 <div id="profilePage" class="hidden">
 <div class="profile-card">
     <div class="profile-avatar">👤</div>
@@ -468,7 +468,7 @@ opacity:1;
 </div>
 </div>
 
-<!-- REFERRAL (مطابق للصورة) -->
+<!-- REFERRAL -->
 <div id="referralPage" class="hidden">
 <div class="referral-container">
     <h2 class="referral-title"># Invite Friends</h2>
@@ -494,7 +494,7 @@ opacity:1;
 
 </div>
 
-<!-- NAV (مع أسماء الأيقونات) -->
+<!-- NAV -->
 <div class="bottom-nav">
 <div class="nav-item active" onclick="showPage('home')">
     🏠
@@ -521,9 +521,15 @@ Telegram.WebApp.expand();
 Telegram.WebApp.disableVerticalSwipes();
 }
 
-const DAILY_LIMIT=5;
-const VOTE_REWARD=10;
-const REFERRAL_REWARD = 5; // مكافأة الإحالة (5 نقاط حسب الصورة)
+const DAILY_LIMIT = 5;
+const VOTE_REWARD = 10;
+const REFERRAL_REWARD = 5;
+
+// متغيرات تخزين مؤقت للعملات
+let cachedCoins = [];
+let isFetchingCoins = false;
+let lastFetchTime = 0;
+const CACHE_DURATION = 60000; // دقيقة واحدة
 
 function playSound() {
     try {
@@ -612,85 +618,159 @@ let selectedIndex = -1;
 const coinsGrid = document.getElementById("coinsGrid");
 const voteOptions = document.getElementById("voteOptions");
 
-async function fetchCoins(){
+// دالة محسنة لجلب العملات
+async function fetchCoins(forceRefresh = false) {
+    // منع الطلبات المتكررة
+    if (isFetchingCoins) return;
+    
+    // إذا كان لدينا كاش وما طلبنا تحديث قسري، نعرض الكاش
+    if (!forceRefresh && cachedCoins.length > 0 && (Date.now() - lastFetchTime) < CACHE_DURATION) {
+        displayCoins(cachedCoins);
+        return;
+    }
+    
     try {
-        const res=await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=15&page=1");
-        const data=await res.json();
-
-        coinsGrid.innerHTML="";
-        data.forEach((coin,i)=>{
-            const div=document.createElement("div");
-            div.className="coin-card";
-            if(userData.votedCoins[i])div.classList.add("voted");
-
-            div.innerHTML=`
-                <div class="coin-icon"><img src="${coin.image}"></div>
-                <div>
-                    <div class="coin-name">${coin.name}</div>
-                    <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
-                </div>`;
-
-            div.onclick=()=>selectCoin(i,div);
-            coinsGrid.appendChild(div);
-        });
+        isFetchingCoins = true;
+        
+        // نعرض رسالة تحميل لطيفة
+        coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل العملات...</p>';
+        
+        const res = await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=15&page=1");
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const data = await res.json();
+        
+        // تخزين في الكاش
+        cachedCoins = data;
+        lastFetchTime = Date.now();
+        
+        // عرض العملات
+        displayCoins(data);
+        
     } catch (error) {
         console.error("Error fetching coins:", error);
-        coinsGrid.innerHTML = '<p style="color:white;text-align:center;">Failed to load coins. Please refresh.</p>';
+        
+        // إذا كان لدينا كاش، نعرضه حتى لو قديم
+        if (cachedCoins.length > 0) {
+            displayCoins(cachedCoins);
+            showToast("جاري عرض آخر العملات المتاحة");
+        } else {
+            coinsGrid.innerHTML = '<p style="color:white;text-align:center;">⚠️ فشل تحميل العملات. حاول مرة أخرى.</p>';
+        }
+    } finally {
+        isFetchingCoins = false;
     }
 }
 
-function selectCoin(i,el){
-    if(userData.votedCoins[i]) return;
-    document.querySelectorAll(".coin-card").forEach(c=>c.classList.remove("selected"));
+// دالة عرض العملات
+function displayCoins(coins) {
+    if (!coins || coins.length === 0) {
+        coinsGrid.innerHTML = '<p style="color:white;text-align:center;">لا توجد عملات متاحة</p>';
+        return;
+    }
+    
+    coinsGrid.innerHTML = "";
+    coins.forEach((coin, i) => {
+        const div = document.createElement("div");
+        div.className = "coin-card";
+        
+        // التحقق من التصويت
+        if (userData.votedCoins && userData.votedCoins[i]) {
+            div.classList.add("voted");
+        }
+
+        div.innerHTML = `
+            <div class="coin-icon"><img src="${coin.image}" alt="${coin.name}" onerror="this.src='https://via.placeholder.com/45'"></div>
+            <div>
+                <div class="coin-name">${coin.name}</div>
+                <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
+            </div>`;
+
+        div.onclick = () => selectCoin(i, div);
+        coinsGrid.appendChild(div);
+    });
+}
+
+function selectCoin(i, el) {
+    if (userData.votedCoins && userData.votedCoins[i]) {
+        showToast("لقد صوتت لهذه العملة مسبقاً");
+        return;
+    }
+    
+    document.querySelectorAll(".coin-card").forEach(c => c.classList.remove("selected"));
     el.classList.add("selected");
-    selectedIndex=i;
+    selectedIndex = i;
     voteOptions.classList.add("show");
 }
 
-function castVote(voteType){
-    if(selectedIndex===-1){
-        showToast("Select a coin first");
-        return;
-    }
-    if(userData.dailyVotes>=DAILY_LIMIT){
-        showToast("Daily limit reached");
+function castVote(voteType) {
+    if (selectedIndex === -1) {
+        showToast("اختر عملة أولاً");
         return;
     }
     
+    if (userData.dailyVotes >= DAILY_LIMIT) {
+        showToast("لقد استنفذت حد التصويت اليومي");
+        return;
+    }
+    
+    // حفظ التصويت
     userData.balance += VOTE_REWARD;
     userData.dailyVotes++;
+    
+    // التأكد من وجود votedCoins
+    if (!userData.votedCoins) {
+        userData.votedCoins = {};
+    }
     userData.votedCoins[selectedIndex] = true;
     
-    localStorage.setItem("oclin_user",JSON.stringify(userData));
+    localStorage.setItem("oclin_user", JSON.stringify(userData));
     
+    // تحديث الواجهة
     document.getElementById("profileBalance").innerText = userData.balance;
-    showToast(`You earned ${VOTE_REWARD} points for voting ${voteType}`);
+    showToast(`✅ تم التصويت بنجاح! حصلت على ${VOTE_REWARD} نقاط`);
     
+    // إخفاء خيارات التصويت
     voteOptions.classList.remove("show");
     selectedIndex = -1;
-    fetchCoins();
+    
+    // تحديث العملات مع الحفاظ على الكاش
+    displayCoins(cachedCoins);
+    
+    // تحديث من الخلفية (بدون انتظار)
+    setTimeout(() => {
+        if (Date.now() - lastFetchTime > 30000) { // إذا مر 30 ثانية على آخر تحديث
+            fetchCoins(true);
+        }
+    }, 1000);
 }
 
-function showPage(page){
-    document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+function showPage(page) {
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     if (event) event.currentTarget.classList.add("active");
 
     document.getElementById("homePage").classList.add("hidden");
     document.getElementById("profilePage").classList.add("hidden");
     document.getElementById("referralPage").classList.add("hidden");
 
-    document.getElementById(page+"Page").classList.remove("hidden");
+    document.getElementById(page + "Page").classList.remove("hidden");
     
     if (page === 'referral') {
         updateReferralDisplay();
+    } else if (page === 'home') {
+        // تحديث العملات عند العودة للصفحة الرئيسية
+        fetchCoins();
     }
 }
 
-function showToast(msg){
-    const t=document.getElementById("toast");
-    t.innerText=msg;
+function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.innerText = msg;
     t.classList.add("show");
-    setTimeout(()=>t.classList.remove("show"),2000);
+    setTimeout(() => t.classList.remove("show"), 2000);
 }
 
 function copyReferralLink() {
@@ -698,9 +778,9 @@ function copyReferralLink() {
     linkInput.select();
     linkInput.setSelectionRange(0, 99999);
     navigator.clipboard.writeText(linkInput.value).then(() => {
-        showToast("Link copied!");
+        showToast("تم نسخ الرابط!");
     }).catch(err => {
-        showToast("Failed to copy");
+        showToast("فشل النسخ");
     });
 }
 
@@ -717,6 +797,7 @@ function init() {
     document.getElementById("profileBalance").innerText = userData.balance;
     updateReferralDisplay();
     
+    // جلب العملات
     fetchCoins();
     
     setTimeout(() => {
