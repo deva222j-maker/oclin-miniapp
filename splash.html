@@ -666,7 +666,7 @@
             <div id="referralPage" class="hidden">
                 <div class="referral-container">
                     <h2 class="referral-title">🎁 دعوة الأصدقاء</h2>
-                    <p class="referral-desc">احصل على 5 نقاط عن كل صديق ينضم عبر رابطك</p>
+                    <p class="referral-desc">احصل على 15 نقطة عن كل صديق جديد ينضم عبر رابطك</p>
 
                     <div class="referral-link-box">
                         <input type="text" id="referralLink" readonly>
@@ -734,7 +734,7 @@
 
         const DAILY_LIMIT = 5;
         const VOTE_REWARD = 10;
-        const REFERRAL_REWARD = 5;
+        const REFERRAL_REWARD = 15; // تم تعديلها إلى 15
         const SOCIAL_TASK_REWARD = 5;
 
         // متغيرات تخزين مؤقت للعملات
@@ -787,10 +787,11 @@
                     votedCoins: {},
                     referralBalance: 0,
                     referralsCount: 0,
-                    hasReceivedReferralReward: false,
+                    hasReceivedReferralReward: false, // هل استفاد من رابط إحالة؟
                     lastVoteDate: new Date().toDateString(),
                     completedTasks: {},
-                    joinedAt: new Date().toISOString()
+                    joinedAt: new Date().toISOString(),
+                    referredBy: null // من دعاه؟
                 };
             }
         }
@@ -816,54 +817,77 @@
         // نظام الإحالة المتقدم - يقرأ من startapp
         function checkForReferral() {
             const urlParams = new URLSearchParams(window.location.search);
-            // استخدام startapp بدلاً من start (للتطبيق داخل البوت)
-            const referrerId = urlParams.get('startapp');
+            const referrerId = urlParams.get('startapp'); // الرابط الصحيح للتطبيق
 
-            console.log('Referrer ID from URL:', referrerId);
+            console.log('Referrer ID from URL (startapp):', referrerId);
 
-            if (referrerId && referrerId !== userData.id) { // التأكد أن الداعي ليس نفسه
-                // التحقق من أن هذا المستخدم جديد
-                const isNewUser = !localStorage.getItem("oclin_user_" + userData.id);
-                const hasBeenReferred = localStorage.getItem('referred_by_' + referrerId);
-
-                if (isNewUser && !hasBeenReferred && !userData.hasReceivedReferralReward) {
-                    // إعطاء النقاط للمحيل
-                    giveReferralReward(referrerId);
-                    userData.hasReceivedReferralReward = true;
-                    userData.referredBy = referrerId; // تسجيل من دعاه
-
-                    // تسجيل أن هذا الجهاز استخدم رابط المحيل
-                    localStorage.setItem('referred_by_' + referrerId, Date.now());
-
-                    document.getElementById('splashMessage').innerText = '🎉 مرحباً! تم تفعيل رابط الإحالة بنجاح';
-                    saveUserData();
-                    playSound();
-
-                    console.log('تم تفعيل الإحالة بنجاح للمحيل:', referrerId);
-                } else {
-                    document.getElementById('splashMessage').innerText = 'مرحباً بعودتك!';
-                }
-            } else {
+            // شرط 1: هل يوجد رابط إحالة في الرابط؟
+            if (!referrerId) {
                 document.getElementById('splashMessage').innerText = 'مرحباً بك!';
+                return; // لا يوجد رابط إحالة
+            }
+
+            // شرط 2: هل المستخدم يحاول دعوة نفسه؟ (نفس المعرف)
+            if (referrerId === userData.id) {
+                document.getElementById('splashMessage').innerText = 'لا يمكنك استخدام رابطك الخاص!';
+                console.warn('Self-referral attempt blocked.');
+                return;
+            }
+
+            // شرط 3: هل هذا المستخدم جديد تماماً؟ (لم يسجل بعد في localStorage)
+            const isBrandNewUser = !localStorage.getItem("oclin_user_" + userData.id);
+
+            if (isBrandNewUser) {
+                // مستخدم جديد 100%، نقوم بعملية الإحالة
+                console.log('مستخدم جديد عبر رابط إحالة من:', referrerId);
+
+                // إعطاء النقاط للمحيل
+                const rewardGiven = giveReferralReward(referrerId);
+
+                if (rewardGiven) {
+                    // تسجيل أن هذا المستخدم جاء عبر هذا المحيل
+                    userData.referredBy = referrerId;
+                    userData.hasReceivedReferralReward = false; // هذا المستخدم لم يستقبل نقاط إحالة، بل هو من جلبها للمحيل
+                    saveUserData();
+
+                    // تسجيل في localStorage العام أن هذا الرابط استخدم لهذا المحيل (لمنع التكرار من نفس المتصفح)
+                    localStorage.setItem('referred_by_' + referrerId, userData.id);
+
+                    document.getElementById('splashMessage').innerText = `🎉 مرحباً! تم تفعيل رابط الإحالة وإضافة ${REFERRAL_REWARD} نقاط للمحيل`;
+                    playSound();
+                } else {
+                    // هذا يعني أن المحيل غير موجود (خطأ نادر)
+                    document.getElementById('splashMessage').innerText = 'رابط إحالة غير صالح';
+                }
+
+            } else {
+                // مستخدم عائد (مسجل مسبقاً)
+                document.getElementById('splashMessage').innerText = 'عذراً، هذا الرابط مخصص للمستخدمين الجدد فقط';
+                console.log('مستخدم عائد حاول استخدام رابط إحالة');
             }
         }
 
         // إعطاء نقاط للمحيل
         function giveReferralReward(referrerId) {
             try {
+                // جلب بيانات المحيل من التخزين
                 let referrerData = JSON.parse(localStorage.getItem("oclin_user_" + referrerId));
 
                 if (referrerData) {
+                    // إضافة النقاط للمحيل
                     referrerData.referralBalance = (referrerData.referralBalance || 0) + REFERRAL_REWARD;
                     referrerData.referralsCount = (referrerData.referralsCount || 0) + 1;
                     localStorage.setItem("oclin_user_" + referrerId, JSON.stringify(referrerData));
 
-                    console.log('تم إضافة النقاط للمحيل:', referrerId);
+                    console.log(`✅ تم إضافة ${REFERRAL_REWARD} نقاط للمحيل:`, referrerId);
+                    return true;
                 } else {
-                    console.log('المحيل غير موجود:', referrerId);
+                    console.log('المحيل غير موجود في قاعدة البيانات:', referrerId);
+                    return false;
                 }
             } catch (e) {
                 console.error('خطأ في إعطاء النقاط للمحيل:', e);
+                return false;
             }
         }
 
@@ -1311,7 +1335,7 @@
         }
 
         function updateReferralDisplay() {
-            // رابط Mini App الصحيح - يفتح التطبيق مباشرة داخل البوت
+            // الرابط السحري - يفتح التطبيق المصغر داخل البوت مباشرة
             const botUsername = "oclin_vote_bot";
             const miniAppLink = `https://t.me/${botUsername}/start?startapp=${userData.id}`;
             document.getElementById("referralLink").value = miniAppLink;
@@ -1321,7 +1345,7 @@
 
         function init() {
             checkAndResetDailyVotes();
-            checkForReferral();
+            checkForReferral(); // يجب أن تكون قبل تحديث الواجهة
 
             document.getElementById("profileBalance").innerText = userData.balance;
             updateVotesCounter();
