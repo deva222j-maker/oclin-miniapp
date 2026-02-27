@@ -734,14 +734,14 @@
 
         const DAILY_LIMIT = 5;
         const VOTE_REWARD = 10;
-        const REFERRAL_REWARD = 15; // تم تعديلها إلى 15
+        const REFERRAL_REWARD = 15;
         const SOCIAL_TASK_REWARD = 5;
 
         // متغيرات تخزين مؤقت للعملات
         let cachedCoins = [];
         let isFetchingCoins = false;
         let lastFetchTime = 0;
-        const CACHE_DURATION = 60000; // دقيقة واحدة
+        const CACHE_DURATION = 60000;
 
         function playSound() {
             try {
@@ -787,11 +787,11 @@
                     votedCoins: {},
                     referralBalance: 0,
                     referralsCount: 0,
-                    hasReceivedReferralReward: false, // هل استفاد من رابط إحالة؟
+                    hasUsedReferral: false,
                     lastVoteDate: new Date().toDateString(),
                     completedTasks: {},
                     joinedAt: new Date().toISOString(),
-                    referredBy: null // من دعاه؟
+                    referredBy: null
                 };
             }
         }
@@ -814,79 +814,82 @@
             }
         }
 
-        // نظام الإحالة المتقدم - يقرأ من startapp
+        // نظام الإحالة المتقدم
         function checkForReferral() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const referrerId = urlParams.get('startapp'); // الرابط الصحيح للتطبيق
-
-            console.log('Referrer ID from URL (startapp):', referrerId);
-
-            // شرط 1: هل يوجد رابط إحالة في الرابط؟
+            // محاولة الحصول على معرف المحيل من عدة مصادر
+            let referrerId = null;
+            
+            // 1. من Telegram WebApp (الأهم)
+            if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
+                referrerId = window.Telegram.WebApp.initDataUnsafe.start_param;
+                console.log('Referrer from Telegram WebApp:', referrerId);
+            }
+            
+            // 2. من URL parameters (كبديل)
             if (!referrerId) {
-                document.getElementById('splashMessage').innerText = 'مرحباً بك!';
-                return; // لا يوجد رابط إحالة
+                const urlParams = new URLSearchParams(window.location.search);
+                referrerId = urlParams.get('startapp') || urlParams.get('start');
+                console.log('Referrer from URL:', referrerId);
             }
 
-            // شرط 2: هل المستخدم يحاول دعوة نفسه؟ (نفس المعرف)
-            if (referrerId === userData.id) {
-                document.getElementById('splashMessage').innerText = 'لا يمكنك استخدام رابطك الخاص!';
-                console.warn('Self-referral attempt blocked.');
+            // التحقق من وجود رابط إحالة
+            if (!referrerId) {
+                document.getElementById('splashMessage').innerText = 'مرحباً بك!';
                 return;
             }
 
-            // شرط 3: هل هذا المستخدم جديد تماماً؟ (لم يسجل بعد في localStorage)
-            const isBrandNewUser = !localStorage.getItem("oclin_user_" + userData.id);
+            // التحقق من أن المستخدم لا يدعو نفسه
+            if (referrerId === userData.id) {
+                document.getElementById('splashMessage').innerText = 'لا يمكنك استخدام رابطك الخاص!';
+                return;
+            }
 
-            if (isBrandNewUser) {
-                // مستخدم جديد 100%، نقوم بعملية الإحالة
+            // التحقق من أن هذا المستخدم جديد تماماً
+            const isNewUser = !localStorage.getItem("oclin_user_" + userData.id);
+            
+            if (isNewUser) {
                 console.log('مستخدم جديد عبر رابط إحالة من:', referrerId);
-
-                // إعطاء النقاط للمحيل
+                
+                // إضافة نقاط للمحيل
                 const rewardGiven = giveReferralReward(referrerId);
-
+                
                 if (rewardGiven) {
                     // تسجيل أن هذا المستخدم جاء عبر هذا المحيل
                     userData.referredBy = referrerId;
-                    userData.hasReceivedReferralReward = false; // هذا المستخدم لم يستقبل نقاط إحالة، بل هو من جلبها للمحيل
+                    userData.hasUsedReferral = true;
                     saveUserData();
-
-                    // تسجيل في localStorage العام أن هذا الرابط استخدم لهذا المحيل (لمنع التكرار من نفس المتصفح)
-                    localStorage.setItem('referred_by_' + referrerId, userData.id);
-
+                    
                     document.getElementById('splashMessage').innerText = `🎉 مرحباً! تم تفعيل رابط الإحالة وإضافة ${REFERRAL_REWARD} نقاط للمحيل`;
                     playSound();
                 } else {
-                    // هذا يعني أن المحيل غير موجود (خطأ نادر)
                     document.getElementById('splashMessage').innerText = 'رابط إحالة غير صالح';
                 }
-
             } else {
-                // مستخدم عائد (مسجل مسبقاً)
+                // مستخدم موجود مسبقاً
                 document.getElementById('splashMessage').innerText = 'عذراً، هذا الرابط مخصص للمستخدمين الجدد فقط';
-                console.log('مستخدم عائد حاول استخدام رابط إحالة');
+                console.log('مستخدم موجود حاول استخدام رابط إحالة');
             }
         }
 
         // إعطاء نقاط للمحيل
         function giveReferralReward(referrerId) {
             try {
-                // جلب بيانات المحيل من التخزين
                 let referrerData = JSON.parse(localStorage.getItem("oclin_user_" + referrerId));
-
+                
                 if (referrerData) {
                     // إضافة النقاط للمحيل
                     referrerData.referralBalance = (referrerData.referralBalance || 0) + REFERRAL_REWARD;
                     referrerData.referralsCount = (referrerData.referralsCount || 0) + 1;
                     localStorage.setItem("oclin_user_" + referrerId, JSON.stringify(referrerData));
-
+                    
                     console.log(`✅ تم إضافة ${REFERRAL_REWARD} نقاط للمحيل:`, referrerId);
                     return true;
                 } else {
-                    console.log('المحيل غير موجود في قاعدة البيانات:', referrerId);
+                    console.log('المحيل غير موجود:', referrerId);
                     return false;
                 }
             } catch (e) {
-                console.error('خطأ في إعطاء النقاط للمحيل:', e);
+                console.error('خطأ في إعطاء النقاط:', e);
                 return false;
             }
         }
@@ -895,7 +898,6 @@
         const coinsGrid = document.getElementById("coinsGrid");
         let voteContainers = [];
 
-        // تحديث عداد التصويتات المتبقية
         function updateVotesCounter() {
             const remainingVotes = DAILY_LIMIT - userData.dailyVotes;
             const counterElement = document.querySelector('#votesCounter');
@@ -906,21 +908,16 @@
 
         // قائمة بأشهر العملات على Solana
         const POPULAR_SOLANA_TOKENS = [
-            "So11111111111111111111111111111111111111112", // Wrapped SOL
-            "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
-            "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", // USDT
-            "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", // BONK
-            "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", // SAMO
-            "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So", // mSOL
-            "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn", // JitoSOL
-            "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1", // bSOL
-            "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E", // wBTC
-            "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk", // wETH
-            "SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt", // SRM
-            "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs", // ETH (Wormhole)
-            "A9mUU4qviSctgLPK7h7yqA8Fp4E7iWzQm9dKJp8LQvM", // BTC (Wormhole)
-            "HZRCwxP2Vq9PCpPXooayhJ2bxTpo5xfpQrwB1svh332p", // LDO
-            "9X8BzCjCtW1wR5r5n5X5X5X5X5X5X5X5X5X5X5X5X5", // FIDA
+            "So11111111111111111111111111111111111111112",
+            "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+            "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+            "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+            "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+            "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",
+            "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1",
+            "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E",
+            "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk",
         ];
 
         async function fetchCoins(forceRefresh = false) {
@@ -937,7 +934,6 @@
 
                 const uniqueCoins = new Map();
 
-                // جلب العملات المشهورة
                 for (const tokenAddress of POPULAR_SOLANA_TOKENS) {
                     try {
                         const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`);
@@ -961,7 +957,6 @@
                     }
                 }
 
-                // إذا لم نتمكن من جلب أي عملة، نستخدم بيانات تجريبية
                 if (uniqueCoins.size === 0) {
                     const mockCoins = [
                         { name: "Solana", symbol: "SOL", price: 98.5 },
@@ -1006,7 +1001,6 @@
             }
         }
 
-        // بدء التحديث التلقائي كل دقيقة
         setInterval(() => {
             if (document.getElementById('homePage').classList.contains('hidden') === false) {
                 fetchCoins(true);
@@ -1149,7 +1143,7 @@
             }
         }
 
-        // بيانات المهام مع أيقونات SVG حقيقية
+        // بيانات المهام
         const socialLinks = [
             {
                 platform: 'youtube',
@@ -1251,10 +1245,8 @@
                 return;
             }
 
-            // فتح الرابط
             window.open(link.url, '_blank');
 
-            // منح النقاط
             userData.balance += link.reward;
             userData.completedTasks[link.platform] = true;
             saveUserData();
@@ -1262,7 +1254,7 @@
             document.getElementById("profileBalance").innerText = userData.balance;
             showToast(`✅ تم إضافة ${link.reward} نقاط لمتابعة ${link.name}`);
 
-            initTasksPage(); // إعادة تحميل الصفحة لتحديث المظهر
+            initTasksPage();
         }
 
         function likePost(index) {
@@ -1280,7 +1272,7 @@
             document.getElementById("profileBalance").innerText = userData.balance;
             showToast('✅ تم إضافة 5 نقاط! شكراً للإعجاب');
 
-            initTasksPage(); // إعادة تحميل الصفحة
+            initTasksPage();
         }
 
         function showPage(page, event) {
@@ -1335,17 +1327,25 @@
         }
 
         function updateReferralDisplay() {
-            // الرابط السحري - يفتح التطبيق المصغر داخل البوت مباشرة
+            // الرابط الصحيح لفتح التطبيق المصغر داخل البوت
             const botUsername = "oclin_vote_bot";
-            const miniAppLink = `https://t.me/${botUsername}/start?startapp=${userData.id}`;
+            
+            // معرف المستخدم الحالي (الداعي)
+            const referrerId = userData.id;
+            
+            // الرابط السحري - يفتح التطبيق مباشرة داخل البوت
+            const miniAppLink = `https://t.me/${botUsername}/start?startapp=${referrerId}`;
+            
             document.getElementById("referralLink").value = miniAppLink;
             document.getElementById("referralBalance").innerText = userData.referralBalance || 0;
             document.getElementById("totalReferrals").innerText = userData.referralsCount || 0;
+            
+            console.log('رابط الإحالة:', miniAppLink);
         }
 
         function init() {
             checkAndResetDailyVotes();
-            checkForReferral(); // يجب أن تكون قبل تحديث الواجهة
+            checkForReferral();
 
             document.getElementById("profileBalance").innerText = userData.balance;
             updateVotesCounter();
