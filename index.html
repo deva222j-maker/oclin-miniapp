@@ -331,54 +331,73 @@
         }
     };
 
-    // ==================== نظام الإحالة المتقدم ====================
+    // ==================== نظام الإحالة المتقدم (معدل بالكامل) ====================
     const ReferralSystem = {
         // إنشاء معرف آمن
         generateSecureId: function() {
             const array = new Uint8Array(12);
             crypto.getRandomValues(array);
-            return 'usr_' + Array.from(array)
+            return 'user_' + Array.from(array)
                 .map(b => b.toString(16).padStart(2, '0'))
                 .join('');
         },
 
-        // التحقق من رابط الإحالة
+        // التحقق من رابط الإحالة - المعدل الرئيسي
         checkReferral: function() {
             try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const referrerCode = urlParams.get('start'); // استخدم start بدل ref
+                // محاولة القراءة من Telegram WebApp أولاً (الطريقة الصحيحة)
+                let referrerCode = null;
+                
+                // 1. من Telegram WebApp (الأهم)
+                if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
+                    referrerCode = window.Telegram.WebApp.initDataUnsafe.start_param;
+                    console.log('✅ تم العثور على إحالة من Telegram WebApp:', referrerCode);
+                }
+                
+                // 2. من URL parameters (كبديل)
+                if (!referrerCode) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    // محاولة القراءة من startapp أولاً (الرابط الصحيح للتطبيق المصغر)
+                    referrerCode = urlParams.get('startapp') || urlParams.get('start');
+                    console.log('📌 تم العثور على إحالة من URL:', referrerCode);
+                }
                 
                 if (!referrerCode) return null;
 
-                // التحقق من صحة الكود (يبدأ بـ user_)
+                // التحقق من صحة الكود (يجب أن يبدأ بـ user_)
                 if (!referrerCode.startsWith('user_')) {
-                    console.warn('كود إحالة غير صالح:', referrerCode);
+                    console.warn('⚠️ كود إحالة غير صالح:', referrerCode);
                     return null;
                 }
 
                 return referrerCode;
             } catch (e) {
-                console.error('خطأ في قراءة رابط الإحالة', e);
+                console.error('❌ خطأ في قراءة رابط الإحالة', e);
                 return null;
             }
         },
 
-        // معالجة الإحالة
+        // معالجة الإحالة - المعدل
         processReferral: function(referrerCode) {
             try {
+                console.log('🔄 معالجة إحالة من:', referrerCode);
+                
                 // التحقق من أن المستخدم جديد
                 if (localStorage.getItem('oclin_user')) {
+                    console.log('❌ مستخدم موجود مسبقاً');
                     return { success: false, reason: 'existing_user' };
                 }
 
                 // التحقق من عدم تكرار الإحالة من نفس الجهاز
                 if (localStorage.getItem('referred_by_' + referrerCode)) {
+                    console.log('❌ تم استخدام هذا الرابط مسبقاً');
                     return { success: false, reason: 'already_referred' };
                 }
 
                 // التحقق من أن المحيل ليس نفسه
-                const tempUser = { id: 'temp_' + Math.random() };
-                if (tempUser.id === referrerCode) {
+                const tempId = 'temp_' + Math.random();
+                if (tempId === referrerCode) {
+                    console.log('❌ محاولة إحالة ذاتية');
                     return { success: false, reason: 'self_referral' };
                 }
 
@@ -386,6 +405,7 @@
                 let referrerData = JSON.parse(localStorage.getItem('oclin_user_' + referrerCode));
                 
                 if (!referrerData) {
+                    console.log('⚠️ المحيل غير موجود، يتم إنشاء بيانات مؤقتة');
                     // إذا المحيل مو موجود محلياً، ننشئ له بيانات مؤقتة
                     referrerData = {
                         id: referrerCode,
@@ -404,6 +424,8 @@
                 // نسجل أن هذا الجهاز استخدم الرابط
                 localStorage.setItem('referred_by_' + referrerCode, Date.now());
                 
+                console.log(`✅ تمت الإحالة بنجاح! +${REFERRAL_REWARD} نقاط للمحيل ${referrerCode}`);
+                
                 return { 
                     success: true, 
                     referrer: referrerCode,
@@ -411,12 +433,12 @@
                 };
                 
             } catch (e) {
-                console.error('خطأ في معالجة الإحالة', e);
+                console.error('❌ خطأ في معالجة الإحالة', e);
                 return { success: false, reason: 'error' };
             }
         },
 
-        // إنشاء مستخدم جديد
+        // إنشاء مستخدم جديد - المعدل
         createUser: function(referrerCode = null) {
             try {
                 const userId = this.generateSecureId();
@@ -433,19 +455,19 @@
                     joinedAt: Date.now(),
                     lastActive: Date.now(),
                     referredBy: referrerCode,
-                    hasReceivedBonus: referrerCode ? true : false
+                    hasReceivedBonus: false
                 };
                 
                 // تخزين المستخدم
                 localStorage.setItem('oclin_user', JSON.stringify(newUser));
                 localStorage.setItem('oclin_user_' + userId, JSON.stringify(newUser));
                 
-                console.log('✅ مستخدم جديد:', userId, referrerCode ? '(عن طريق إحالة)' : '');
+                console.log('✅ مستخدم جديد:', userId, referrerCode ? `(عن طريق إحالة من ${referrerCode})` : '(مباشر)');
                 
                 return newUser;
                 
             } catch (e) {
-                console.error('خطأ في إنشاء المستخدم', e);
+                console.error('❌ خطأ في إنشاء المستخدم', e);
                 return null;
             }
         },
@@ -481,9 +503,11 @@
             // تأخير بسيط لتجنب السبام
             await new Promise(r => setTimeout(r, 1000));
             
+            // التحقق من وجود إحالة
+            const referrerCode = ReferralSystem.checkReferral();
+            
             // إنشاء المستخدم إذا ما موجود
             if (!localStorage.getItem('oclin_user')) {
-                const referrerCode = ReferralSystem.checkReferral();
                 ReferralSystem.createUser(referrerCode);
             }
             
@@ -492,7 +516,7 @@
             
             // تحويل للصفحة الرئيسية
             setTimeout(() => {
-                window.location.href = 'splash.html';
+                window.location.href = 'main.html';
             }, 1000);
             
         } catch (error) {
@@ -534,7 +558,7 @@
                     statusText.innerText = 'تم إنشاء الحساب! جاري التحويل...';
                     
                     setTimeout(() => {
-                        window.location.href = 'splash.html';
+                        window.location.href = 'main.html';
                     }, 1500);
                     
                     // إخفاء زر البدء
@@ -549,7 +573,7 @@
             statusDot.className = 'dot success';
             
             setTimeout(() => {
-                window.location.href = 'splash.html';
+                window.location.href = 'main.html';
             }, 1500);
             
             // إخفاء زر البدء
@@ -566,6 +590,8 @@
     // ==================== التهيئة والبدء ====================
     async function init() {
         try {
+            console.log('🚀 بدء تشغيل التطبيق...');
+            
             // 1. تشغيل نظام الحماية
             if (!Security.run()) {
                 return;
@@ -577,8 +603,9 @@
             // 3. معالجة الإحالة إذا وجدت والمستخدم جديد
             let referralResult = null;
             if (referrerCode && !localStorage.getItem('oclin_user')) {
+                console.log('📢 تم العثور على كود إحالة:', referrerCode);
                 referralResult = ReferralSystem.processReferral(referrerCode);
-                console.log('نتيجة الإحالة:', referralResult);
+                console.log('📊 نتيجة الإحالة:', referralResult);
             }
 
             // 4. تحديث واجهة المستخدم
@@ -588,7 +615,7 @@
             document.querySelector('.glass-card').style.opacity = '1';
             
         } catch (error) {
-            console.error('خطأ في التهيئة:', error);
+            console.error('❌ خطأ في التهيئة:', error);
             document.getElementById('statusText').innerText = 'حدث خطأ في التحميل';
         }
     }
@@ -619,7 +646,7 @@
     }
 
     if (!isMobile()) {
-        console.warn('يفضل استخدام هذا التطبيق على الهاتف');
+        console.warn('⚠️ يفضل استخدام هذا التطبيق على الهاتف');
     }
 
     // منع النسخ واللصق
@@ -630,5 +657,3 @@
 
 </body>
 </html>
-
-
