@@ -380,6 +380,154 @@ color:#e74c3c;
 }
 /* -------------------------------------------- */
 
+/* ---- Tasks Page Styles ---- */
+.tasks-container {
+    padding: 15px;
+}
+
+.tasks-section-title {
+    color: white;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 20px 0 15px 0;
+}
+
+.social-links-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+.social-link-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 20px 15px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.social-link-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.social-link-card.completed {
+    opacity: 0.6;
+    border-color: #2ecc71;
+}
+
+.social-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.social-name {
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.social-username {
+    color: #8B5CF6;
+    font-size: 12px;
+}
+
+.social-reward {
+    color: #2ecc71;
+    font-size: 12px;
+    margin-top: 8px;
+    font-weight: 700;
+}
+
+.posts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.post-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 20px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.post-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8B5CF6, #EC4899);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.post-info {
+    flex: 1;
+}
+
+.post-platform {
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.post-time {
+    color: #a5b3d9;
+    font-size: 12px;
+}
+
+.post-content {
+    color: white;
+    font-size: 14px;
+    margin-bottom: 15px;
+    line-height: 1.5;
+    padding-right: 52px;
+}
+
+.post-actions {
+    display: flex;
+    gap: 15px;
+    padding-right: 52px;
+}
+
+.post-action-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.post-action-btn:hover {
+    background: rgba(139, 92, 246, 0.3);
+}
+
+.post-action-btn.completed {
+    background: #2ecc71;
+    border-color: #2ecc71;
+    pointer-events: none;
+}
+/* -------------------------------------------- */
+
 /* ---- Bottom Nav Glassmorphism ---- */
 .bottom-nav {
     position: absolute;
@@ -477,8 +625,8 @@ opacity:1;
 <div id="profilePage" class="hidden">
 <div class="profile-card">
     <div class="profile-avatar">👤</div>
-    <div class="profile-name">Random User</div>
-    <div class="profile-username">@random_user</div>
+    <div class="profile-name" id="profileDisplayName">Random User</div>
+    <div class="profile-username" id="profileUsername">@random_user</div>
     
     <div class="profile-balance">
         <div class="balance-label">الرصيد</div>
@@ -518,6 +666,19 @@ opacity:1;
 </div>
 </div>
 
+<!-- TASKS -->
+<div id="tasksPage" class="hidden">
+<div class="tasks-container">
+    
+    <div class="tasks-section-title">📱 تابعنا على</div>
+    <div class="social-links-grid" id="socialLinksGrid"></div>
+    
+    <div class="tasks-section-title">📄 أحدث المنشورات</div>
+    <div class="posts-grid" id="postsGrid"></div>
+    
+</div>
+</div>
+
 </div>
 
 <!-- NAV -->
@@ -525,6 +686,10 @@ opacity:1;
 <div class="nav-item active" onclick="showPage('home', event)">
     🏠
     <span>الرئيسية</span>
+</div>
+<div class="nav-item" onclick="showPage('tasks', event)">
+    📋
+    <span>المهام</span>
 </div>
 <div class="nav-item" onclick="showPage('profile', event)">
     👤
@@ -547,9 +712,10 @@ Telegram.WebApp.expand();
 Telegram.WebApp.disableVerticalSwipes();
 }
 
-const DAILY_LIMIT = 5; // 5 تصويتات فقط في اليوم
+const DAILY_LIMIT = 5;
 const VOTE_REWARD = 10;
 const REFERRAL_REWARD = 5;
+const SOCIAL_TASK_REWARD = 5;
 
 // متغيرات تخزين مؤقت للعملات
 let cachedCoins = [];
@@ -575,25 +741,55 @@ function playSound() {
     }
 }
 
-let userData = JSON.parse(localStorage.getItem("oclin_user")) || {
-    id: "user_" + Math.random().toString(36).substr(2, 9),
-    balance: 0,
-    dailyVotes: 0,
-    votedCoins: {},
-    referralBalance: 0,
-    referralsCount: 0,
-    hasReceivedReferralReward: false,
-    lastVoteDate: new Date().toDateString() // تتبع تاريخ آخر تصويت
-};
+// دالة لإنشاء معرف مستخدم ثابت
+function getOrCreateUserId() {
+    let userId = localStorage.getItem("oclin_user_id");
+    if (!userId) {
+        userId = "user_" + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem("oclin_user_id", userId);
+    }
+    return userId;
+}
 
-// التحقق من إعادة تعيين التصويتات اليومية إذا كان يوم جديد
+// دالة لتحميل بيانات المستخدم
+function loadUserData() {
+    const userId = getOrCreateUserId();
+    const savedData = localStorage.getItem("oclin_user_" + userId);
+    
+    if (savedData) {
+        return JSON.parse(savedData);
+    } else {
+        // بيانات مستخدم جديدة
+        return {
+            id: userId,
+            balance: 0,
+            dailyVotes: 0,
+            votedCoins: {},
+            referralBalance: 0,
+            referralsCount: 0,
+            hasReceivedReferralReward: false,
+            lastVoteDate: new Date().toDateString(),
+            completedTasks: {},
+            joinedAt: new Date().toISOString()
+        };
+    }
+}
+
+// حفظ بيانات المستخدم
+function saveUserData() {
+    localStorage.setItem("oclin_user_" + userData.id, JSON.stringify(userData));
+}
+
+let userData = loadUserData();
+
+// التحقق من إعادة تعيين التصويتات اليومية
 function checkAndResetDailyVotes() {
     const today = new Date().toDateString();
     if (userData.lastVoteDate !== today) {
         userData.dailyVotes = 0;
-        userData.votedCoins = {}; // إعادة تعيين العملات المصوت عليها
+        userData.votedCoins = {};
         userData.lastVoteDate = today;
-        localStorage.setItem("oclin_user", JSON.stringify(userData));
+        saveUserData();
     }
 }
 
@@ -601,20 +797,20 @@ function checkForReferral() {
     const urlParams = new URLSearchParams(window.location.search);
     const referrerId = urlParams.get('start');
 
-    if (referrerId) {
-        const isNewUser = !localStorage.getItem("oclin_user");
-
+    if (referrerId && referrerId !== userData.id) { // التأكد أن الداعي ليس نفسه
+        const isNewUser = !localStorage.getItem("oclin_user_" + userData.id);
+        
         if (isNewUser && !userData.hasReceivedReferralReward) {
             giveReferralReward(referrerId);
             userData.hasReceivedReferralReward = true;
             document.getElementById('splashMessage').innerText = '🎉 مرحباً! تم تفعيل رابط الإحالة بنجاح';
-            localStorage.setItem("oclin_user", JSON.stringify(userData));
+            saveUserData();
             playSound();
         } else {
             document.getElementById('splashMessage').innerText = 'مرحباً بعودتك!';
             if (!userData.hasOwnProperty('hasReceivedReferralReward')) {
                 userData.hasReceivedReferralReward = true;
-                localStorage.setItem("oclin_user", JSON.stringify(userData));
+                saveUserData();
             }
         }
     } else {
@@ -623,38 +819,18 @@ function checkForReferral() {
 }
 
 function giveReferralReward(referrerId) {
-    let referrerData = JSON.parse(localStorage.getItem("referrer_" + referrerId));
+    let referrerData = JSON.parse(localStorage.getItem("oclin_user_" + referrerId));
     
     if (referrerData) {
         referrerData.referralBalance = (referrerData.referralBalance || 0) + REFERRAL_REWARD;
         referrerData.referralsCount = (referrerData.referralsCount || 0) + 1;
-        localStorage.setItem("referrer_" + referrerId, JSON.stringify(referrerData));
-    } else {
-        const newReferrerData = {
-            id: referrerId,
-            referralBalance: REFERRAL_REWARD,
-            referralsCount: 1
-        };
-        localStorage.setItem("referrer_" + referrerId, JSON.stringify(newReferrerData));
+        localStorage.setItem("oclin_user_" + referrerId, JSON.stringify(referrerData));
     }
-}
-
-function mergeReferralDataWithUser() {
-    const storedReferralData = localStorage.getItem("referrer_" + userData.id);
-    if (storedReferralData) {
-        const refData = JSON.parse(storedReferralData);
-        userData.referralBalance = refData.referralBalance || 0;
-        userData.referralsCount = refData.referralsCount || 0;
-    } else {
-        userData.referralBalance = userData.referralBalance || 0;
-        userData.referralsCount = userData.referralsCount || 0;
-    }
-    localStorage.setItem("oclin_user", JSON.stringify(userData));
 }
 
 let selectedIndex = -1;
 const coinsGrid = document.getElementById("coinsGrid");
-let voteContainers = []; // لتخزين المراجع للحاويات
+let voteContainers = [];
 
 // تحديث عداد التصويتات المتبقية
 function updateVotesCounter() {
@@ -665,7 +841,25 @@ function updateVotesCounter() {
     }
 }
 
-// دالة محسنة لجلب العملات من DexScreener
+// قائمة بأشهر العملات على Solana
+const POPULAR_SOLANA_TOKENS = [
+    "So11111111111111111111111111111111111111112", // Wrapped SOL
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+    "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", // USDT
+    "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", // BONK
+    "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", // SAMO
+    "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So", // mSOL
+    "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn", // JitoSOL
+    "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1", // bSOL
+    "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E", // wBTC
+    "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk", // wETH
+    "SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt", // SRM
+    "9X8BzCjCtW1wR5r5n5X5X5X5X5X5X5X5X5X5X5X5X5", // FIDA
+    "7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs", // ETH (Wormhole)
+    "A9mUU4qviSctgLPK7h7yqA8Fp4E7iWzQm9dKJp8LQvM", // BTC (Wormhole)
+    "HZRCwxP2Vq9PCpPXooayhJ2bxTpo5xfpQrwB1svh332p" // LDO
+];
+
 async function fetchCoins(forceRefresh = false) {
     if (isFetchingCoins) return;
     
@@ -676,39 +870,88 @@ async function fetchCoins(forceRefresh = false) {
     
     try {
         isFetchingCoins = true;
-        coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل عملات Solana...</p>';
+        coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل عملات Solana المتنوعة...</p>';
         
-        // استخدام API DexScreener للبحث عن عملات Solana
-        const res = await fetch("https://api.dexscreener.com/latest/dex/search?q=solana");
+        const uniqueCoins = new Map();
         
-        if (!res.ok) {
-            throw new Error(`HTTP error! status: ${res.status}`);
+        // جلب العملات المشهورة
+        for (const tokenAddress of POPULAR_SOLANA_TOKENS) {
+            try {
+                const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.pairs && data.pairs.length > 0) {
+                        const pair = data.pairs[0];
+                        if (!uniqueCoins.has(pair.baseToken.address)) {
+                            uniqueCoins.set(pair.baseToken.address, {
+                                id: pair.baseToken.address,
+                                name: pair.baseToken.name,
+                                symbol: pair.baseToken.symbol,
+                                image: pair.info?.imageUrl || `https://via.placeholder.com/45?text=${pair.baseToken.symbol}`,
+                                current_price: pair.priceUsd || 0,
+                                volume24h: pair.volume?.h24 || 0
+                            });
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log(`Error fetching token ${tokenAddress}:`, e);
+            }
         }
         
-        const data = await res.json();
-        
-        if (!data.pairs || data.pairs.length === 0) {
-            throw new Error("لا توجد عملات متاحة");
+        // إذا لم نتمكن من جلب أي عملة، نستخدم بيانات تجريبية متنوعة
+        if (uniqueCoins.size === 0) {
+            const mockCoins = [
+                { name: "Solana", symbol: "SOL", address: "So11111111111111111111111111111111111111112", price: 98.5 },
+                { name: "Bonk", symbol: "BONK", address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", price: 0.0000234 },
+                { name: "Jito", symbol: "JTO", address: "jto1", price: 2.34 },
+                { name: "Raydium", symbol: "RAY", address: "ray1", price: 1.23 },
+                { name: "Orca", symbol: "ORCA", address: "orca1", price: 3.45 },
+                { name: "Samoyedcoin", symbol: "SAMO", address: "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", price: 0.00567 },
+                { name: "Marinade", symbol: "mSOL", address: "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So", price: 112.3 },
+                { name: "Wrapped Bitcoin", symbol: "WBTC", address: "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E", price: 62345.67 },
+                { name: "Wrapped Ethereum", symbol: "WETH", address: "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk", price: 3456.78 },
+                { name: "USD Coin", symbol: "USDC", address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", price: 1.00 },
+                { name: "Serum", symbol: "SRM", address: "SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt", price: 0.45 },
+                { name: "Bonfida", symbol: "FIDA", address: "9X8BzCjCtW1wR5r5n5X5X5X5X5X5X5X5X5X5X5X5X5", price: 0.32 },
+                { name: "Lido DAO", symbol: "LDO", address: "HZRCwxP2Vq9PCpPXooayhJ2bxTpo5xfpQrwB1svh332p", price: 2.15 },
+                { name: "Star Atlas", symbol: "ATLAS", address: "atlas1", price: 0.0023 },
+                { name: "Genopets", symbol: "GENE", address: "gene1", price: 0.45 },
+                { name: "Step Finance", symbol: "STEP", address: "step1", price: 0.12 },
+                { name: "Port Finance", symbol: "PORT", address: "port1", price: 0.08 },
+                { name: "Media Network", symbol: "MEDIA", address: "media1", price: 12.5 },
+                { name: "Synthetify", symbol: "SNY", address: "sny1", price: 0.03 },
+                { name: "Mercurial", symbol: "MER", address: "mer1", price: 0.15 },
+                { name: "Oxygen", symbol: "OXY", address: "oxy1", price: 0.07 },
+                { name: "Maps.me", symbol: "MAPS", address: "maps1", price: 0.02 },
+                { name: "Solend", symbol: "SLND", address: "slnd1", price: 0.55 },
+                { name: "Saber", symbol: "SBR", address: "sbr1", price: 0.0012 },
+                { name: "PsyOptions", symbol: "PSY", address: "psy1", price: 0.008 },
+                { name: "Cope", symbol: "COPE", address: "cope1", price: 0.002 },
+                { name: "Solrise", symbol: "SLRS", address: "slrs1", price: 0.0015 },
+                { name: "Parrot", symbol: "PRT", address: "prt1", price: 0.0003 },
+                { name: "Aleph.im", symbol: "ALEPH", address: "aleph1", price: 0.18 },
+                { name: "Akash Network", symbol: "AKT", address: "akt1", price: 2.34 }
+            ];
+            
+            mockCoins.forEach(coin => {
+                uniqueCoins.set(coin.address, {
+                    id: coin.address,
+                    name: coin.name,
+                    symbol: coin.symbol,
+                    image: `https://via.placeholder.com/45?text=${coin.symbol}`,
+                    current_price: coin.price
+                });
+            });
         }
         
-        // تحويل البيانات من DexScreener إلى تنسيق مشابه لـ CoinGecko
-        const formattedCoins = data.pairs
-            .filter(pair => pair.chainId === 'solana') // التأكد من أنها على Solana
-            .slice(0, 15) // أخذ أول 15 عملة فقط
-            .map(pair => ({
-                id: pair.pairAddress,
-                name: pair.baseToken.name,
-                symbol: pair.baseToken.symbol,
-                image: pair.info?.imageUrl || `https://via.placeholder.com/45?text=${pair.baseToken.symbol}`,
-                current_price: pair.priceUsd || 0
-            }));
-        
+        const formattedCoins = Array.from(uniqueCoins.values()).slice(0, 30);
         cachedCoins = formattedCoins;
         lastFetchTime = Date.now();
         displayCoins(formattedCoins);
         
     } catch (error) {
-        console.error("Error fetching coins from DexScreener:", error);
+        console.error("Error fetching coins:", error);
         
         if (cachedCoins.length > 0) {
             displayCoins(cachedCoins);
@@ -721,7 +964,13 @@ async function fetchCoins(forceRefresh = false) {
     }
 }
 
-// دالة عرض العملات مع حاوية منفصلة لكل عملة
+// بدء التحديث التلقائي كل دقيقة
+setInterval(() => {
+    if (document.getElementById('homePage').classList.contains('hidden') === false) {
+        fetchCoins(true);
+    }
+}, 60000);
+
 function displayCoins(coins) {
     if (!coins || coins.length === 0) {
         coinsGrid.innerHTML = '<p style="color:white;text-align:center;">لا توجد عملات متاحة</p>';
@@ -743,7 +992,6 @@ function displayCoins(coins) {
         if (userData.votedCoins && userData.votedCoins[i]) {
             coinCard.classList.add("voted");
         } else if (!hasVotesLeft) {
-            // إذا لم يتبقى تصويتات، نعطل اختيار العملات
             coinCard.classList.add("disabled");
         }
 
@@ -755,7 +1003,6 @@ function displayCoins(coins) {
                 ${coin.current_price ? `<div class="coin-symbol" style="color:#2ecc71;">$${parseFloat(coin.current_price).toFixed(4)}</div>` : ''}
             </div>`;
 
-        // أزرار التصويت الخاصة بهذه العملة
         const voteOptions = document.createElement("div");
         voteOptions.className = "vote-options";
         voteOptions.innerHTML = `
@@ -779,15 +1026,12 @@ function displayCoins(coins) {
 }
 
 function selectCoin(index, container) {
-    // إذا لم يتبقى تصويتات، نمنع التحديد
     if (userData.dailyVotes >= DAILY_LIMIT) {
         showToast("لقد استنفذت حد التصويت اليومي");
         return;
     }
     
-    // إذا كان المستخدم اختار نفس العملة مرة أخرى
     if (selectedIndex === index) {
-        // إلغاء التحديد
         voteContainers.forEach(c => {
             c.classList.remove("selected");
             const voteOpts = c.querySelector('.vote-options');
@@ -797,20 +1041,17 @@ function selectCoin(index, container) {
         return;
     }
     
-    // التحقق من التصويت السابق
     if (userData.votedCoins && userData.votedCoins[index]) {
         showToast("لقد صوتت لهذه العملة مسبقاً");
         return;
     }
     
-    // إزالة التحديد من جميع الحاويات وإخفاء أزرارها
     voteContainers.forEach(c => {
         c.classList.remove("selected");
         const voteOpts = c.querySelector('.vote-options');
         if (voteOpts) voteOpts.classList.remove('show');
     });
     
-    // تحديد الحاوية الحالية وإظهار أزرارها
     container.classList.add("selected");
     const voteOptions = container.querySelector('.vote-options');
     if (voteOptions) voteOptions.classList.add('show');
@@ -834,7 +1075,6 @@ function castVote(index, voteType) {
         return;
     }
     
-    // حفظ التصويت
     userData.balance += VOTE_REWARD;
     userData.dailyVotes++;
     
@@ -843,39 +1083,127 @@ function castVote(index, voteType) {
     }
     userData.votedCoins[index] = true;
     
-    localStorage.setItem("oclin_user", JSON.stringify(userData));
+    saveUserData();
     
-    // تحديث الواجهة
     document.getElementById("profileBalance").innerText = userData.balance;
     updateVotesCounter();
     showToast(`✅ تم التصويت بنجاح! حصلت على ${VOTE_REWARD} نقاط`);
     
-    // إخفاء خيارات التصويت للعملة المحددة
     if (voteContainers[index]) {
         voteContainers[index].classList.remove("selected");
         const voteOpts = voteContainers[index].querySelector('.vote-options');
         if (voteOpts) voteOpts.classList.remove('show');
     }
     
-    // تحديث مظهر العملة إلى "تم التصويت"
     const coinCard = voteContainers[index]?.querySelector('.coin-card');
     if (coinCard) coinCard.classList.add('voted');
     
     selectedIndex = -1;
     
-    // إذا وصلنا للحد الأقصى، نعطل جميع العملات
     if (userData.dailyVotes >= DAILY_LIMIT) {
         setTimeout(() => {
             displayCoins(cachedCoins);
         }, 500);
     }
+}
+
+// بيانات المهام والمنشورات
+const socialLinks = [
+    { platform: 'youtube', name: 'يوتيوب', username: '@oclin_official', icon: '📺', url: 'https://youtube.com/@oclin', reward: 5 },
+    { platform: 'telegram', name: 'تليكرام', username: '@oclin_channel', icon: '📱', url: 'https://t.me/oclin_channel', reward: 5 },
+    { platform: 'x', name: 'X (Twitter)', username: '@oclin', icon: '🐦', url: 'https://x.com/oclin', reward: 5 },
+    { platform: 'instagram', name: 'انستغرام', username: '@oclin', icon: '📷', url: 'https://instagram.com/oclin', reward: 5 },
+    { platform: 'tiktok', name: 'تيك توك', username: '@oclin', icon: '🎵', url: 'https://tiktok.com/@oclin', reward: 5 }
+];
+
+const samplePosts = [
+    { platform: 'يوتيوب', username: '@oclin', content: '🚀 شرح جديد: كيف تربح من التصويت على العملات! شاهد الفيديو الآن', time: 'منذ ساعة', avatar: '📺' },
+    { platform: 'تليكرام', username: '@oclin', content: '🪙 تم إضافة 5 عملات جديدة للتصويت! ادخل وصوت الآن', time: 'منذ 3 ساعات', avatar: '📱' },
+    { platform: 'X', username: '@oclin', content: '🔥 مسابقة كبرى! 1000 نقطة للفائزين الخمسة الأوائل', time: 'منذ 5 ساعات', avatar: '🐦' },
+    { platform: 'انستغرام', username: '@oclin', content: '📸 صور حصرية من لقاء المجتمع مع فريق OCLIN', time: 'منذ يوم', avatar: '📷' },
+    { platform: 'تيك توك', username: '@oclin', content: '🎬 كيف تصبح مليونير بالعملات الرقمية؟ #crypto #solana', time: 'منذ يومين', avatar: '🎵' }
+];
+
+function initTasksPage() {
+    const socialGrid = document.getElementById('socialLinksGrid');
+    socialGrid.innerHTML = '';
     
-    // تحديث من الخلفية
-    setTimeout(() => {
-        if (Date.now() - lastFetchTime > 30000) {
-            fetchCoins(true);
-        }
-    }, 1000);
+    socialLinks.forEach(link => {
+        const card = document.createElement('div');
+        card.className = `social-link-card ${userData.completedTasks?.[link.platform] ? 'completed' : ''}`;
+        card.innerHTML = `
+            <div class="social-icon">${link.icon}</div>
+            <div class="social-name">${link.name}</div>
+            <div class="social-username">${link.username}</div>
+            <div class="social-reward">+${link.reward} نقاط</div>
+        `;
+        card.onclick = () => completeSocialTask(link);
+        socialGrid.appendChild(card);
+    });
+    
+    const postsGrid = document.getElementById('postsGrid');
+    postsGrid.innerHTML = '';
+    
+    samplePosts.forEach((post, index) => {
+        const postDiv = document.createElement('div');
+        postDiv.className = 'post-card';
+        postDiv.innerHTML = `
+            <div class="post-header">
+                <div class="post-avatar">${post.avatar}</div>
+                <div class="post-info">
+                    <div class="post-platform">${post.platform}</div>
+                    <div class="post-time">${post.time}</div>
+                </div>
+            </div>
+            <div class="post-content">${post.content}</div>
+            <div class="post-actions">
+                <button class="post-action-btn ${userData.completedTasks?.['post_' + index] ? 'completed' : ''}" onclick="likePost(${index})">
+                    ${userData.completedTasks?.['post_' + index] ? '✅ تم الإعجاب' : '👍 إعجاب +5'}
+                </button>
+            </div>
+        `;
+        postsGrid.appendChild(postDiv);
+    });
+}
+
+function completeSocialTask(link) {
+    if (!userData.completedTasks) userData.completedTasks = {};
+    
+    if (userData.completedTasks[link.platform]) {
+        showToast('لقد أكملت هذه المهمة مسبقاً');
+        return;
+    }
+    
+    // فتح الرابط
+    window.open(link.url, '_blank');
+    
+    // منح النقاط
+    userData.balance += link.reward;
+    userData.completedTasks[link.platform] = true;
+    saveUserData();
+    
+    document.getElementById("profileBalance").innerText = userData.balance;
+    showToast(`✅ تم إضافة ${link.reward} نقاط لمتابعة ${link.name}`);
+    
+    initTasksPage(); // إعادة تحميل الصفحة لتحديث المظهر
+}
+
+function likePost(index) {
+    if (!userData.completedTasks) userData.completedTasks = {};
+    
+    if (userData.completedTasks['post_' + index]) {
+        showToast('لقد أعجبت بهذا المنشور مسبقاً');
+        return;
+    }
+    
+    userData.balance += 5;
+    userData.completedTasks['post_' + index] = true;
+    saveUserData();
+    
+    document.getElementById("profileBalance").innerText = userData.balance;
+    showToast('✅ تم إضافة 5 نقاط! شكراً للإعجاب');
+    
+    initTasksPage(); // إعادة تحميل الصفحة
 }
 
 function showPage(page, event) {
@@ -887,22 +1215,27 @@ function showPage(page, event) {
     document.getElementById("homePage").classList.add("hidden");
     document.getElementById("profilePage").classList.add("hidden");
     document.getElementById("referralPage").classList.add("hidden");
+    document.getElementById("tasksPage").classList.add("hidden");
 
     document.getElementById(page + "Page").classList.remove("hidden");
     
     if (page === 'referral') {
         updateReferralDisplay();
     } else if (page === 'home') {
-        // التحقق من إعادة تعيين التصويتات اليومية
         checkAndResetDailyVotes();
         updateVotesCounter();
-        // إعادة تعيين التحديد
         selectedIndex = -1;
         if (cachedCoins.length > 0) {
             displayCoins(cachedCoins);
         } else {
             fetchCoins();
         }
+    } else if (page === 'tasks') {
+        initTasksPage();
+    } else if (page === 'profile') {
+        document.getElementById("profileBalance").innerText = userData.balance;
+        document.getElementById("profileDisplayName").innerText = "OCLIN User";
+        document.getElementById("profileUsername").innerText = "@user_" + userData.id.substr(0, 8);
     }
 }
 
@@ -925,23 +1258,20 @@ function copyReferralLink() {
 }
 
 function updateReferralDisplay() {
-    // استخدام معرف البوت الصحيح oclin_vote_bot
     const botUsername = "oclin_vote_bot";
     document.getElementById("referralLink").value = "https://t.me/" + botUsername + "?start=" + userData.id;
-    document.getElementById("referralBalance").innerText = userData.referralBalance;
-    document.getElementById("totalReferrals").innerText = userData.referralsCount;
+    document.getElementById("referralBalance").innerText = userData.referralBalance || 0;
+    document.getElementById("totalReferrals").innerText = userData.referralsCount || 0;
 }
 
 function init() {
-    checkAndResetDailyVotes(); // التحقق من إعادة تعيين التصويتات
+    checkAndResetDailyVotes();
     checkForReferral();
-    mergeReferralDataWithUser();
     
     document.getElementById("profileBalance").innerText = userData.balance;
     updateVotesCounter();
     updateReferralDisplay();
     
-    // جلب العملات من DexScreener
     fetchCoins();
     
     setTimeout(() => {
