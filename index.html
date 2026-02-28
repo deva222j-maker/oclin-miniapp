@@ -3,658 +3,1402 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Oclin</title>
+    <title>Oclin.bot</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <style>
-        * { 
-            margin:0; 
-            padding:0; 
-            box-sizing:border-box; 
-            font-family:'Tajawal', sans-serif; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
-        
-        body, html { 
-            width: 100%; 
-            height: 100%; 
+
+        html, body {
+            height: 100%;
             overflow: hidden;
-            background: linear-gradient(135deg, #0b0e1a 0%, #1a1f2f 100%);
+            background: #0a0e17;
         }
 
-        .splash {
-            position: fixed;
+        .app {
+            width: 100%;
+            height: 100vh;
+            max-width: 500px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #12182b 0%, #1a2340 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* -- Splash Screen Styles -- */
+        .splash-screen {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at 30% 30%, #2a3f5e, #0b0f1a);
+            background: linear-gradient(135deg, #1a1f2f, #0b0e1a);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
+            z-index: 1000;
+            transition: opacity 0.5s ease-out;
+            pointer-events: none;
+        }
+        
+        .splash-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .splash-content {
+            text-align: center;
+            color: white;
             padding: 20px;
         }
-
-        .glass-card {
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            background: rgba(255, 255, 255, 0.05);
-            padding: clamp(30px, 8vw, 50px);
-            border-radius: clamp(30px, 6vw, 50px);
-            text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            width: min(90%, 400px);
-            animation: fadeInUp 0.8s ease-out;
+        
+        .splash-content h1 {
+            font-size: 42px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ffffff, #b886ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
         }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        
+        .splash-content p {
+            color: #a5b3d9;
+            font-size: 18px;
         }
-
-        .logo {
-            width: min(120px, 30vw);
-            height: min(120px, 30vw);
+        
+        .splash-logo {
+            width: 120px;
+            height: 120px;
             margin: 0 auto 20px;
             background: linear-gradient(135deg, #8B5CF6, #EC4899);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(40px, 10vw, 60px);
+            font-size: 60px;
             color: white;
             box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+            animation: pulse 2s infinite;
         }
 
-        .app-title {
-            color: white;
-            font-size: clamp(24px, 6vw, 32px);
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        /* ------------------------- */
+
+        .header {
+            padding: 15px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .title {
+            font-size: 26px;
             font-weight: 800;
-            margin-bottom: 15px;
-            background: linear-gradient(135deg, #ffffff, #c7b9ff);
+            background: linear-gradient(135deg, #ffffff, #b886ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .app-subtitle {
-            color: rgba(255,255,255,0.6);
-            font-size: clamp(14px, 4vw, 16px);
-            margin-bottom: 30px;
-            line-height: 1.5;
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 15px 90px 15px;
+            scrollbar-width: none;
+        }
+        .main-content::-webkit-scrollbar {
+            display: none;
         }
 
-        .glass-btn {
-            padding: clamp(12px, 4vw, 15px) clamp(30px, 8vw, 50px);
-            font-size: clamp(16px, 5vw, 18px);
+        .welcome-message {
+            text-align: center;
+            color: #a5b3d9;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .coins-title {
+            color: #fff;
+            font-size: 18px;
             font-weight: 700;
-            border-radius: 60px;
-            border: none;
-            cursor: pointer;
-            color: white;
-            background: linear-gradient(135deg, #8B5CF6, #EC4899);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(236, 72, 153, 0.4);
+            margin-bottom: 15px;
+        }
+
+        .coins-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* تنسيق حاوية كل عملة مع الأزرار الخاصة بها */
+        .coin-vote-container {
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 25px;
             transition: all 0.3s ease;
-            width: fit-content;
-            margin: 0 auto;
-            letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
+            border: 2px solid transparent;
         }
 
-        .glass-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: 0.5s;
+        .coin-vote-container.selected {
+            border-color: #ffd966;
+            background: rgba(255, 215, 0, 0.1);
+            transform: scale(1.02);
+            margin: 5px 0;
         }
 
-        .glass-btn:hover::before {
-            left: 100%;
+        .coin-card {
+            background: transparent;
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: .3s;
         }
 
-        .glass-btn:active {
-            transform: scale(0.95);
-        }
-
-        .glass-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .coin-card.voted {
+            opacity: .6;
             pointer-events: none;
         }
 
-        .status-message {
-            margin-top: 20px;
-            color: rgba(255,255,255,0.5);
+        .coin-card.disabled {
+            opacity: .6;
+            pointer-events: none;
+        }
+
+        .coin-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .coin-icon img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .coin-name {
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .coin-symbol {
+            font-size: 13px;
+            color: #a5b3d9;
+        }
+
+        /* أزرار التصويت - تظهر تحت كل عملة محددة */
+        .vote-options {
+            display: none;
+            justify-content: center;
+            gap: 20px;
+            padding: 0 15px 15px 15px;
+            width: 100%;
+        }
+
+        .vote-options.show {
+            display: flex;
+        }
+
+        .vote-btn {
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 700;
+            cursor: pointer;
+            border: 2px solid;
+            background: rgba(10, 15, 30, 0.9);
             font-size: 14px;
+        }
+
+        .vote-up {
+            border-color: #2ecc71;
+            color: #2ecc71;
+        }
+        .vote-down {
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
+
+        .vote-btn.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* ---- Profile Page Styles ---- */
+        .profile-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            margin: 0 auto 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            font-size: 40px;
+            color: white;
         }
 
-        .dot {
-            width: 8px;
-            height: 8px;
-            background: #4CAF50;
-            border-radius: 50%;
-            display: inline-block;
-            animation: pulse 1.5s infinite;
+        .profile-name {
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
         }
 
-        .dot.warning {
-            background: #f59e0b;
-        }
-
-        .dot.success {
-            background: #10b981;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.2); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-
-        .referral-badge {
-            background: rgba(139, 92, 246, 0.2);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            border-radius: 50px;
-            padding: 8px 15px;
-            margin-bottom: 20px;
+        .profile-username {
             color: #8B5CF6;
             font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+            margin-bottom: 20px;
         }
 
-        .reward-amount {
-            font-size: 12px;
-            color: #10b981;
-            background: rgba(16, 185, 129, 0.1);
-            padding: 4px 8px;
+        .profile-balance {
+            background: rgba(255, 255, 255, 0.03);
             border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .balance-label {
+            color: #a5b3d9;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .balance-amount {
+            color: white;
+            font-size: 32px;
+            font-weight: 800;
+        }
+
+        .balance-amount span {
+            font-size: 16px;
+            color: #8B5CF6;
+            margin-left: 5px;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .profile-action-btn {
+            flex: 1;
+            padding: 15px;
+            border-radius: 20px;
+            border: none;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+            background: rgba(255, 255, 255, 0.03);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .profile-action-btn.primary {
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            border: none;
+        }
+
+        .profile-action-btn:hover {
+            transform: translateY(-2px);
+        }
+        /* -------------------------------------------- */
+
+        /* ---- Referral Page Styles ---- */
+        .referral-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .referral-title {
+            color: white;
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .referral-desc {
+            color: #a5b3d9;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .referral-link-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .referral-link-box input {
+            flex: 1;
+            padding: 15px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+            color: white;
+            font-size: 14px;
+            direction: ltr;
+        }
+
+        .referral-link-box button {
+            padding: 15px 25px;
+            border-radius: 20px;
+            border: none;
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .referral-link-box button:hover {
+            transform: scale(0.95);
+        }
+
+        .referral-stats-grid {
+            display: flex;
+            gap: 15px;
+        }
+
+        .referral-stat-item {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .referral-stat-number {
+            color: white;
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+
+        .referral-stat-label {
+            color: #a5b3d9;
+            font-size: 14px;
+        }
+        /* -------------------------------------------- */
+
+        /* ---- Tasks Page Styles with Real Icons ---- */
+        .tasks-container {
+            padding: 15px;
+        }
+
+        .tasks-section-title {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 20px 0 15px 0;
+        }
+
+        .social-links-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .social-link-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .social-link-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .social-link-card.completed {
+            opacity: 0.6;
+            border-color: #2ecc71;
+        }
+
+        /* أيقونات حقيقية للتطبيقات */
+        .social-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .social-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .social-name {
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .social-username {
+            color: #8B5CF6;
+            font-size: 12px;
+        }
+
+        .social-reward {
+            color: #2ecc71;
+            font-size: 12px;
+            margin-top: 8px;
+            font-weight: 700;
+        }
+
+        .posts-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .post-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .post-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .post-info {
+            flex: 1;
+        }
+
+        .post-platform {
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .post-time {
+            color: #a5b3d9;
+            font-size: 12px;
+        }
+
+        .post-content {
+            color: white;
+            font-size: 14px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+            padding-right: 52px;
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 15px;
+            padding-right: 52px;
+        }
+
+        .post-action-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .post-action-btn:hover {
+            background: rgba(139, 92, 246, 0.3);
+        }
+
+        .post-action-btn.completed {
+            background: #2ecc71;
+            border-color: #2ecc71;
+            pointer-events: none;
+        }
+        /* -------------------------------------------- */
+
+        /* ---- Bottom Nav Glassmorphism ---- */
+        .bottom-nav {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            display: flex;
+            justify-content: space-around;
+            background: rgba(20, 25, 40, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 12px;
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-item {
+            color: #a5b3d9;
+            text-align: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .nav-item span {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .nav-item.active {
+            color: #8B5CF6;
+            transform: translateY(-2px);
+        }
+
+        .nav-item.active span {
+            color: #8B5CF6;
+        }
+        /* --------------------------------- */
+
+        .toast {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2ecc71;
+            color: #fff;
+            padding: 10px 25px;
+            border-radius: 50px;
+            opacity: 0;
+            transition: .3s;
+            z-index: 200;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
+
 <body>
 
-<div class="splash" id="splash">
-    <div class="glass-card">
-        <div class="logo">🎯</div>
-        <h1 class="app-title">Oclin Bot</h1>
-        <p class="app-subtitle" id="subtitleMessage">منصة التصويت على العملات الرقمية</p>
-        
-        <!-- شارة الإحالة (تظهر فقط إذا كان هناك رابط) -->
-        <div id="referralBadge" class="referral-badge" style="display: none;">
-            <span>🎁</span>
-            <span id="referralMessage">تم تفعيل رابط الإحالة</span>
+    <div class="app">
+
+        <!-- splash screen -->
+        <div id="splashScreen" class="splash-screen">
+            <div class="splash-content">
+                <div class="splash-logo">🎯</div>
+                <h1>OCLIN BOT</h1>
+                <p id="splashMessage">جاري التحميل...</p>
+            </div>
         </div>
-        
-        <!-- زر البدء -->
-        <button class="glass-btn" id="startBtn" onclick="handleStartClick()">ابدأ الآن</button>
-        
-        <div class="status-message" id="statusMessage">
-            <span class="dot" id="statusDot"></span>
-            <span id="statusText">جاري تجهيز المنصة...</span>
+
+        <div class="header">
+            <div class="title">OCLIN</div>
         </div>
-    </div>
-</div>
 
-<script>
-    // ==================== ثوابت النظام ====================
-    const REFERRAL_REWARD = 15;
-    const APP_DOMAIN = "https://oclin-vote-bot.com"; // غير هذا لدومينك الفعلي
-    const MAX_CLICKS = 50;
-    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 دقيقة
+        <div class="main-content">
 
-    // ==================== نظام الحماية المتقدم ====================
-    const Security = {
-        // كشف البوتات
-        detectBot: function() {
-            const bots = [
-                'bot', 'crawler', 'spider', 'scraper', 'curl', 'wget',
-                'python', 'java', 'perl', 'php', 'ruby', 'go-http',
-                'headless', 'selenium', 'puppeteer', 'playwright',
-                'phantom', 'aws', 'cloudflare', 'googlebot', 'bingbot',
-                'slurp', 'duckduckbot', 'baiduspider', 'yandexbot',
-                'facebookexternalhit', 'facebot', 'twitterbot', 'whatsapp'
-            ];
-            
-            const ua = navigator.userAgent.toLowerCase();
-            const isBot = bots.some(bot => ua.includes(bot));
-            
-            if (isBot) {
-                console.warn('⚠️ بوت مكتشف:', ua);
-            }
-            
-            return isBot;
-        },
+            <!-- HOME -->
+            <div id="homePage" class="hidden">
+                <div class="welcome-message">👋 اختر عملة للتصويت <span id="votesCounter"
+                        style="color: #ffd966; font-weight: bold;">(5/5)</span></div>
 
-        // كشف الزيارات المزيفة
-        detectFraud: function() {
-            const lastVisit = localStorage.getItem('last_visit');
-            const now = Date.now();
-            
-            if (lastVisit && (now - parseInt(lastVisit)) < 1500) { // أقل من 1.5 ثانية
-                console.warn('⚠️ زيارة سريعة جداً:', now - parseInt(lastVisit), 'ms');
-                return true;
-            }
-            
-            localStorage.setItem('last_visit', now);
-            return false;
-        },
+                <div class="coins-title">📊 عملات Solana المتاحة</div>
+                <div class="coins-grid" id="coinsGrid"></div>
+            </div>
 
-        // كشف النشاط المريب
-        suspiciousActivity: function() {
-            let clickCount = parseInt(sessionStorage.getItem('click_count') || '0');
-            clickCount++;
-            sessionStorage.setItem('click_count', clickCount);
-            
-            if (clickCount > MAX_CLICKS) {
-                console.warn('⚠️ نقرات كثيرة:', clickCount);
-                return true;
-            }
-            
-            return false;
-        },
+            <!-- PROFILE -->
+            <div id="profilePage" class="hidden">
+                <div class="profile-card">
+                    <div class="profile-avatar">👤</div>
+                    <div class="profile-name" id="profileDisplayName">Random User</div>
+                    <div class="profile-username" id="profileUsername">@random_user</div>
 
-        // التحقق من صحة الجلسة
-        validateSession: function() {
-            const sessionStart = sessionStorage.getItem('session_start');
-            const now = Date.now();
-            
-            if (!sessionStart) {
-                sessionStorage.setItem('session_start', now);
-                return true;
-            }
-            
-            const sessionAge = now - parseInt(sessionStart);
-            if (sessionAge > SESSION_TIMEOUT) {
-                console.warn('⚠️ انتهت الجلسة:', sessionAge, 'ms');
-                return false;
-            }
-            
-            return true;
-        },
+                    <div class="profile-balance">
+                        <div class="balance-label">الرصيد</div>
+                        <div class="balance-amount">
+                            <span id="profileBalance">0</span> <span>USD</span>
+                        </div>
+                    </div>
 
-        // تنفيذ الحماية
-        run: function() {
-            // 1. كشف البوتات
-            if (this.detectBot()) {
-                this.blockAccess('تم اكتشاف بوت - الوصول غير مسموح');
-                return false;
-            }
-
-            // 2. كشف الزيارات المزيفة
-            if (this.detectFraud()) {
-                console.warn('تحذير: زيارة سريعة جداً');
-            }
-
-            // 3. كشف النشاط المريب
-            if (this.suspiciousActivity()) {
-                this.blockAccess('نشاط غير طبيعي - تم الحظر المؤقت');
-                return false;
-            }
-
-            // 4. التحقق من الجلسة
-            if (!this.validateSession()) {
-                sessionStorage.clear();
-                window.location.reload();
-                return false;
-            }
-
-            return true;
-        },
-
-        blockAccess: function(message) {
-            document.body.innerHTML = `
-                <div style="display:flex; justify-content:center; align-items:center; height:100vh; background:#0b0e1a; color:white; text-align:center; padding:20px;">
-                    <div>
-                        <h1 style="color:#ef4444; margin-bottom:20px;">⚠️ وصول محظور</h1>
-                        <p style="color:#a5b3d9;">${message}</p>
+                    <div class="profile-actions">
+                        <button class="profile-action-btn" onclick="showToast('قريباً: ربط المحفظة')">ربط
+                            المحفظة</button>
+                        <button class="profile-action-btn primary" onclick="showToast('قريباً: السحب')">سحب</button>
                     </div>
                 </div>
-            `;
+            </div>
+
+            <!-- REFERRAL -->
+            <div id="referralPage" class="hidden">
+                <div class="referral-container">
+                    <h2 class="referral-title">🎁 دعوة الأصدقاء</h2>
+                    <p class="referral-desc">احصل على 15 نقطة عن كل صديق جديد ينضم عبر رابطك</p>
+
+                    <div class="referral-link-box">
+                        <input type="text" id="referralLink" readonly>
+                        <button onclick="copyReferralLink()">نسخ</button>
+                    </div>
+
+                    <div class="referral-stats-grid">
+                        <div class="referral-stat-item">
+                            <div class="referral-stat-number" id="totalReferrals">0</div>
+                            <div class="referral-stat-label">الأصدقاء</div>
+                        </div>
+                        <div class="referral-stat-item">
+                            <div class="referral-stat-number" id="referralBalance">0</div>
+                            <div class="referral-stat-label">النقاط</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TASKS -->
+            <div id="tasksPage" class="hidden">
+                <div class="tasks-container">
+
+                    <div class="tasks-section-title">📱 تابعنا على</div>
+                    <div class="social-links-grid" id="socialLinksGrid"></div>
+
+                    <div class="tasks-section-title">📄 أحدث المنشورات</div>
+                    <div class="posts-grid" id="postsGrid"></div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- NAV -->
+        <div class="bottom-nav">
+            <div class="nav-item active" onclick="showPage('home', event)">
+                🏠
+                <span>الرئيسية</span>
+            </div>
+            <div class="nav-item" onclick="showPage('tasks', event)">
+                📋
+                <span>المهام</span>
+            </div>
+            <div class="nav-item" onclick="showPage('profile', event)">
+                👤
+                <span>الملف</span>
+            </div>
+            <div class="nav-item" onclick="showPage('referral', event)">
+                ↗️
+                <span>الدعوة</span>
+            </div>
+        </div>
+
+        <div class="toast" id="toast"></div>
+
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        if (window.Telegram.WebApp) {
+            Telegram.WebApp.expand();
+            Telegram.WebApp.disableVerticalSwipes();
         }
-    };
 
-    // ==================== نظام الإحالة المتقدم (معدل بالكامل) ====================
-    const ReferralSystem = {
-        // إنشاء معرف آمن
-        generateSecureId: function() {
-            const array = new Uint8Array(12);
-            crypto.getRandomValues(array);
-            return 'user_' + Array.from(array)
-                .map(b => b.toString(16).padStart(2, '0'))
-                .join('');
-        },
+        const DAILY_LIMIT = 5;
+        const VOTE_REWARD = 10;
+        const REFERRAL_REWARD = 15;
+        const SOCIAL_TASK_REWARD = 5;
 
-        // التحقق من رابط الإحالة - المعدل الرئيسي
-        checkReferral: function() {
+        // متغيرات تخزين مؤقت للعملات
+        let cachedCoins = [];
+        let isFetchingCoins = false;
+        let lastFetchTime = 0;
+        const CACHE_DURATION = 60000;
+
+        function playSound() {
             try {
-                // محاولة القراءة من Telegram WebApp أولاً (الطريقة الصحيحة)
-                let referrerCode = null;
-                
-                // 1. من Telegram WebApp (الأهم)
-                if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
-                    referrerCode = window.Telegram.WebApp.initDataUnsafe.start_param;
-                    console.log('✅ تم العثور على إحالة من Telegram WebApp:', referrerCode);
-                }
-                
-                // 2. من URL parameters (كبديل)
-                if (!referrerCode) {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    // محاولة القراءة من startapp أولاً (الرابط الصحيح للتطبيق المصغر)
-                    referrerCode = urlParams.get('startapp') || urlParams.get('start');
-                    console.log('📌 تم العثور على إحالة من URL:', referrerCode);
-                }
-                
-                if (!referrerCode) return null;
-
-                // التحقق من صحة الكود (يجب أن يبدأ بـ user_)
-                if (!referrerCode.startsWith('user_')) {
-                    console.warn('⚠️ كود إحالة غير صالح:', referrerCode);
-                    return null;
-                }
-
-                return referrerCode;
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.2);
             } catch (e) {
-                console.error('❌ خطأ في قراءة رابط الإحالة', e);
-                return null;
+                console.log("Audio not supported or blocked.");
             }
-        },
+        }
 
-        // معالجة الإحالة - المعدل
-        processReferral: function(referrerCode) {
-            try {
-                console.log('🔄 معالجة إحالة من:', referrerCode);
-                
-                // التحقق من أن المستخدم جديد
-                if (localStorage.getItem('oclin_user')) {
-                    console.log('❌ مستخدم موجود مسبقاً');
-                    return { success: false, reason: 'existing_user' };
-                }
-
-                // التحقق من عدم تكرار الإحالة من نفس الجهاز
-                if (localStorage.getItem('referred_by_' + referrerCode)) {
-                    console.log('❌ تم استخدام هذا الرابط مسبقاً');
-                    return { success: false, reason: 'already_referred' };
-                }
-
-                // التحقق من أن المحيل ليس نفسه
-                const tempId = 'temp_' + Math.random();
-                if (tempId === referrerCode) {
-                    console.log('❌ محاولة إحالة ذاتية');
-                    return { success: false, reason: 'self_referral' };
-                }
-
-                // جلب بيانات المحيل
-                let referrerData = JSON.parse(localStorage.getItem('oclin_user_' + referrerCode));
-                
-                if (!referrerData) {
-                    console.log('⚠️ المحيل غير موجود، يتم إنشاء بيانات مؤقتة');
-                    // إذا المحيل مو موجود محلياً، ننشئ له بيانات مؤقتة
-                    referrerData = {
-                        id: referrerCode,
-                        referralBalance: 0,
-                        referralsCount: 0
-                    };
-                }
-
-                // إضافة النقاط للمحيل
-                referrerData.referralBalance = (referrerData.referralBalance || 0) + REFERRAL_REWARD;
-                referrerData.referralsCount = (referrerData.referralsCount || 0) + 1;
-                referrerData.lastReferral = Date.now();
-                
-                localStorage.setItem('oclin_user_' + referrerCode, JSON.stringify(referrerData));
-                
-                // نسجل أن هذا الجهاز استخدم الرابط
-                localStorage.setItem('referred_by_' + referrerCode, Date.now());
-                
-                console.log(`✅ تمت الإحالة بنجاح! +${REFERRAL_REWARD} نقاط للمحيل ${referrerCode}`);
-                
-                return { 
-                    success: true, 
-                    referrer: referrerCode,
-                    reward: REFERRAL_REWARD 
-                };
-                
-            } catch (e) {
-                console.error('❌ خطأ في معالجة الإحالة', e);
-                return { success: false, reason: 'error' };
+        // دالة لإنشاء معرف مستخدم ثابت
+        function getOrCreateUserId() {
+            let userId = localStorage.getItem("oclin_user_id");
+            if (!userId) {
+                userId = "user_" + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem("oclin_user_id", userId);
             }
-        },
+            return userId;
+        }
 
-        // إنشاء مستخدم جديد - المعدل
-        createUser: function(referrerCode = null) {
-            try {
-                const userId = this.generateSecureId();
-                
-                // بيانات المستخدم الجديد
-                const newUser = {
+        // دالة لتحميل بيانات المستخدم
+        function loadUserData() {
+            const userId = getOrCreateUserId();
+            const savedData = localStorage.getItem("oclin_user_" + userId);
+
+            if (savedData) {
+                return JSON.parse(savedData);
+            } else {
+                // بيانات مستخدم جديدة
+                return {
                     id: userId,
-                    username: 'user_' + Math.floor(1000 + Math.random() * 9000),
                     balance: 0,
                     dailyVotes: 0,
                     votedCoins: {},
                     referralBalance: 0,
                     referralsCount: 0,
-                    joinedAt: Date.now(),
-                    lastActive: Date.now(),
-                    referredBy: referrerCode,
-                    hasReceivedBonus: false
+                    hasUsedReferral: false,
+                    lastVoteDate: new Date().toDateString(),
+                    completedTasks: {},
+                    joinedAt: new Date().toISOString(),
+                    referredBy: null
                 };
-                
-                // تخزين المستخدم
-                localStorage.setItem('oclin_user', JSON.stringify(newUser));
-                localStorage.setItem('oclin_user_' + userId, JSON.stringify(newUser));
-                
-                console.log('✅ مستخدم جديد:', userId, referrerCode ? `(عن طريق إحالة من ${referrerCode})` : '(مباشر)');
-                
-                return newUser;
-                
-            } catch (e) {
-                console.error('❌ خطأ في إنشاء المستخدم', e);
+            }
+        }
+
+        // حفظ بيانات المستخدم
+        function saveUserData() {
+            localStorage.setItem("oclin_user_" + userData.id, JSON.stringify(userData));
+        }
+
+        let userData = loadUserData();
+
+        // التحقق من إعادة تعيين التصويتات اليومية
+        function checkAndResetDailyVotes() {
+            const today = new Date().toDateString();
+            if (userData.lastVoteDate !== today) {
+                userData.dailyVotes = 0;
+                userData.votedCoins = {};
+                userData.lastVoteDate = today;
+                saveUserData();
+            }
+        }
+
+        // نظام الإحالة المتقدم
+        function checkForReferral() {
+            // محاولة الحصول على معرف المحيل من عدة مصادر
+            let referrerId = null;
+            
+            // 1. من Telegram WebApp (الأهم)
+            if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
+                referrerId = window.Telegram.WebApp.initDataUnsafe.start_param;
+                console.log('✅ Referrer from Telegram WebApp:', referrerId);
+            }
+            
+            // 2. من URL parameters (كبديل)
+            if (!referrerId) {
+                const urlParams = new URLSearchParams(window.location.search);
+                referrerId = urlParams.get('startapp') || urlParams.get('start');
+                console.log('📌 Referrer from URL:', referrerId);
+            }
+
+            // التحقق من وجود رابط إحالة
+            if (!referrerId) {
+                document.getElementById('splashMessage').innerText = 'مرحباً بك!';
                 return null;
             }
-        },
 
-        // الحصول على إحصائيات الإحالة
-        getReferralStats: function(referrerCode) {
+            // التحقق من أن المستخدم لا يدعو نفسه
+            if (referrerId === userData.id) {
+                document.getElementById('splashMessage').innerText = 'لا يمكنك استخدام رابطك الخاص!';
+                return null;
+            }
+
+            // التحقق من أن هذا المستخدم جديد تماماً
+            const isNewUser = !localStorage.getItem("oclin_user_" + userData.id);
+            
+            if (isNewUser) {
+                console.log('🎉 مستخدم جديد عبر رابط إحالة من:', referrerId);
+                
+                // إضافة نقاط للمحيل
+                const rewardGiven = giveReferralReward(referrerId);
+                
+                if (rewardGiven) {
+                    // تسجيل أن هذا المستخدم جاء عبر هذا المحيل
+                    userData.referredBy = referrerId;
+                    userData.hasUsedReferral = true;
+                    saveUserData();
+                    
+                    document.getElementById('splashMessage').innerText = `🎉 مرحباً! تم تفعيل رابط الإحالة وإضافة ${REFERRAL_REWARD} نقاط للمحيل`;
+                    playSound();
+                    
+                    return { success: true, referrer: referrerId };
+                } else {
+                    document.getElementById('splashMessage').innerText = 'رابط إحالة غير صالح';
+                    return null;
+                }
+            } else {
+                // مستخدم موجود مسبقاً
+                document.getElementById('splashMessage').innerText = 'عذراً، هذا الرابط مخصص للمستخدمين الجدد فقط';
+                console.log('⚠️ مستخدم موجود حاول استخدام رابط إحالة');
+                return null;
+            }
+        }
+
+        // إعطاء نقاط للمحيل
+        function giveReferralReward(referrerId) {
             try {
-                const data = JSON.parse(localStorage.getItem('oclin_user_' + referrerCode));
-                if (data) {
-                    return {
-                        points: data.referralBalance || 0,
-                        count: data.referralsCount || 0
-                    };
+                let referrerData = JSON.parse(localStorage.getItem("oclin_user_" + referrerId));
+                
+                if (referrerData) {
+                    // إضافة النقاط للمحيل
+                    referrerData.referralBalance = (referrerData.referralBalance || 0) + REFERRAL_REWARD;
+                    referrerData.referralsCount = (referrerData.referralsCount || 0) + 1;
+                    localStorage.setItem("oclin_user_" + referrerId, JSON.stringify(referrerData));
+                    
+                    console.log(`✅ تم إضافة ${REFERRAL_REWARD} نقاط للمحيل:`, referrerId);
+                    return true;
+                } else {
+                    console.log('⚠️ المحيل غير موجود:', referrerId);
+                    return false;
                 }
-                return { points: 0, count: 0 };
             } catch (e) {
-                return { points: 0, count: 0 };
+                console.error('❌ خطأ في إعطاء النقاط:', e);
+                return false;
             }
         }
-    };
 
-    // ==================== معالج الصفحة الرئيسي ====================
-    async function handleStartClick() {
-        const startBtn = document.getElementById('startBtn');
-        const statusText = document.getElementById('statusText');
-        const statusDot = document.getElementById('statusDot');
-        
-        try {
-            startBtn.disabled = true;
-            statusText.innerText = 'جاري تجهيز حسابك...';
-            statusDot.className = 'dot warning';
-            
-            // تأخير بسيط لتجنب السبام
-            await new Promise(r => setTimeout(r, 1000));
-            
-            // التحقق من وجود إحالة
-            const referrerCode = ReferralSystem.checkReferral();
-            
-            // إنشاء المستخدم إذا ما موجود
-            if (!localStorage.getItem('oclin_user')) {
-                ReferralSystem.createUser(referrerCode);
+        let selectedIndex = -1;
+        const coinsGrid = document.getElementById("coinsGrid");
+        let voteContainers = [];
+
+        function updateVotesCounter() {
+            const remainingVotes = DAILY_LIMIT - userData.dailyVotes;
+            const counterElement = document.querySelector('#votesCounter');
+            if (counterElement) {
+                counterElement.textContent = `(${remainingVotes}/${DAILY_LIMIT})`;
             }
-            
-            statusText.innerText = 'تم بنجاح! جاري فتح التطبيق...';
-            statusDot.className = 'dot success';
-            
-            // تحويل للصفحة الرئيسية
-            setTimeout(() => {
-                window.location.href = 'splash.html';
-            }, 1000);
-            
-        } catch (error) {
-            console.error(error);
-            statusText.innerText = 'حدث خطأ، حاول مرة أخرى';
-            statusDot.className = 'dot warning';
-            startBtn.disabled = false;
         }
-    }
 
-    // ==================== تحديث واجهة المستخدم ====================
-    function updateUI(referralResult = null) {
-        const statusText = document.getElementById('statusText');
-        const statusDot = document.getElementById('statusDot');
-        const startBtn = document.getElementById('startBtn');
-        const subtitle = document.getElementById('subtitleMessage');
-        const referralBadge = document.getElementById('referralBadge');
-        const referralMessage = document.getElementById('referralMessage');
-        
-        if (referralResult && referralResult.success) {
-            // حالة وجود إحالة ناجحة
-            subtitle.innerText = '🎉 مرحباً! تم تفعيل رابط الإحالة';
-            statusText.innerText = `تم إضافة ${REFERRAL_REWARD} نقطة للمحيل`;
-            statusDot.className = 'dot success';
-            
-            // إظهار الشارة
-            referralBadge.style.display = 'inline-flex';
-            referralMessage.innerHTML = `تم تفعيل رابط الإحالة <span class="reward-amount">+${REFERRAL_REWARD}</span>`;
-            
-            // إنشاء المستخدم تلقائياً بعد ثانية
-            setTimeout(async () => {
-                statusText.innerText = 'جاري إنشاء حسابك...';
-                
-                await new Promise(r => setTimeout(r, 1000));
-                
-                const newUser = ReferralSystem.createUser(referralResult.referrer);
-                
-                if (newUser) {
-                    statusText.innerText = 'تم إنشاء الحساب! جاري التحويل...';
-                    
-                    setTimeout(() => {
-                        window.location.href = 'splash.html';
-                    }, 1500);
-                    
-                    // إخفاء زر البدء
-                    if (startBtn) startBtn.style.display = 'none';
-                }
-            }, 1500);
-            
-        } else if (localStorage.getItem('oclin_user')) {
-            // حالة وجود مستخدم مسجل مسبقاً
-            subtitle.innerText = 'مرحباً بعودتك!';
-            statusText.innerText = 'جاري تحميل بياناتك...';
-            statusDot.className = 'dot success';
-            
-            setTimeout(() => {
-                window.location.href = 'splash.html';
-            }, 1500);
-            
-            // إخفاء زر البدء
-            if (startBtn) startBtn.style.display = 'none';
-            
-        } else {
-            // حالة مستخدم جديد بدون إحالة
-            subtitle.innerText = 'منصة التصويت على العملات الرقمية';
-            statusText.innerText = 'مرحباً بك! اضغط ابدأ للمتابعة';
-            statusDot.className = 'dot';
-        }
-    }
+        // قائمة بأشهر العملات على Solana
+        const POPULAR_SOLANA_TOKENS = [
+            "So11111111111111111111111111111111111111112",
+            "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+            "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+            "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+            "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+            "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",
+            "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1",
+            "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E",
+            "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk",
+        ];
 
-    // ==================== التهيئة والبدء ====================
-    async function init() {
-        try {
-            console.log('🚀 بدء تشغيل التطبيق...');
-            
-            // 1. تشغيل نظام الحماية
-            if (!Security.run()) {
+        async function fetchCoins(forceRefresh = false) {
+            if (isFetchingCoins) return;
+
+            if (!forceRefresh && cachedCoins.length > 0 && (Date.now() - lastFetchTime) < CACHE_DURATION) {
+                displayCoins(cachedCoins);
                 return;
             }
 
-            // 2. التحقق من رابط الإحالة
-            const referrerCode = ReferralSystem.checkReferral();
-            
-            // 3. معالجة الإحالة إذا وجدت والمستخدم جديد
-            let referralResult = null;
-            if (referrerCode && !localStorage.getItem('oclin_user')) {
-                console.log('📢 تم العثور على كود إحالة:', referrerCode);
-                referralResult = ReferralSystem.processReferral(referrerCode);
-                console.log('📊 نتيجة الإحالة:', referralResult);
+            try {
+                isFetchingCoins = true;
+                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل عملات Solana...</p>';
+
+                const uniqueCoins = new Map();
+
+                for (const tokenAddress of POPULAR_SOLANA_TOKENS) {
+                    try {
+                        const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.pairs && data.pairs.length > 0) {
+                                const pair = data.pairs[0];
+                                if (!uniqueCoins.has(pair.baseToken.address)) {
+                                    uniqueCoins.set(pair.baseToken.address, {
+                                        id: pair.baseToken.address,
+                                        name: pair.baseToken.name,
+                                        symbol: pair.baseToken.symbol,
+                                        image: pair.info?.imageUrl || `https://via.placeholder.com/45?text=${pair.baseToken.symbol}`,
+                                        current_price: pair.priceUsd || 0,
+                                    });
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log(`Error fetching token ${tokenAddress}:`, e);
+                    }
+                }
+
+                if (uniqueCoins.size === 0) {
+                    const mockCoins = [
+                        { name: "Solana", symbol: "SOL", price: 98.5 },
+                        { name: "Bonk", symbol: "BONK", price: 0.0000234 },
+                        { name: "Jito", symbol: "JTO", price: 2.34 },
+                        { name: "Raydium", symbol: "RAY", price: 1.23 },
+                        { name: "Orca", symbol: "ORCA", price: 3.45 },
+                        { name: "Samoyedcoin", symbol: "SAMO", price: 0.00567 },
+                        { name: "Marinade", symbol: "mSOL", price: 112.3 },
+                        { name: "Wrapped Bitcoin", symbol: "WBTC", price: 62345.67 },
+                        { name: "Wrapped Ethereum", symbol: "WETH", price: 3456.78 },
+                        { name: "USD Coin", symbol: "USDC", price: 1.00 }
+                    ];
+
+                    mockCoins.forEach((coin, index) => {
+                        uniqueCoins.set('mock_' + index, {
+                            id: 'mock_' + index,
+                            name: coin.name,
+                            symbol: coin.symbol,
+                            image: `https://via.placeholder.com/45?text=${coin.symbol}`,
+                            current_price: coin.price
+                        });
+                    });
+                }
+
+                const formattedCoins = Array.from(uniqueCoins.values()).slice(0, 15);
+                cachedCoins = formattedCoins;
+                lastFetchTime = Date.now();
+                displayCoins(formattedCoins);
+
+            } catch (error) {
+                console.error("Error fetching coins:", error);
+
+                if (cachedCoins.length > 0) {
+                    displayCoins(cachedCoins);
+                    showToast("جاري عرض آخر العملات المتاحة");
+                } else {
+                    coinsGrid.innerHTML = '<p style="color:white;text-align:center;">⚠️ فشل تحميل العملات. حاول مرة أخرى.</p>';
+                }
+            } finally {
+                isFetchingCoins = false;
+            }
+        }
+
+        setInterval(() => {
+            if (document.getElementById('homePage').classList.contains('hidden') === false) {
+                fetchCoins(true);
+            }
+        }, 60000);
+
+        function displayCoins(coins) {
+            if (!coins || coins.length === 0) {
+                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">لا توجد عملات متاحة</p>';
+                return;
             }
 
-            // 4. تحديث واجهة المستخدم
-            updateUI(referralResult);
-            
-            // 5. تجهيز واجهة المستخدم
-            document.querySelector('.glass-card').style.opacity = '1';
-            
-        } catch (error) {
-            console.error('❌ خطأ في التهيئة:', error);
-            document.getElementById('statusText').innerText = 'حدث خطأ في التحميل';
+            coinsGrid.innerHTML = "";
+            voteContainers = [];
+            const hasVotesLeft = userData.dailyVotes < DAILY_LIMIT;
+
+            coins.forEach((coin, i) => {
+                const container = document.createElement("div");
+                container.className = "coin-vote-container";
+                container.dataset.index = i;
+
+                const coinCard = document.createElement("div");
+                coinCard.className = "coin-card";
+
+                if (userData.votedCoins && userData.votedCoins[i]) {
+                    coinCard.classList.add("voted");
+                } else if (!hasVotesLeft) {
+                    coinCard.classList.add("disabled");
+                }
+
+                coinCard.innerHTML = `
+                    <div class="coin-icon"><img src="${coin.image}" alt="${coin.name}" onerror="this.src='https://via.placeholder.com/45?text=${coin.symbol}'"></div>
+                    <div>
+                        <div class="coin-name">${coin.name}</div>
+                        <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
+                        ${coin.current_price ? `<div class="coin-symbol" style="color:#2ecc71;">$${parseFloat(coin.current_price).toFixed(4)}</div>` : ''}
+                    </div>`;
+
+                const voteOptions = document.createElement("div");
+                voteOptions.className = "vote-options";
+                voteOptions.innerHTML = `
+                    <div class="vote-btn vote-up ${!hasVotesLeft ? 'disabled' : ''}" onclick="castVote(${i}, 'up')">⬆️ Up</div>
+                    <div class="vote-btn vote-down ${!hasVotesLeft ? 'disabled' : ''}" onclick="castVote(${i}, 'down')">⬇️ Down</div>
+                `;
+
+                container.appendChild(coinCard);
+                container.appendChild(voteOptions);
+
+                if (hasVotesLeft && !userData.votedCoins?.[i]) {
+                    coinCard.onclick = (e) => {
+                        e.stopPropagation();
+                        selectCoin(i, container);
+                    };
+                }
+
+                coinsGrid.appendChild(container);
+                voteContainers.push(container);
+            });
         }
-    }
 
-    // ==================== بدء التشغيل ====================
-    document.addEventListener('DOMContentLoaded', init);
+        function selectCoin(index, container) {
+            if (userData.dailyVotes >= DAILY_LIMIT) {
+                showToast("لقد استنفذت حد التصويت اليومي");
+                return;
+            }
 
-    // ==================== حماية إضافية للمتصفح ====================
-    // منع فتح أدوات المطور
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    document.addEventListener('keydown', e => {
-        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I') || 
-            (e.ctrlKey && e.shiftKey && e.key === 'J') ||
-            (e.ctrlKey && e.key === 'U')) {
-            e.preventDefault();
-            return false;
+            if (selectedIndex === index) {
+                voteContainers.forEach(c => {
+                    c.classList.remove("selected");
+                    const voteOpts = c.querySelector('.vote-options');
+                    if (voteOpts) voteOpts.classList.remove('show');
+                });
+                selectedIndex = -1;
+                return;
+            }
+
+            if (userData.votedCoins && userData.votedCoins[index]) {
+                showToast("لقد صوتت لهذه العملة مسبقاً");
+                return;
+            }
+
+            voteContainers.forEach(c => {
+                c.classList.remove("selected");
+                const voteOpts = c.querySelector('.vote-options');
+                if (voteOpts) voteOpts.classList.remove('show');
+            });
+
+            container.classList.add("selected");
+            const voteOptions = container.querySelector('.vote-options');
+            if (voteOptions) voteOptions.classList.add('show');
+
+            selectedIndex = index;
         }
-    });
 
-    // منع التكبير والتصغير على الهواتف
-    document.addEventListener('touchmove', e => {
-        if (e.scale !== 1) { e.preventDefault(); }
-    }, { passive: false });
+        function castVote(index, voteType) {
+            if (selectedIndex !== index) {
+                showToast("اختر العملة أولاً");
+                return;
+            }
 
-    // كشف الأجهزة المحمولة
-    function isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }
+            if (userData.dailyVotes >= DAILY_LIMIT) {
+                showToast("لقد استنفذت حد التصويت اليومي");
+                return;
+            }
 
-    if (!isMobile()) {
-        console.warn('⚠️ يفضل استخدام هذا التطبيق على الهاتف');
-    }
+            if (userData.votedCoins && userData.votedCoins[index]) {
+                showToast("لقد صوتت لهذه العملة مسبقاً");
+                return;
+            }
 
-    // منع النسخ واللصق
-    document.addEventListener('copy', e => e.preventDefault());
-    document.addEventListener('cut', e => e.preventDefault());
-    document.addEventListener('paste', e => e.preventDefault());
-</script>
+            userData.balance += VOTE_REWARD;
+            userData.dailyVotes++;
+
+            if (!userData.votedCoins) {
+                userData.votedCoins = {};
+            }
+            userData.votedCoins[index] = true;
+
+            saveUserData();
+
+            document.getElementById("profileBalance").innerText = userData.balance;
+            updateVotesCounter();
+            showToast(`✅ تم التصويت بنجاح! حصلت على ${VOTE_REWARD} نقاط`);
+
+            if (voteContainers[index]) {
+                voteContainers[index].classList.remove("selected");
+                const voteOpts = voteContainers[index].querySelector('.vote-options');
+                if (voteOpts) voteOpts.classList.remove('show');
+            }
+
+            const coinCard = voteContainers[index]?.querySelector('.coin-card');
+            if (coinCard) coinCard.classList.add('voted');
+
+            selectedIndex = -1;
+
+            if (userData.dailyVotes >= DAILY_LIMIT) {
+                setTimeout(() => {
+                    displayCoins(cachedCoins);
+                }, 500);
+            }
+        }
+
+        // بيانات المهام
+        const socialLinks = [
+            {
+                platform: 'youtube',
+                name: 'يوتيوب',
+                username: '@oclin_official',
+                url: 'https://youtube.com/@oclin',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`
+            },
+            {
+                platform: 'telegram',
+                name: 'تليكرام',
+                username: '@oclin_channel',
+                url: 'https://t.me/oclin_channel',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#26A5E4"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.46-1.901-.902-1.056-.69-1.653-1.12-2.68-1.794-1.185-.777-.417-1.203.258-1.9.177-.183 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.79 1.138-5.055 3.345-.479.33-.913.49-1.302.481-.428-.01-1.252-.242-1.865-.442-.751-.245-1.349-.374-1.297-.789.028-.216.324-.437.893-.663 3.499-1.524 5.832-2.529 7-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.322.023.466.14.121.099.154.232.17.33.016.099.036.324.02.5z"/></svg>`
+            },
+            {
+                platform: 'x',
+                name: 'X (Twitter)',
+                username: '@oclin',
+                url: 'https://x.com/oclin',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#1DA1F2"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`
+            },
+            {
+                platform: 'instagram',
+                name: 'انستغرام',
+                username: '@oclin',
+                url: 'https://instagram.com/oclin',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#E4405F"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm4.965-10.405a1.44 1.44 0 1 1 2.881.001 1.44 1.44 0 0 1-2.881-.001z"/></svg>`
+            },
+            {
+                platform: 'tiktok',
+                name: 'تيك توك',
+                username: '@oclin',
+                url: 'https://tiktok.com/@oclin',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>`
+            }
+        ];
+
+        const samplePosts = [
+            { platform: 'يوتيوب', username: '@oclin', content: '🚀 شرح جديد: كيف تربح من التصويت على العملات! شاهد الفيديو الآن', time: 'منذ ساعة', avatar: '📺' },
+            { platform: 'تليكرام', username: '@oclin', content: '🪙 تم إضافة 5 عملات جديدة للتصويت! ادخل وصوت الآن', time: 'منذ 3 ساعات', avatar: '📱' },
+            { platform: 'X', username: '@oclin', content: '🔥 مسابقة كبرى! 1000 نقطة للفائزين الخمسة الأوائل', time: 'منذ 5 ساعات', avatar: '🐦' },
+            { platform: 'انستغرام', username: '@oclin', content: '📸 صور حصرية من لقاء المجتمع مع فريق OCLIN', time: 'منذ يوم', avatar: '📷' },
+            { platform: 'تيك توك', username: '@oclin', content: '🎬 كيف تصبح مليونير بالعملات الرقمية؟ #crypto #solana', time: 'منذ يومين', avatar: '🎵' }
+        ];
+
+        function initTasksPage() {
+            const socialGrid = document.getElementById('socialLinksGrid');
+            socialGrid.innerHTML = '';
+
+            socialLinks.forEach(link => {
+                const card = document.createElement('div');
+                card.className = `social-link-card ${userData.completedTasks?.[link.platform] ? 'completed' : ''}`;
+                card.innerHTML = `
+                    <div class="social-icon">${link.icon}</div>
+                    <div class="social-name">${link.name}</div>
+                    <div class="social-username">${link.username}</div>
+                    <div class="social-reward">+${link.reward} نقاط</div>
+                `;
+                card.onclick = () => completeSocialTask(link);
+                socialGrid.appendChild(card);
+            });
+
+            const postsGrid = document.getElementById('postsGrid');
+            postsGrid.innerHTML = '';
+
+            samplePosts.forEach((post, index) => {
+                const postDiv = document.createElement('div');
+                postDiv.className = 'post-card';
+                postDiv.innerHTML = `
+                    <div class="post-header">
+                        <div class="post-avatar">${post.avatar}</div>
+                        <div class="post-info">
+                            <div class="post-platform">${post.platform}</div>
+                            <div class="post-time">${post.time}</div>
+                        </div>
+                    </div>
+                    <div class="post-content">${post.content}</div>
+                    <div class="post-actions">
+                        <button class="post-action-btn ${userData.completedTasks?.['post_' + index] ? 'completed' : ''}" onclick="likePost(${index})">
+                            ${userData.completedTasks?.['post_' + index] ? '✅ تم الإعجاب' : '👍 إعجاب +5'}
+                        </button>
+                    </div>
+                `;
+                postsGrid.appendChild(postDiv);
+            });
+        }
+
+        function completeSocialTask(link) {
+            if (!userData.completedTasks) userData.completedTasks = {};
+
+            if (userData.completedTasks[link.platform]) {
+                showToast('لقد أكملت هذه المهمة مسبقاً');
+                return;
+            }
+
+            window.open(link.url, '_blank');
+
+            userData.balance += link.reward;
+            userData.completedTasks[link.platform] = true;
+            saveUserData();
+
+            document.getElementById("profileBalance").innerText = userData.balance;
+            showToast(`✅ تم إضافة ${link.reward} نقاط لمتابعة ${link.name}`);
+
+            initTasksPage();
+        }
+
+        function likePost(index) {
+            if (!userData.completedTasks) userData.completedTasks = {};
+
+            if (userData.completedTasks['post_' + index]) {
+                showToast('لقد أعجبت بهذا المنشور مسبقاً');
+                return;
+            }
+
+            userData.balance += 5;
+            userData.completedTasks['post_' + index] = true;
+            saveUserData();
+
+            document.getElementById("profileBalance").innerText = userData.balance;
+            showToast('✅ تم إضافة 5 نقاط! شكراً للإعجاب');
+
+            initTasksPage();
+        }
+
+        function showPage(page, event) {
+            if (event) {
+                document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+                event.currentTarget.classList.add("active");
+            }
+
+            document.getElementById("homePage").classList.add("hidden");
+            document.getElementById("profilePage").classList.add("hidden");
+            document.getElementById("referralPage").classList.add("hidden");
+            document.getElementById("tasksPage").classList.add("hidden");
+
+            document.getElementById(page + "Page").classList.remove("hidden");
+
+            if (page === 'referral') {
+                updateReferralDisplay();
+            } else if (page === 'home') {
+                checkAndResetDailyVotes();
+                updateVotesCounter();
+                selectedIndex = -1;
+                if (cachedCoins.length > 0) {
+                    displayCoins(cachedCoins);
+                } else {
+                    fetchCoins();
+                }
+            } else if (page === 'tasks') {
+                initTasksPage();
+            } else if (page === 'profile') {
+                document.getElementById("profileBalance").innerText = userData.balance;
+                document.getElementById("profileDisplayName").innerText = "OCLIN User";
+                document.getElementById("profileUsername").innerText = "@user_" + userData.id.substr(0, 8);
+            }
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 2000);
+        }
+
+        function copyReferralLink() {
+            const linkInput = document.getElementById("referralLink");
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                showToast("تم نسخ الرابط!");
+            }).catch(err => {
+                showToast("فشل النسخ");
+            });
+        }
+
+        function updateReferralDisplay() {
+            // الرابط الصحيح لفتح التطبيق المصغر داخل البوت
+            const botUsername = "oclin_vote_bot";
+            
+            // معرف المستخدم الحالي (الداعي)
+            const referrerId = userData.id;
+            
+            // الرابط السحري - يفتح التطبيق مباشرة داخل البوت
+            const miniAppLink = `https://t.me/${botUsername}/start?startapp=${referrerId}`;
+            
+            document.getElementById("referralLink").value = miniAppLink;
+            document.getElementById("referralBalance").innerText = userData.referralBalance || 0;
+            document.getElementById("totalReferrals").innerText = userData.referralsCount || 0;
+            
+            console.log('رابط الإحالة:', miniAppLink);
+        }
+
+        function init() {
+            // التحقق من الإحالة أولاً
+            const referralResult = checkForReferral();
+            
+            // تحديث البيانات الأساسية
+            checkAndResetDailyVotes();
+            document.getElementById("profileBalance").innerText = userData.balance;
+            updateVotesCounter();
+            updateReferralDisplay();
+
+            // تحميل العملات
+            fetchCoins();
+
+            // إخفاء splash بعد ثانيتين وإظهار الصفحة الرئيسية
+            setTimeout(() => {
+                document.getElementById('splashScreen').classList.add('hidden');
+                document.getElementById('homePage').classList.remove('hidden');
+            }, 2000);
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+
+    </script>
 
 </body>
-</html>
 
+</html>
