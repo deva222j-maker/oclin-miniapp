@@ -32,7 +32,6 @@
             overflow: hidden;
         }
 
-        /* -- Splash Screen Styles -- */
         .splash-screen {
             position: absolute;
             top: 0;
@@ -93,7 +92,6 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
-        /* ------------------------- */
 
         .header {
             padding: 15px;
@@ -139,7 +137,6 @@
             gap: 12px;
         }
 
-        /* تنسيق حاوية كل عملة مع الأزرار الخاصة بها */
         .coin-vote-container {
             display: flex;
             flex-direction: column;
@@ -200,7 +197,6 @@
             color: #a5b3d9;
         }
 
-        /* أزرار التصويت - تظهر تحت كل عملة محددة */
         .vote-options {
             display: none;
             justify-content: center;
@@ -237,7 +233,6 @@
             pointer-events: none;
         }
 
-        /* ---- Profile Page Styles ---- */
         .profile-card {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
@@ -326,9 +321,7 @@
         .profile-action-btn:hover {
             transform: translateY(-2px);
         }
-        /* -------------------------------------------- */
 
-        /* ---- Referral Page Styles ---- */
         .referral-container {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
@@ -411,9 +404,7 @@
             color: #a5b3d9;
             font-size: 14px;
         }
-        /* -------------------------------------------- */
 
-        /* ---- Tasks Page Styles with Real Icons ---- */
         .tasks-container {
             padding: 15px;
         }
@@ -454,7 +445,6 @@
             border-color: #2ecc71;
         }
 
-        /* أيقونات حقيقية للتطبيقات */
         .social-icon {
             width: 48px;
             height: 48px;
@@ -569,9 +559,7 @@
             border-color: #2ecc71;
             pointer-events: none;
         }
-        /* -------------------------------------------- */
 
-        /* ---- Bottom Nav Glassmorphism ---- */
         .bottom-nav {
             position: absolute;
             bottom: 10px;
@@ -614,7 +602,6 @@
         .nav-item.active span {
             color: #8B5CF6;
         }
-        /* --------------------------------- */
 
         .toast {
             position: absolute;
@@ -637,14 +624,32 @@
         .hidden {
             display: none;
         }
+
+        .referral-notification {
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            color: white;
+            padding: 15px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            animation: slideDown 0.5s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 
 <body>
-
     <div class="app">
-
-        <!-- splash screen -->
         <div id="splashScreen" class="splash-screen">
             <div class="splash-content">
                 <div class="splash-logo">🎯</div>
@@ -658,44 +663,37 @@
         </div>
 
         <div class="main-content">
-
-            <!-- HOME -->
             <div id="homePage" class="hidden">
-                <div class="welcome-message">👋 اختر عملة للتصويت <span id="votesCounter"
-                        style="color: #ffd966; font-weight: bold;">(5/5)</span></div>
-
+                <div class="welcome-message">👋 اختر عملة للتصويت <span id="votesCounter" style="color: #ffd966; font-weight: bold;">(5/5)</span></div>
                 <div class="coins-title">📊 عملات Solana المتاحة</div>
                 <div class="coins-grid" id="coinsGrid"></div>
             </div>
 
-            <!-- PROFILE -->
             <div id="profilePage" class="hidden">
                 <div class="profile-card">
                     <div class="profile-avatar">👤</div>
                     <div class="profile-name" id="profileDisplayName">Random User</div>
                     <div class="profile-username" id="profileUsername">@random_user</div>
-
                     <div class="profile-balance">
                         <div class="balance-label">الرصيد</div>
                         <div class="balance-amount">
-                            <span id="profileBalance">0</span> <span>USD</span>
+                            <span id="profileBalance">0</span> <span>نقطة</span>
                         </div>
                     </div>
-
                     <div class="profile-actions">
-                        <button class="profile-action-btn" onclick="showToast('قريباً: ربط المحفظة')">ربط
-                            المحفظة</button>
+                        <button class="profile-action-btn" onclick="showToast('قريباً: ربط المحفظة')">ربط المحفظة</button>
                         <button class="profile-action-btn primary" onclick="showToast('قريباً: السحب')">سحب</button>
                     </div>
                 </div>
             </div>
 
-            <!-- REFERRAL -->
             <div id="referralPage" class="hidden">
                 <div class="referral-container">
                     <h2 class="referral-title">🎁 دعوة الأصدقاء</h2>
                     <p class="referral-desc">احصل على 15 نقطة عن كل صديق جديد ينضم عبر رابطك</p>
-
+                    
+                    <div id="referralNotification" class="referral-notification hidden"></div>
+                    
                     <div class="referral-link-box">
                         <input type="text" id="referralLink" readonly>
                         <button onclick="copyReferralLink()">نسخ</button>
@@ -708,54 +706,43 @@
                         </div>
                         <div class="referral-stat-item">
                             <div class="referral-stat-number" id="referralBalance">0</div>
-                            <div class="referral-stat-label">النقاط</div>
+                            <div class="referral-stat-label">نقاط الدعوة</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- TASKS -->
             <div id="tasksPage" class="hidden">
                 <div class="tasks-container">
-
                     <div class="tasks-section-title">📱 تابعنا على</div>
                     <div class="social-links-grid" id="socialLinksGrid"></div>
-
                     <div class="tasks-section-title">📄 أحدث المنشورات</div>
                     <div class="posts-grid" id="postsGrid"></div>
-
                 </div>
             </div>
-
         </div>
 
-        <!-- NAV -->
         <div class="bottom-nav">
             <div class="nav-item active" onclick="showPage('home', event)">
-                🏠
-                <span>الرئيسية</span>
+                🏠 <span>الرئيسية</span>
             </div>
             <div class="nav-item" onclick="showPage('tasks', event)">
-                📋
-                <span>المهام</span>
+                📋 <span>المهام</span>
             </div>
             <div class="nav-item" onclick="showPage('profile', event)">
-                👤
-                <span>الملف</span>
+                👤 <span>الملف</span>
             </div>
             <div class="nav-item" onclick="showPage('referral', event)">
-                ↗️
-                <span>الدعوة</span>
+                ↗️ <span>الدعوة</span>
             </div>
         </div>
 
         <div class="toast" id="toast"></div>
-
     </div>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-        if (window.Telegram.WebApp) {
+        if (window.Telegram?.WebApp) {
             Telegram.WebApp.expand();
             Telegram.WebApp.disableVerticalSwipes();
         }
@@ -764,8 +751,8 @@
         const VOTE_REWARD = 10;
         const REFERRAL_REWARD = 15;
         const SOCIAL_TASK_REWARD = 5;
+        const BOT_USERNAME = "oclin_vote_bot";
 
-        // متغيرات تخزين مؤقت للعملات
         let cachedCoins = [];
         let isFetchingCoins = false;
         let lastFetchTime = 0;
@@ -785,53 +772,70 @@
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.2);
             } catch (e) {
-                console.log("Audio not supported or blocked.");
+                console.log("Audio not supported");
             }
         }
 
-        // دالة لإنشاء معرف مستخدم ثابت
-        function getOrCreateUserId() {
-            let userId = localStorage.getItem("oclin_user_id");
-            if (!userId) {
-                userId = "user_" + Math.random().toString(36).substr(2, 9);
+        function generateUserId() {
+            const timestamp = Date.now().toString(36);
+            const random = Math.random().toString(36).substring(2, 8);
+            return `user_${timestamp}_${random}`;
+        }
+
+        function getTelegramUser() {
+            try {
+                if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+                    const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+                    return {
+                        id: `tg_${tgUser.id}`,
+                        first_name: tgUser.first_name || 'User',
+                        username: tgUser.username || `user_${tgUser.id}`
+                    };
+                }
+            } catch (e) {
+                console.log('Telegram user not available');
+            }
+            return null;
+        }
+
+        function loadUserData() {
+            const tgUser = getTelegramUser();
+            let userId;
+            
+            if (tgUser) {
+                userId = tgUser.id;
+            } else {
+                userId = localStorage.getItem("oclin_user_id") || generateUserId();
                 localStorage.setItem("oclin_user_id", userId);
             }
-            return userId;
-        }
-
-        // دالة لتحميل بيانات المستخدم
-        function loadUserData() {
-            const userId = getOrCreateUserId();
-            const savedData = localStorage.getItem("oclin_user_" + userId);
-
+            
+            const savedData = localStorage.getItem(`oclin_user_${userId}`);
+            
             if (savedData) {
                 return JSON.parse(savedData);
-            } else {
-                // بيانات مستخدم جديدة
-                return {
-                    id: userId,
-                    balance: 0,
-                    dailyVotes: 0,
-                    votedCoins: {},
-                    referralBalance: 0,
-                    referralsCount: 0,
-                    hasUsedReferral: false,
-                    lastVoteDate: new Date().toDateString(),
-                    completedTasks: {},
-                    joinedAt: new Date().toISOString(),
-                    referredBy: null
-                };
             }
+            
+            return {
+                id: userId,
+                balance: 0,
+                referralBalance: 0,
+                dailyVotes: 0,
+                votedCoins: {},
+                referralsCount: 0,
+                referredBy: null,
+                lastVoteDate: new Date().toDateString(),
+                completedTasks: {},
+                joinedAt: new Date().toISOString(),
+                tgInfo: tgUser
+            };
         }
 
-        // حفظ بيانات المستخدم
         function saveUserData() {
-            localStorage.setItem("oclin_user_" + userData.id, JSON.stringify(userData));
+            localStorage.setItem(`oclin_user_${userData.id}`, JSON.stringify(userData));
         }
 
         let userData = loadUserData();
 
-        // التحقق من إعادة تعيين التصويتات اليومية
         function checkAndResetDailyVotes() {
             const today = new Date().toDateString();
             if (userData.lastVoteDate !== today) {
@@ -842,87 +846,129 @@
             }
         }
 
-        // نظام الإحالة المتقدم
-        function checkForReferral() {
-            // محاولة الحصول على معرف المحيل من عدة مصادر
-            let referrerId = null;
-            
-            // 1. من Telegram WebApp (الأهم)
-            if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
-                referrerId = window.Telegram.WebApp.initDataUnsafe.start_param;
-                console.log('✅ Referrer from Telegram WebApp:', referrerId);
-            }
-            
-            // 2. من URL parameters (كبديل)
-            if (!referrerId) {
-                const urlParams = new URLSearchParams(window.location.search);
-                referrerId = urlParams.get('startapp') || urlParams.get('start');
-                console.log('📌 Referrer from URL:', referrerId);
-            }
-
-            // التحقق من وجود رابط إحالة
-            if (!referrerId) {
-                document.getElementById('splashMessage').innerText = 'مرحباً بك!';
-                return null;
-            }
-
-            // التحقق من أن المستخدم لا يدعو نفسه
-            if (referrerId === userData.id) {
-                document.getElementById('splashMessage').innerText = 'لا يمكنك استخدام رابطك الخاص!';
-                return null;
-            }
-
-            // التحقق من أن هذا المستخدم جديد تماماً
-            const isNewUser = !localStorage.getItem("oclin_user_" + userData.id);
-            
-            if (isNewUser) {
-                console.log('🎉 مستخدم جديد عبر رابط إحالة من:', referrerId);
+        function handleReferral() {
+            try {
+                let referrerId = null;
+                let referralSource = '';
                 
-                // إضافة نقاط للمحيل
-                const rewardGiven = giveReferralReward(referrerId);
-                
-                if (rewardGiven) {
-                    // تسجيل أن هذا المستخدم جاء عبر هذا المحيل
-                    userData.referredBy = referrerId;
-                    userData.hasUsedReferral = true;
-                    saveUserData();
-                    
-                    document.getElementById('splashMessage').innerText = `🎉 مرحباً! تم تفعيل رابط الإحالة وإضافة ${REFERRAL_REWARD} نقاط للمحيل`;
-                    playSound();
-                    
-                    return { success: true, referrer: referrerId };
-                } else {
-                    document.getElementById('splashMessage').innerText = 'رابط إحالة غير صالح';
-                    return null;
+                // 1. من Telegram WebApp (الأهم)
+                if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
+                    referrerId = window.Telegram.WebApp.initDataUnsafe.start_param;
+                    referralSource = 'telegram';
+                    console.log('Referrer from Telegram:', referrerId);
                 }
-            } else {
-                // مستخدم موجود مسبقاً
-                document.getElementById('splashMessage').innerText = 'عذراً، هذا الرابط مخصص للمستخدمين الجدد فقط';
-                console.log('⚠️ مستخدم موجود حاول استخدام رابط إحالة');
-                return null;
+                
+                // 2. من URL parameters
+                if (!referrerId) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const startParam = urlParams.get('startapp') || urlParams.get('start');
+                    
+                    if (startParam && startParam.startsWith('ref_')) {
+                        referrerId = startParam.replace('ref_', '');
+                        referralSource = 'url';
+                        console.log('Referrer from URL:', referrerId);
+                    } else if (startParam) {
+                        referrerId = startParam;
+                        referralSource = 'url';
+                        console.log('Referrer from URL (direct):', referrerId);
+                    }
+                }
+
+                if (!referrerId) {
+                    document.getElementById('splashMessage').innerText = 'مرحباً بك في OCLIN!';
+                    return;
+                }
+
+                if (referrerId === userData.id) {
+                    document.getElementById('splashMessage').innerText = 'لا يمكنك استخدام رابطك الخاص!';
+                    return;
+                }
+
+                const isNewUser = !localStorage.getItem(`oclin_user_${userData.id}`);
+                
+                if (isNewUser && !userData.referredBy) {
+                    console.log('New user via referral:', referrerId);
+                    
+                    const rewardGiven = giveReferralReward(referrerId);
+                    
+                    if (rewardGiven) {
+                        userData.referredBy = referrerId;
+                        saveUserData();
+                        
+                        const message = `🎉 مرحباً! تم تفعيل رابط الإحالة وإضافة ${REFERRAL_REWARD} نقاط للداعي`;
+                        document.getElementById('splashMessage').innerText = message;
+                        
+                        showReferralNotification(message);
+                        playSound();
+                    }
+                } else if (userData.referredBy) {
+                    document.getElementById('splashMessage').innerText = `مرحباً بعودتك! أنت مسجل كصديق مدعو`;
+                } else {
+                    document.getElementById('splashMessage').innerText = 'مرحباً بعودتك!';
+                }
+                
+            } catch (e) {
+                console.error('Referral handling error:', e);
+                document.getElementById('splashMessage').innerText = 'مرحباً بك!';
             }
         }
 
-        // إعطاء نقاط للمحيل
         function giveReferralReward(referrerId) {
             try {
-                let referrerData = JSON.parse(localStorage.getItem("oclin_user_" + referrerId));
+                let referrerData = localStorage.getItem(`oclin_user_${referrerId}`);
                 
                 if (referrerData) {
-                    // إضافة النقاط للمحيل
-                    referrerData.referralBalance = (referrerData.referralBalance || 0) + REFERRAL_REWARD;
-                    referrerData.referralsCount = (referrerData.referralsCount || 0) + 1;
-                    localStorage.setItem("oclin_user_" + referrerId, JSON.stringify(referrerData));
+                    referrerData = JSON.parse(referrerData);
                     
-                    console.log(`✅ تم إضافة ${REFERRAL_REWARD} نقاط للمحيل:`, referrerId);
+                    referrerData.referralBalance = (referrerData.referralBalance || 0) + REFERRAL_REWARD;
+                    referrerData.balance = (referrerData.balance || 0) + REFERRAL_REWARD;
+                    referrerData.referralsCount = (referrerData.referralsCount || 0) + 1;
+                    
+                    localStorage.setItem(`oclin_user_${referrerId}`, JSON.stringify(referrerData));
+                    
+                    console.log(`✅ Added ${REFERRAL_REWARD} points to referrer:`, referrerId);
+                    
+                    if (referrerId === userData.id) {
+                        userData.referralBalance = referrerData.referralBalance;
+                        userData.balance = referrerData.balance;
+                        userData.referralsCount = referrerData.referralsCount;
+                        saveUserData();
+                    }
+                    
                     return true;
                 } else {
-                    console.log('⚠️ المحيل غير موجود:', referrerId);
-                    return false;
+                    console.log('Referrer not found, creating new record for them');
+                    
+                    const newReferrerData = {
+                        id: referrerId,
+                        balance: REFERRAL_REWARD,
+                        referralBalance: REFERRAL_REWARD,
+                        referralsCount: 1,
+                        dailyVotes: 0,
+                        votedCoins: {},
+                        lastVoteDate: new Date().toDateString(),
+                        completedTasks: {},
+                        joinedAt: new Date().toISOString()
+                    };
+                    
+                    localStorage.setItem(`oclin_user_${referrerId}`, JSON.stringify(newReferrerData));
+                    return true;
                 }
             } catch (e) {
-                console.error('❌ خطأ في إعطاء النقاط:', e);
+                console.error('Error giving referral reward:', e);
                 return false;
+            }
+        }
+
+        function showReferralNotification(message) {
+            const notification = document.getElementById('referralNotification');
+            if (notification) {
+                notification.innerText = message;
+                notification.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 5000);
             }
         }
 
@@ -938,18 +984,12 @@
             }
         }
 
-        // قائمة بأشهر العملات على Solana
         const POPULAR_SOLANA_TOKENS = [
             "So11111111111111111111111111111111111111112",
             "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
             "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
             "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
             "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-            "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
-            "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",
-            "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1",
-            "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E",
-            "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk",
         ];
 
         async function fetchCoins(forceRefresh = false) {
@@ -996,11 +1036,6 @@
                         { name: "Jito", symbol: "JTO", price: 2.34 },
                         { name: "Raydium", symbol: "RAY", price: 1.23 },
                         { name: "Orca", symbol: "ORCA", price: 3.45 },
-                        { name: "Samoyedcoin", symbol: "SAMO", price: 0.00567 },
-                        { name: "Marinade", symbol: "mSOL", price: 112.3 },
-                        { name: "Wrapped Bitcoin", symbol: "WBTC", price: 62345.67 },
-                        { name: "Wrapped Ethereum", symbol: "WETH", price: 3456.78 },
-                        { name: "USD Coin", symbol: "USDC", price: 1.00 }
                     ];
 
                     mockCoins.forEach((coin, index) => {
@@ -1014,30 +1049,24 @@
                     });
                 }
 
-                const formattedCoins = Array.from(uniqueCoins.values()).slice(0, 15);
+                const formattedCoins = Array.from(uniqueCoins.values()).slice(0, 10);
                 cachedCoins = formattedCoins;
                 lastFetchTime = Date.now();
                 displayCoins(formattedCoins);
 
             } catch (error) {
                 console.error("Error fetching coins:", error);
-
+                
                 if (cachedCoins.length > 0) {
                     displayCoins(cachedCoins);
                     showToast("جاري عرض آخر العملات المتاحة");
                 } else {
-                    coinsGrid.innerHTML = '<p style="color:white;text-align:center;">⚠️ فشل تحميل العملات. حاول مرة أخرى.</p>';
+                    coinsGrid.innerHTML = '<p style="color:white;text-align:center;">⚠️ فشل تحميل العملات</p>';
                 }
             } finally {
                 isFetchingCoins = false;
             }
         }
-
-        setInterval(() => {
-            if (document.getElementById('homePage').classList.contains('hidden') === false) {
-                fetchCoins(true);
-            }
-        }, 60000);
 
         function displayCoins(coins) {
             if (!coins || coins.length === 0) {
@@ -1143,8 +1172,8 @@
                 return;
             }
 
-            userData.balance += VOTE_REWARD;
-            userData.dailyVotes++;
+            userData.balance = (userData.balance || 0) + VOTE_REWARD;
+            userData.dailyVotes = (userData.dailyVotes || 0) + 1;
 
             if (!userData.votedCoins) {
                 userData.votedCoins = {};
@@ -1155,7 +1184,7 @@
 
             document.getElementById("profileBalance").innerText = userData.balance;
             updateVotesCounter();
-            showToast(`✅ تم التصويت بنجاح! حصلت على ${VOTE_REWARD} نقاط`);
+            showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
 
             if (voteContainers[index]) {
                 voteContainers[index].classList.remove("selected");
@@ -1175,7 +1204,6 @@
             }
         }
 
-        // بيانات المهام
         const socialLinks = [
             {
                 platform: 'youtube',
@@ -1208,23 +1236,13 @@
                 url: 'https://instagram.com/oclin',
                 reward: 5,
                 icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#E4405F"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm4.965-10.405a1.44 1.44 0 1 1 2.881.001 1.44 1.44 0 0 1-2.881-.001z"/></svg>`
-            },
-            {
-                platform: 'tiktok',
-                name: 'تيك توك',
-                username: '@oclin',
-                url: 'https://tiktok.com/@oclin',
-                reward: 5,
-                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#000000"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>`
             }
         ];
 
         const samplePosts = [
-            { platform: 'يوتيوب', username: '@oclin', content: '🚀 شرح جديد: كيف تربح من التصويت على العملات! شاهد الفيديو الآن', time: 'منذ ساعة', avatar: '📺' },
-            { platform: 'تليكرام', username: '@oclin', content: '🪙 تم إضافة 5 عملات جديدة للتصويت! ادخل وصوت الآن', time: 'منذ 3 ساعات', avatar: '📱' },
-            { platform: 'X', username: '@oclin', content: '🔥 مسابقة كبرى! 1000 نقطة للفائزين الخمسة الأوائل', time: 'منذ 5 ساعات', avatar: '🐦' },
-            { platform: 'انستغرام', username: '@oclin', content: '📸 صور حصرية من لقاء المجتمع مع فريق OCLIN', time: 'منذ يوم', avatar: '📷' },
-            { platform: 'تيك توك', username: '@oclin', content: '🎬 كيف تصبح مليونير بالعملات الرقمية؟ #crypto #solana', time: 'منذ يومين', avatar: '🎵' }
+            { platform: 'يوتيوب', username: '@oclin', content: '🚀 شرح جديد: كيف تربح من التصويت على العملات!', time: 'منذ ساعة', avatar: '📺' },
+            { platform: 'تليكرام', username: '@oclin', content: '🪙 تم إضافة 5 عملات جديدة للتصويت!', time: 'منذ 3 ساعات', avatar: '📱' },
+            { platform: 'X', username: '@oclin', content: '🔥 مسابقة كبرى! 1000 نقطة للفائزين الخمسة', time: 'منذ 5 ساعات', avatar: '🐦' }
         ];
 
         function initTasksPage() {
@@ -1278,13 +1296,13 @@
             }
 
             window.open(link.url, '_blank');
-
-            userData.balance += link.reward;
+            
+            userData.balance = (userData.balance || 0) + link.reward;
             userData.completedTasks[link.platform] = true;
             saveUserData();
 
             document.getElementById("profileBalance").innerText = userData.balance;
-            showToast(`✅ تم إضافة ${link.reward} نقاط لمتابعة ${link.name}`);
+            showToast(`✅ تم إضافة ${link.reward} نقاط`);
 
             initTasksPage();
         }
@@ -1297,12 +1315,12 @@
                 return;
             }
 
-            userData.balance += 5;
+            userData.balance = (userData.balance || 0) + 5;
             userData.completedTasks['post_' + index] = true;
             saveUserData();
 
             document.getElementById("profileBalance").innerText = userData.balance;
-            showToast('✅ تم إضافة 5 نقاط! شكراً للإعجاب');
+            showToast('✅ تم إضافة 5 نقاط');
 
             initTasksPage();
         }
@@ -1334,9 +1352,16 @@
             } else if (page === 'tasks') {
                 initTasksPage();
             } else if (page === 'profile') {
-                document.getElementById("profileBalance").innerText = userData.balance;
-                document.getElementById("profileDisplayName").innerText = "OCLIN User";
-                document.getElementById("profileUsername").innerText = "@user_" + userData.id.substr(0, 8);
+                document.getElementById("profileBalance").innerText = userData.balance || 0;
+                
+                const tgUser = getTelegramUser();
+                if (tgUser) {
+                    document.getElementById("profileDisplayName").innerText = tgUser.first_name;
+                    document.getElementById("profileUsername").innerText = `@${tgUser.username || tgUser.id}`;
+                } else {
+                    document.getElementById("profileDisplayName").innerText = "OCLIN User";
+                    document.getElementById("profileUsername").innerText = `@user_${userData.id.substr(0, 8)}`;
+                }
             }
         }
 
@@ -1352,53 +1377,44 @@
             linkInput.select();
             linkInput.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(linkInput.value).then(() => {
-                showToast("تم نسخ الرابط!");
-            }).catch(err => {
-                showToast("فشل النسخ");
+                showToast("✅ تم نسخ الرابط!");
+            }).catch(() => {
+                showToast("❌ فشل النسخ");
             });
         }
 
         function updateReferralDisplay() {
-            // الرابط الصحيح لفتح التطبيق المصغر داخل البوت
-            const botUsername = "oclin_vote_bot";
-            
-            // معرف المستخدم الحالي (الداعي)
+            const botUsername = BOT_USERNAME;
             const referrerId = userData.id;
             
-            // الرابط السحري - يفتح التطبيق مباشرة داخل البوت
             const miniAppLink = `https://t.me/${botUsername}/start?startapp=${referrerId}`;
             
             document.getElementById("referralLink").value = miniAppLink;
             document.getElementById("referralBalance").innerText = userData.referralBalance || 0;
             document.getElementById("totalReferrals").innerText = userData.referralsCount || 0;
-            
-            console.log('رابط الإحالة:', miniAppLink);
         }
 
         function init() {
-            // التحقق من الإحالة أولاً
-            const referralResult = checkForReferral();
+            handleReferral();
             
-            // تحديث البيانات الأساسية
             checkAndResetDailyVotes();
-            document.getElementById("profileBalance").innerText = userData.balance;
+            document.getElementById("profileBalance").innerText = userData.balance || 0;
             updateVotesCounter();
             updateReferralDisplay();
 
-            // تحميل العملات
             fetchCoins();
 
-            // إخفاء splash بعد ثانيتين وإظهار الصفحة الرئيسية
             setTimeout(() => {
                 document.getElementById('splashScreen').classList.add('hidden');
                 document.getElementById('homePage').classList.remove('hidden');
             }, 2000);
         }
 
+        setInterval(() => {
+            fetchCoins(true);
+        }, 60000);
+
         document.addEventListener("DOMContentLoaded", init);
-
     </script>
-
 </body>
-
 </html>
