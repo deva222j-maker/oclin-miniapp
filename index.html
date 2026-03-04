@@ -1383,17 +1383,18 @@
             });
         }
 
-        function updateReferralDisplay() {
-            const botUsername = BOT_USERNAME;
-            const referrerId = userData.id;
-            
-            const miniAppLink = `https://t.me/${botUsername}/start?startapp=${referrerId}`;
-            
-            document.getElementById("referralLink").value = miniAppLink;
-            document.getElementById("referralBalance").innerText = userData.referralBalance || 0;
-            document.getElementById("totalReferrals").innerText = userData.referralsCount || 0;
-        }
-
+       function updateReferralDisplay() {
+    const botUsername = "oclin_vote_bot";
+    const miniAppName = "oclinapp"; // اسم التطبيق المصغر من BotFather
+    const referrerId = userData.id;
+    
+    // الرابط الصحيح لفتح التطبيق المصغر مباشرة
+    const miniAppLink = `https://t.me/${botUsername}/${miniAppName}?startapp=${referrerId}`;
+    
+    document.getElementById("referralLink").value = miniAppLink;
+    document.getElementById("referralBalance").innerText = userData.referralBalance || 0;
+    document.getElementById("totalReferrals").innerText = userData.referralsCount || 0;
+}
         function init() {
             handleReferral();
             
@@ -1418,3 +1419,4 @@
     </script>
 </body>
 </html>
+
