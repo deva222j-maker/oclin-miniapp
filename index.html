@@ -791,6 +791,9 @@
         let isFetchingCoins = false;
         let lastFetchTime = 0;
         const CACHE_DURATION = 60000;
+        let selectedIndex = -1;
+        const coinsGrid = document.getElementById("coinsGrid");
+        let voteContainers = [];
 
         function playSound() {
             try {
@@ -883,49 +886,42 @@
             }
         }
 
-        // ========== دالة التحديث الرئيسية ==========
+        function updateVotesCounter() {
+            const remainingVotes = DAILY_LIMIT - userData.dailyVotes;
+            const counterElement = document.querySelector('#votesCounter');
+            if (counterElement) {
+                counterElement.textContent = `(${remainingVotes}/${DAILY_LIMIT})`;
+            }
+        }
+
+        // ========== دوال الإحالة ==========
         function refreshAllStats() {
-            // تحديث الرصيد في الملف الشخصي
             const balanceElement = document.getElementById("profileBalance");
             if (balanceElement) {
                 balanceElement.innerText = userData.balance || 0;
             }
-            
-            // تحديث إحصائيات الإحالة
             updateUIBalance();
-            
-            console.log('✅ تم تحديث جميع الإحصائيات', {
-                balance: userData.balance,
-                referralBalance: userData.referralBalance,
-                referralsCount: userData.referralsCount,
-                referredUsers: userData.referredUsers?.length
-            });
+            console.log('✅ تم تحديث جميع الإحصائيات');
         }
 
-        // ========== تحديث واجهة الإحالة فقط ==========
         function updateUIBalance() {
             const linkInput = document.getElementById("referralLink");
             if (linkInput) {
                 linkInput.value = `https://t.me/${BOT_USERNAME}/${MINI_APP_NAME}?startapp=${userData.id}`;
             }
             
-            // عدد المدعوين - الأهم
             const referralsCount = userData.referredUsers ? userData.referredUsers.length : (userData.referralsCount || 0);
             const totalElement = document.getElementById("totalReferrals");
             if (totalElement) {
                 totalElement.innerText = referralsCount;
-                console.log('📊 تحديث عدد المدعوين:', referralsCount);
             }
             
-            // نقاط الدعوة
             const balanceElement = document.getElementById("referralBalance");
             if (balanceElement) {
                 balanceElement.innerText = userData.referralBalance || 0;
-                console.log('💰 تحديث نقاط الدعوة:', userData.referralBalance || 0);
             }
         }
 
-        // ========== نظام الإحالة ==========
         function handleReferral() {
             try {
                 let referrerId = null;
@@ -971,7 +967,6 @@
                     showReferralNotification(message);
                     playSound();
                     
-                    // تحديث فوري للإحصائيات
                     refreshAllStats();
                     
                     if (window.BroadcastChannel) {
@@ -1008,7 +1003,6 @@
                         localStorage.setItem(`oclin_user_${referrerId}`, JSON.stringify(referrerData));
                         
                         console.log(`✅ تم إضافة ${points} نقاط للمُحيل:`, referrerId);
-                        console.log(`عدد المدعوين الآن: ${referrerData.referralsCount}`);
                         
                         if (referrerId === userData.id) {
                             userData.referralBalance = referrerData.referralBalance;
@@ -1016,8 +1010,6 @@
                             userData.referralsCount = referrerData.referralsCount;
                             userData.referredUsers = referrerData.referredUsers;
                             saveUserData();
-                            
-                            // تحديث فوري للواجهة للمُحيل
                             refreshAllStats();
                         }
                         
@@ -1073,14 +1065,399 @@
             });
         }
 
-        // ========== نظام التحديث المباشر المحسن ==========
-        // 1. تحديث فوري كل ثانيتين
+        // ========== دوال التصويت والعملات ==========
+        const POPULAR_SOLANA_TOKENS = [
+            "So11111111111111111111111111111111111111112",
+            "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+            "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+            "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+        ];
+
+        async function fetchCoins(forceRefresh = false) {
+            if (isFetchingCoins) return;
+
+            if (!forceRefresh && cachedCoins.length > 0 && (Date.now() - lastFetchTime) < CACHE_DURATION) {
+                displayCoins(cachedCoins);
+                return;
+            }
+
+            try {
+                isFetchingCoins = true;
+                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل عملات Solana...</p>';
+
+                const uniqueCoins = new Map();
+
+                for (const tokenAddress of POPULAR_SOLANA_TOKENS) {
+                    try {
+                        const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.pairs && data.pairs.length > 0) {
+                                const pair = data.pairs[0];
+                                if (!uniqueCoins.has(pair.baseToken.address)) {
+                                    uniqueCoins.set(pair.baseToken.address, {
+                                        id: pair.baseToken.address,
+                                        name: pair.baseToken.name,
+                                        symbol: pair.baseToken.symbol,
+                                        image: pair.info?.imageUrl || `https://via.placeholder.com/45?text=${pair.baseToken.symbol}`,
+                                        current_price: pair.priceUsd || 0,
+                                    });
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log(`Error fetching token ${tokenAddress}:`, e);
+                    }
+                }
+
+                if (uniqueCoins.size === 0) {
+                    const mockCoins = [
+                        { name: "Solana", symbol: "SOL", price: 98.5 },
+                        { name: "Bonk", symbol: "BONK", price: 0.0000234 },
+                        { name: "Jito", symbol: "JTO", price: 2.34 },
+                        { name: "Raydium", symbol: "RAY", price: 1.23 },
+                        { name: "Orca", symbol: "ORCA", price: 3.45 },
+                    ];
+
+                    mockCoins.forEach((coin, index) => {
+                        uniqueCoins.set('mock_' + index, {
+                            id: 'mock_' + index,
+                            name: coin.name,
+                            symbol: coin.symbol,
+                            image: `https://via.placeholder.com/45?text=${coin.symbol}`,
+                            current_price: coin.price
+                        });
+                    });
+                }
+
+                const formattedCoins = Array.from(uniqueCoins.values()).slice(0, 10);
+                cachedCoins = formattedCoins;
+                lastFetchTime = Date.now();
+                displayCoins(formattedCoins);
+
+            } catch (error) {
+                console.error("Error fetching coins:", error);
+                
+                if (cachedCoins.length > 0) {
+                    displayCoins(cachedCoins);
+                    showToast("جاري عرض آخر العملات المتاحة");
+                } else {
+                    coinsGrid.innerHTML = '<p style="color:white;text-align:center;">⚠️ فشل تحميل العملات</p>';
+                }
+            } finally {
+                isFetchingCoins = false;
+            }
+        }
+
+        function displayCoins(coins) {
+            if (!coins || coins.length === 0) {
+                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">لا توجد عملات متاحة</p>';
+                return;
+            }
+
+            coinsGrid.innerHTML = "";
+            voteContainers = [];
+            const hasVotesLeft = userData.dailyVotes < DAILY_LIMIT;
+
+            coins.forEach((coin, i) => {
+                const container = document.createElement("div");
+                container.className = "coin-vote-container";
+                container.dataset.index = i;
+
+                const coinCard = document.createElement("div");
+                coinCard.className = "coin-card";
+
+                if (userData.votedCoins && userData.votedCoins[i]) {
+                    coinCard.classList.add("voted");
+                } else if (!hasVotesLeft) {
+                    coinCard.classList.add("disabled");
+                }
+
+                coinCard.innerHTML = `
+                    <div class="coin-icon"><img src="${coin.image}" alt="${coin.name}" onerror="this.src='https://via.placeholder.com/45?text=${coin.symbol}'"></div>
+                    <div>
+                        <div class="coin-name">${coin.name}</div>
+                        <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
+                        ${coin.current_price ? `<div class="coin-symbol" style="color:#2ecc71;">$${parseFloat(coin.current_price).toFixed(4)}</div>` : ''}
+                    </div>`;
+
+                const voteOptions = document.createElement("div");
+                voteOptions.className = "vote-options";
+                voteOptions.innerHTML = `
+                    <div class="vote-btn vote-up ${!hasVotesLeft ? 'disabled' : ''}" onclick="castVote(${i}, 'up')">⬆️ Up</div>
+                    <div class="vote-btn vote-down ${!hasVotesLeft ? 'disabled' : ''}" onclick="castVote(${i}, 'down')">⬇️ Down</div>
+                `;
+
+                container.appendChild(coinCard);
+                container.appendChild(voteOptions);
+
+                if (hasVotesLeft && !userData.votedCoins?.[i]) {
+                    coinCard.onclick = (e) => {
+                        e.stopPropagation();
+                        selectCoin(i, container);
+                    };
+                }
+
+                coinsGrid.appendChild(container);
+                voteContainers.push(container);
+            });
+        }
+
+        function selectCoin(index, container) {
+            if (userData.dailyVotes >= DAILY_LIMIT) {
+                showToast("لقد استنفذت حد التصويت اليومي");
+                return;
+            }
+
+            if (selectedIndex === index) {
+                voteContainers.forEach(c => {
+                    c.classList.remove("selected");
+                    const voteOpts = c.querySelector('.vote-options');
+                    if (voteOpts) voteOpts.classList.remove('show');
+                });
+                selectedIndex = -1;
+                return;
+            }
+
+            if (userData.votedCoins && userData.votedCoins[index]) {
+                showToast("لقد صوتت لهذه العملة مسبقاً");
+                return;
+            }
+
+            voteContainers.forEach(c => {
+                c.classList.remove("selected");
+                const voteOpts = c.querySelector('.vote-options');
+                if (voteOpts) voteOpts.classList.remove('show');
+            });
+
+            container.classList.add("selected");
+            const voteOptions = container.querySelector('.vote-options');
+            if (voteOptions) voteOptions.classList.add('show');
+
+            selectedIndex = index;
+        }
+
+        function castVote(index, voteType) {
+            if (selectedIndex !== index) {
+                showToast("اختر العملة أولاً");
+                return;
+            }
+
+            if (userData.dailyVotes >= DAILY_LIMIT) {
+                showToast("لقد استنفذت حد التصويت اليومي");
+                return;
+            }
+
+            if (userData.votedCoins && userData.votedCoins[index]) {
+                showToast("لقد صوتت لهذه العملة مسبقاً");
+                return;
+            }
+
+            userData.balance = (userData.balance || 0) + VOTE_REWARD;
+            userData.dailyVotes = (userData.dailyVotes || 0) + 1;
+
+            if (!userData.votedCoins) {
+                userData.votedCoins = {};
+            }
+            userData.votedCoins[index] = true;
+
+            saveUserData();
+            refreshAllStats();
+            showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
+
+            if (voteContainers[index]) {
+                voteContainers[index].classList.remove("selected");
+                const voteOpts = voteContainers[index].querySelector('.vote-options');
+                if (voteOpts) voteOpts.classList.remove('show');
+            }
+
+            const coinCard = voteContainers[index]?.querySelector('.coin-card');
+            if (coinCard) coinCard.classList.add('voted');
+
+            selectedIndex = -1;
+
+            if (userData.dailyVotes >= DAILY_LIMIT) {
+                setTimeout(() => {
+                    displayCoins(cachedCoins);
+                }, 500);
+            }
+        }
+
+        // ========== دوال المهام ==========
+        const socialLinks = [
+            {
+                platform: 'youtube',
+                name: 'يوتيوب',
+                username: '@oclin_official',
+                url: 'https://youtube.com/@oclin',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`
+            },
+            {
+                platform: 'telegram',
+                name: 'تليكرام',
+                username: '@oclin_channel',
+                url: 'https://t.me/oclin_channel',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#26A5E4"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.46-1.901-.902-1.056-.69-1.653-1.12-2.68-1.794-1.185-.777-.417-1.203.258-1.9.177-.183 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.79 1.138-5.055 3.345-.479.33-.913.49-1.302.481-.428-.01-1.252-.242-1.865-.442-.751-.245-1.349-.374-1.297-.789.028-.216.324-.437.893-.663 3.499-1.524 5.832-2.529 7-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.322.023.466.14.121.099.154.232.17.33.016.099.036.324.02.5z"/></svg>`
+            },
+            {
+                platform: 'x',
+                name: 'X (Twitter)',
+                username: '@oclin',
+                url: 'https://x.com/oclin',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#1DA1F2"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`
+            },
+            {
+                platform: 'instagram',
+                name: 'انستغرام',
+                username: '@oclin',
+                url: 'https://instagram.com/oclin',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#E4405F"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm4.965-10.405a1.44 1.44 0 1 1 2.881.001 1.44 1.44 0 0 1-2.881-.001z"/></svg>`
+            }
+        ];
+
+        const samplePosts = [
+            { platform: 'يوتيوب', username: '@oclin', content: '🚀 شرح جديد: كيف تربح من التصويت على العملات!', time: 'منذ ساعة', avatar: '📺' },
+            { platform: 'تليكرام', username: '@oclin', content: '🪙 تم إضافة 5 عملات جديدة للتصويت!', time: 'منذ 3 ساعات', avatar: '📱' },
+            { platform: 'X', username: '@oclin', content: '🔥 مسابقة كبرى! 1000 نقطة للفائزين الخمسة', time: 'منذ 5 ساعات', avatar: '🐦' }
+        ];
+
+        function initTasksPage() {
+            const socialGrid = document.getElementById('socialLinksGrid');
+            socialGrid.innerHTML = '';
+
+            socialLinks.forEach(link => {
+                const card = document.createElement('div');
+                card.className = `social-link-card ${userData.completedTasks?.[link.platform] ? 'completed' : ''}`;
+                card.innerHTML = `
+                    <div class="social-icon">${link.icon}</div>
+                    <div class="social-name">${link.name}</div>
+                    <div class="social-username">${link.username}</div>
+                    <div class="social-reward">+${link.reward} نقاط</div>
+                `;
+                card.onclick = () => completeSocialTask(link);
+                socialGrid.appendChild(card);
+            });
+
+            const postsGrid = document.getElementById('postsGrid');
+            postsGrid.innerHTML = '';
+
+            samplePosts.forEach((post, index) => {
+                const postDiv = document.createElement('div');
+                postDiv.className = 'post-card';
+                postDiv.innerHTML = `
+                    <div class="post-header">
+                        <div class="post-avatar">${post.avatar}</div>
+                        <div class="post-info">
+                            <div class="post-platform">${post.platform}</div>
+                            <div class="post-time">${post.time}</div>
+                        </div>
+                    </div>
+                    <div class="post-content">${post.content}</div>
+                    <div class="post-actions">
+                        <button class="post-action-btn ${userData.completedTasks?.['post_' + index] ? 'completed' : ''}" onclick="likePost(${index})">
+                            ${userData.completedTasks?.['post_' + index] ? '✅ تم الإعجاب' : '👍 إعجاب +5'}
+                        </button>
+                    </div>
+                `;
+                postsGrid.appendChild(postDiv);
+            });
+        }
+
+        function completeSocialTask(link) {
+            if (!userData.completedTasks) userData.completedTasks = {};
+
+            if (userData.completedTasks[link.platform]) {
+                showToast('لقد أكملت هذه المهمة مسبقاً');
+                return;
+            }
+
+            window.open(link.url, '_blank');
+            
+            userData.balance = (userData.balance || 0) + link.reward;
+            userData.completedTasks[link.platform] = true;
+            saveUserData();
+            refreshAllStats();
+            showToast(`✅ تم إضافة ${link.reward} نقاط`);
+
+            initTasksPage();
+        }
+
+        function likePost(index) {
+            if (!userData.completedTasks) userData.completedTasks = {};
+
+            if (userData.completedTasks['post_' + index]) {
+                showToast('لقد أعجبت بهذا المنشور مسبقاً');
+                return;
+            }
+
+            userData.balance = (userData.balance || 0) + 5;
+            userData.completedTasks['post_' + index] = true;
+            saveUserData();
+            refreshAllStats();
+            showToast('✅ تم إضافة 5 نقاط');
+
+            initTasksPage();
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 2000);
+        }
+
+        function showPage(page, event) {
+            if (event) {
+                document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+                event.currentTarget.classList.add("active");
+            }
+
+            document.getElementById("homePage").classList.add("hidden");
+            document.getElementById("profilePage").classList.add("hidden");
+            document.getElementById("referralPage").classList.add("hidden");
+            document.getElementById("tasksPage").classList.add("hidden");
+
+            document.getElementById(page + "Page").classList.remove("hidden");
+
+            if (page === 'referral') {
+                updateUIBalance();
+            } else if (page === 'home') {
+                checkAndResetDailyVotes();
+                updateVotesCounter();
+                selectedIndex = -1;
+                if (cachedCoins.length > 0) {
+                    displayCoins(cachedCoins);
+                } else {
+                    fetchCoins();
+                }
+            } else if (page === 'tasks') {
+                initTasksPage();
+            } else if (page === 'profile') {
+                document.getElementById("profileBalance").innerText = userData.balance || 0;
+                
+                const tgUser = getTelegramUser();
+                if (tgUser) {
+                    const fullName = tgUser.last_name ? `${tgUser.first_name} ${tgUser.last_name}` : tgUser.first_name;
+                    document.getElementById("profileDisplayName").innerText = fullName;
+                    document.getElementById("profileUsername").innerText = `@${tgUser.username || tgUser.id}`;
+                } else {
+                    document.getElementById("profileDisplayName").innerText = "OCLIN User";
+                    document.getElementById("profileUsername").innerText = `@user_${userData.id.substr(0, 8)}`;
+                }
+            }
+        }
+
+        // ========== نظام التحديث المباشر ==========
         setInterval(function() {
             const updatedData = localStorage.getItem(`oclin_user_${userData.id}`);
             if (updatedData) {
                 const newData = JSON.parse(updatedData);
                 
-                // مقارنة البيانات
                 const oldCount = userData.referredUsers?.length || 0;
                 const newCount = newData.referredUsers?.length || 0;
                 const oldBalance = userData.referralBalance || 0;
@@ -1089,24 +1466,20 @@
                 if (newCount !== oldCount || newBalance !== oldBalance) {
                     console.log('🔄 تحديث فوري!', { oldCount, newCount, oldBalance, newBalance });
                     
-                    // تحديث جميع البيانات
                     userData.referredUsers = newData.referredUsers || [];
                     userData.referralsCount = newData.referralsCount || newCount;
                     userData.referralBalance = newData.referralBalance || newBalance;
                     userData.balance = newData.balance || userData.balance;
                     
-                    // تحديث الواجهة
                     updateUIBalance();
                     
-                    // إظهار إشعار
                     if (newCount > oldCount) {
                         showToast(`✨ تمت إضافة صديق جديد! +${newBalance - oldBalance} نقطة`);
                     }
                 }
             }
-        }, 2000); // كل ثانيتين
+        }, 2000);
 
-        // 2. التحديث عبر BroadcastChannel
         if (window.BroadcastChannel) {
             const channel = new BroadcastChannel('oclin_updates');
             channel.onmessage = function(event) {
@@ -1122,7 +1495,6 @@
             };
         }
 
-        // 3. تحديث عند العودة للصفحة
         document.addEventListener('visibilitychange', function() {
             if (!document.hidden) {
                 const freshData = localStorage.getItem(`oclin_user_${userData.id}`);
@@ -1137,9 +1509,6 @@
             }
         });
 
-        // باقي الدوال (fetchCoins, displayCoins, selectCoin, castVote, etc) تبقى كما هي
-        // [تم حذفها للاختصار ولكن تبقى في الكود الأصلي]
-
         function init() {
             handleReferral();
             checkAndResetDailyVotes();
@@ -1152,9 +1521,6 @@
                 document.getElementById('homePage').classList.remove('hidden');
             }, 2000);
         }
-
-        // باقي الكود (fetchCoins, displayCoins, selectCoin, castVote, socialLinks, etc)
-        // [يرجى إضافة باقي الدوال هنا كما كانت]
 
         document.addEventListener("DOMContentLoaded", init);
     </script>
