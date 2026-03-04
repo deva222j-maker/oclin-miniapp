@@ -671,7 +671,7 @@
 
             <div id="profilePage" class="hidden">
                 <div class="profile-card">
-                    <div class="profile-avatar">👤</div>
+                    <div class="profile-avatar" id="profileAvatar">👤</div>
                     <div class="profile-name" id="profileDisplayName">Random User</div>
                     <div class="profile-username" id="profileUsername">@random_user</div>
                     <div class="profile-balance">
@@ -702,7 +702,7 @@
                     <div class="referral-stats-grid">
                         <div class="referral-stat-item">
                             <div class="referral-stat-number" id="totalReferrals">0</div>
-                            <div class="referral-stat-label">الأصدقاء</div>
+                            <div class="referral-stat-label">الأصدقاء المدعوين</div>
                         </div>
                         <div class="referral-stat-item">
                             <div class="referral-stat-number" id="referralBalance">0</div>
@@ -743,21 +743,24 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         if (window.Telegram?.WebApp) {
+            Telegram.WebApp.ready();
             Telegram.WebApp.expand();
             Telegram.WebApp.disableVerticalSwipes();
         }
 
+        // ========== الإعدادات الثابتة ==========
         const DAILY_LIMIT = 5;
         const VOTE_REWARD = 10;
         const REFERRAL_REWARD = 15;
-        const SOCIAL_TASK_REWARD = 5;
         const BOT_USERNAME = "oclin_vote_bot";
+        const MINI_APP_NAME = "oclinapp";
 
         let cachedCoins = [];
         let isFetchingCoins = false;
         let lastFetchTime = 0;
         const CACHE_DURATION = 60000;
 
+        // ========== دالة الصوت ==========
         function playSound() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -776,12 +779,7 @@
             }
         }
 
-        function generateUserId() {
-            const timestamp = Date.now().toString(36);
-            const random = Math.random().toString(36).substring(2, 8);
-            return `user_${timestamp}_${random}`;
-        }
-
+        // ========== الحصول على بيانات مستخدم تليجرام ==========
         function getTelegramUser() {
             try {
                 if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
@@ -789,7 +787,9 @@
                     return {
                         id: `tg_${tgUser.id}`,
                         first_name: tgUser.first_name || 'User',
-                        username: tgUser.username || `user_${tgUser.id}`
+                        last_name: tgUser.last_name || '',
+                        username: tgUser.username || `user_${tgUser.id}`,
+                        photo_url: tgUser.photo_url || null
                     };
                 }
             } catch (e) {
@@ -798,6 +798,14 @@
             return null;
         }
 
+        // ========== إنشاء معرف مستخدم ==========
+        function generateUserId() {
+            const timestamp = Date.now().toString(36);
+            const random = Math.random().toString(36).substring(2, 8);
+            return `user_${timestamp}_${random}`;
+        }
+
+        // ========== تحميل بيانات المستخدم ==========
         function loadUserData() {
             const tgUser = getTelegramUser();
             let userId;
@@ -826,16 +834,20 @@
                 lastVoteDate: new Date().toDateString(),
                 completedTasks: {},
                 joinedAt: new Date().toISOString(),
-                tgInfo: tgUser
+                tgInfo: tgUser,
+                // قائمة لتخزين IDs الأشخاص الذين دعاهم
+                referredUsers: []
             };
-        }
-
-        function saveUserData() {
-            localStorage.setItem(`oclin_user_${userData.id}`, JSON.stringify(userData));
         }
 
         let userData = loadUserData();
 
+        // ========== حفظ بيانات المستخدم ==========
+        function saveUserData() {
+            localStorage.setItem(`oclin_user_${userData.id}`, JSON.stringify(userData));
+        }
+
+        // ========== التحقق من إعادة تعيين التصويتات اليومية ==========
         function checkAndResetDailyVotes() {
             const today = new Date().toDateString();
             if (userData.lastVoteDate !== today) {
@@ -846,32 +858,22 @@
             }
         }
 
+        // ========== نظام الإحالة المتكامل ==========
         function handleReferral() {
             try {
                 let referrerId = null;
-                let referralSource = '';
                 
-                // 1. من Telegram WebApp (الأهم)
+                // 1. من Telegram WebApp
                 if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
                     referrerId = window.Telegram.WebApp.initDataUnsafe.start_param;
-                    referralSource = 'telegram';
-                    console.log('Referrer from Telegram:', referrerId);
+                    console.log('المُحيل من تليجرام:', referrerId);
                 }
                 
                 // 2. من URL parameters
                 if (!referrerId) {
                     const urlParams = new URLSearchParams(window.location.search);
-                    const startParam = urlParams.get('startapp') || urlParams.get('start');
-                    
-                    if (startParam && startParam.startsWith('ref_')) {
-                        referrerId = startParam.replace('ref_', '');
-                        referralSource = 'url';
-                        console.log('Referrer from URL:', referrerId);
-                    } else if (startParam) {
-                        referrerId = startParam;
-                        referralSource = 'url';
-                        console.log('Referrer from URL (direct):', referrerId);
-                    }
+                    referrerId = urlParams.get('startapp');
+                    console.log('المُحيل من الرابط:', referrerId);
                 }
 
                 if (!referrerId) {
@@ -884,18 +886,23 @@
                     return;
                 }
 
+                // التحقق من أن المستخدم جديد (ليس لديه بيانات مخزنة مسبقاً)
                 const isNewUser = !localStorage.getItem(`oclin_user_${userData.id}`);
                 
                 if (isNewUser && !userData.referredBy) {
-                    console.log('New user via referral:', referrerId);
+                    console.log('🎉 مستخدم جديد عبر رابط إحالة من:', referrerId);
                     
-                    const rewardGiven = giveReferralReward(referrerId);
+                    // 1. إضافة نقاط للمُحيل
+                    const referrerRewardGiven = giveReferrerReward(referrerId, userData.id);
                     
-                    if (rewardGiven) {
+                    // 2. إضافة نقاط للمستخدم الجديد
+                    if (referrerRewardGiven) {
+                        // إضافة 15 نقطة للمستخدم الجديد
+                        userData.balance = (userData.balance || 0) + REFERRAL_REWARD;
                         userData.referredBy = referrerId;
                         saveUserData();
                         
-                        const message = `🎉 مرحباً! تم تفعيل رابط الإحالة وإضافة ${REFERRAL_REWARD} نقاط للداعي`;
+                        const message = `🎉 مرحباً بك! تم إضافة ${REFERRAL_REWARD} نقطة هدية ترحيبية!`;
                         document.getElementById('splashMessage').innerText = message;
                         
                         showReferralNotification(message);
@@ -908,42 +915,59 @@
                 }
                 
             } catch (e) {
-                console.error('Referral handling error:', e);
+                console.error('خطأ في نظام الإحالة:', e);
                 document.getElementById('splashMessage').innerText = 'مرحباً بك!';
             }
         }
 
-        function giveReferralReward(referrerId) {
+        // ========== إعطاء نقاط للمُحيل ==========
+        function giveReferrerReward(referrerId, newUserId) {
             try {
                 let referrerData = localStorage.getItem(`oclin_user_${referrerId}`);
                 
                 if (referrerData) {
                     referrerData = JSON.parse(referrerData);
                     
-                    referrerData.referralBalance = (referrerData.referralBalance || 0) + REFERRAL_REWARD;
-                    referrerData.balance = (referrerData.balance || 0) + REFERRAL_REWARD;
-                    referrerData.referralsCount = (referrerData.referralsCount || 0) + 1;
-                    
-                    localStorage.setItem(`oclin_user_${referrerId}`, JSON.stringify(referrerData));
-                    
-                    console.log(`✅ Added ${REFERRAL_REWARD} points to referrer:`, referrerId);
-                    
-                    if (referrerId === userData.id) {
-                        userData.referralBalance = referrerData.referralBalance;
-                        userData.balance = referrerData.balance;
-                        userData.referralsCount = referrerData.referralsCount;
-                        saveUserData();
+                    // التأكد من وجود مصفوفة referredUsers
+                    if (!referrerData.referredUsers) {
+                        referrerData.referredUsers = [];
                     }
                     
-                    return true;
+                    // التحقق من أن هذا المستخدم لم تتم دعوته سابقاً
+                    if (!referrerData.referredUsers.includes(newUserId)) {
+                        referrerData.referredUsers.push(newUserId);
+                        referrerData.referralBalance = (referrerData.referralBalance || 0) + REFERRAL_REWARD;
+                        referrerData.balance = (referrerData.balance || 0) + REFERRAL_REWARD;
+                        referrerData.referralsCount = referrerData.referredUsers.length;
+                        
+                        localStorage.setItem(`oclin_user_${referrerId}`, JSON.stringify(referrerData));
+                        
+                        console.log(`✅ تم إضافة ${REFERRAL_REWARD} نقاط للمُحيل:`, referrerId);
+                        console.log(`عدد المدعوين الآن: ${referrerData.referralsCount}`);
+                        
+                        // إذا كان المُحيل هو المستخدم الحالي (للاختبار)
+                        if (referrerId === userData.id) {
+                            userData.referralBalance = referrerData.referralBalance;
+                            userData.balance = referrerData.balance;
+                            userData.referralsCount = referrerData.referralsCount;
+                            userData.referredUsers = referrerData.referredUsers;
+                            saveUserData();
+                        }
+                        
+                        return true;
+                    } else {
+                        console.log('هذا المستخدم تمت دعوته مسبقاً');
+                        return false;
+                    }
                 } else {
-                    console.log('Referrer not found, creating new record for them');
+                    console.log('المُحيل غير موجود، يتم إنشاء سجل جديد له');
                     
                     const newReferrerData = {
                         id: referrerId,
                         balance: REFERRAL_REWARD,
                         referralBalance: REFERRAL_REWARD,
                         referralsCount: 1,
+                        referredUsers: [newUserId],
                         dailyVotes: 0,
                         votedCoins: {},
                         lastVoteDate: new Date().toDateString(),
@@ -955,11 +979,12 @@
                     return true;
                 }
             } catch (e) {
-                console.error('Error giving referral reward:', e);
+                console.error('خطأ في إعطاء النقاط للمُحيل:', e);
                 return false;
             }
         }
 
+        // ========== إظهار إشعار الإحالة ==========
         function showReferralNotification(message) {
             const notification = document.getElementById('referralNotification');
             if (notification) {
@@ -972,6 +997,35 @@
             }
         }
 
+        // ========== تحديث عرض رابط الإحالة والإحصائيات ==========
+        function updateReferralDisplay() {
+            const miniAppLink = `https://t.me/${BOT_USERNAME}/${MINI_APP_NAME}?startapp=${userData.id}`;
+            
+            document.getElementById("referralLink").value = miniAppLink;
+            
+            // عرض عدد المدعوين الفعلي
+            const referralsCount = userData.referredUsers ? userData.referredUsers.length : (userData.referralsCount || 0);
+            document.getElementById("totalReferrals").innerText = referralsCount;
+            
+            // عرض نقاط الدعوة
+            document.getElementById("referralBalance").innerText = userData.referralBalance || 0;
+            
+            console.log(`عدد المدعوين: ${referralsCount}`);
+        }
+
+        // ========== نسخ رابط الإحالة ==========
+        function copyReferralLink() {
+            const linkInput = document.getElementById("referralLink");
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                showToast("✅ تم نسخ الرابط!");
+            }).catch(() => {
+                showToast("❌ فشل النسخ");
+            });
+        }
+
+        // ========== متغيرات التصويت ==========
         let selectedIndex = -1;
         const coinsGrid = document.getElementById("coinsGrid");
         let voteContainers = [];
@@ -1325,6 +1379,13 @@
             initTasksPage();
         }
 
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 2000);
+        }
+
         function showPage(page, event) {
             if (event) {
                 document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
@@ -1356,7 +1417,8 @@
                 
                 const tgUser = getTelegramUser();
                 if (tgUser) {
-                    document.getElementById("profileDisplayName").innerText = tgUser.first_name;
+                    const fullName = tgUser.last_name ? `${tgUser.first_name} ${tgUser.last_name}` : tgUser.first_name;
+                    document.getElementById("profileDisplayName").innerText = fullName;
                     document.getElementById("profileUsername").innerText = `@${tgUser.username || tgUser.id}`;
                 } else {
                     document.getElementById("profileDisplayName").innerText = "OCLIN User";
@@ -1365,58 +1427,34 @@
             }
         }
 
-        function showToast(msg) {
-            const t = document.getElementById("toast");
-            t.innerText = msg;
-            t.classList.add("show");
-            setTimeout(() => t.classList.remove("show"), 2000);
-        }
-
-        function copyReferralLink() {
-            const linkInput = document.getElementById("referralLink");
-            linkInput.select();
-            linkInput.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(linkInput.value).then(() => {
-                showToast("✅ تم نسخ الرابط!");
-            }).catch(() => {
-                showToast("❌ فشل النسخ");
-            });
-        }
-
-       function updateReferralDisplay() {
-    const botUsername = "oclin_vote_bot";
-    const miniAppName = "oclinapp"; // اسم التطبيق المصغر من BotFather
-    const referrerId = userData.id;
-    
-    // الرابط الصحيح لفتح التطبيق المصغر مباشرة
-    const miniAppLink = `https://t.me/${botUsername}/${miniAppName}?startapp=${referrerId}`;
-    
-    document.getElementById("referralLink").value = miniAppLink;
-    document.getElementById("referralBalance").innerText = userData.referralBalance || 0;
-    document.getElementById("totalReferrals").innerText = userData.referralsCount || 0;
-}
         function init() {
+            // معالجة الإحالة أولاً
             handleReferral();
             
+            // تحديث البيانات
             checkAndResetDailyVotes();
             document.getElementById("profileBalance").innerText = userData.balance || 0;
             updateVotesCounter();
             updateReferralDisplay();
 
+            // تحميل العملات
             fetchCoins();
 
+            // إخفاء شاشة البداية
             setTimeout(() => {
                 document.getElementById('splashScreen').classList.add('hidden');
                 document.getElementById('homePage').classList.remove('hidden');
             }, 2000);
         }
 
+        // تحديث العملات كل دقيقة
         setInterval(() => {
-            fetchCoins(true);
+            if (!document.getElementById('homePage').classList.contains('hidden')) {
+                fetchCoins(true);
+            }
         }, 60000);
 
         document.addEventListener("DOMContentLoaded", init);
     </script>
 </body>
 </html>
-
