@@ -985,9 +985,11 @@
             }
         }
 
+        // ========== الدالة الأهم - تم تعديلها بالكامل ==========
         function giveReferrerReward(referrerId, newUserId, points, isNewUser) {
             try {
                 let referrerData = localStorage.getItem(`oclin_user_${referrerId}`);
+                let rewardGiven = false;
                 
                 if (referrerData) {
                     referrerData = JSON.parse(referrerData);
@@ -1003,19 +1005,42 @@
                         localStorage.setItem(`oclin_user_${referrerId}`, JSON.stringify(referrerData));
                         
                         console.log(`✅ تم إضافة ${points} نقاط للمُحيل:`, referrerId);
+                        console.log(`📊 عدد المدعوين الآن: ${referrerData.referralsCount}`);
                         
+                        // ========== التحديث المباشر للواجهة ==========
                         if (referrerId === userData.id) {
+                            // تحديث بيانات المستخدم الحالي
                             userData.referralBalance = referrerData.referralBalance;
                             userData.balance = referrerData.balance;
                             userData.referralsCount = referrerData.referralsCount;
                             userData.referredUsers = referrerData.referredUsers;
+                            
+                            // حفظ البيانات
                             saveUserData();
-                            refreshAllStats();
+                            
+                            // تحديث الواجهة مباشرة
+                            const totalElement = document.getElementById("totalReferrals");
+                            const balanceElement = document.getElementById("referralBalance");
+                            const profileBalance = document.getElementById("profileBalance");
+                            
+                            if (totalElement) totalElement.innerText = userData.referralsCount;
+                            if (balanceElement) balanceElement.innerText = userData.referralBalance;
+                            if (profileBalance) profileBalance.innerText = userData.balance;
+                            
+                            console.log('🎯 تم تحديث الواجهة:', {
+                                referrals: userData.referralsCount,
+                                points: userData.referralBalance,
+                                balance: userData.balance
+                            });
                         }
                         
-                        return true;
+                        rewardGiven = true;
+                    } else {
+                        console.log('⚠️ هذا المستخدم تمت دعوته مسبقاً');
                     }
                 } else {
+                    console.log('➕ إنشاء سجل جديد للمُحيل');
+                    
                     const newReferrerData = {
                         id: referrerId,
                         balance: points,
@@ -1034,15 +1059,26 @@
                     if (referrerId === userData.id) {
                         userData = {...userData, ...newReferrerData};
                         saveUserData();
-                        refreshAllStats();
+                        
+                        // تحديث الواجهة للمستخدم الحالي
+                        const totalElement = document.getElementById("totalReferrals");
+                        const balanceElement = document.getElementById("referralBalance");
+                        const profileBalance = document.getElementById("profileBalance");
+                        
+                        if (totalElement) totalElement.innerText = userData.referralsCount;
+                        if (balanceElement) balanceElement.innerText = userData.referralBalance;
+                        if (profileBalance) profileBalance.innerText = userData.balance;
                     }
                     
-                    return true;
+                    rewardGiven = true;
                 }
+                
+                return rewardGiven;
+                
             } catch (e) {
-                console.error('❌ خطأ:', e);
+                console.error('❌ خطأ في إعطاء النقاط:', e);
+                return false;
             }
-            return false;
         }
 
         function showReferralNotification(message) {
@@ -1263,7 +1299,12 @@
             userData.votedCoins[index] = true;
 
             saveUserData();
-            refreshAllStats();
+            
+            // تحديث الواجهة
+            const profileBalance = document.getElementById("profileBalance");
+            if (profileBalance) profileBalance.innerText = userData.balance;
+            updateUIBalance();
+            
             showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
 
             if (voteContainers[index]) {
@@ -1381,7 +1422,12 @@
             userData.balance = (userData.balance || 0) + link.reward;
             userData.completedTasks[link.platform] = true;
             saveUserData();
-            refreshAllStats();
+            
+            // تحديث الواجهة
+            const profileBalance = document.getElementById("profileBalance");
+            if (profileBalance) profileBalance.innerText = userData.balance;
+            updateUIBalance();
+            
             showToast(`✅ تم إضافة ${link.reward} نقاط`);
 
             initTasksPage();
@@ -1398,7 +1444,12 @@
             userData.balance = (userData.balance || 0) + 5;
             userData.completedTasks['post_' + index] = true;
             saveUserData();
-            refreshAllStats();
+            
+            // تحديث الواجهة
+            const profileBalance = document.getElementById("profileBalance");
+            if (profileBalance) profileBalance.innerText = userData.balance;
+            updateUIBalance();
+            
             showToast('✅ تم إضافة 5 نقاط');
 
             initTasksPage();
