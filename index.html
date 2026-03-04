@@ -633,6 +633,8 @@
             margin-bottom: 20px;
             text-align: center;
             animation: slideDown 0.5s ease;
+            font-weight: 700;
+            font-size: 16px;
         }
 
         @keyframes slideDown {
@@ -644,6 +646,17 @@
                 transform: translateY(0);
                 opacity: 1;
             }
+        }
+
+        .refresh-note {
+            background: rgba(139, 92, 246, 0.2);
+            color: #b886ff;
+            padding: 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+            border: 1px dashed #8B5CF6;
         }
     </style>
 </head>
@@ -690,7 +703,10 @@
             <div id="referralPage" class="hidden">
                 <div class="referral-container">
                     <h2 class="referral-title">🎁 دعوة الأصدقاء</h2>
-                    <p class="referral-desc">احصل على 15 نقطة عن كل صديق جديد ينضم عبر رابطك</p>
+                    <p class="referral-desc">
+                        👤 مستخدم جديد: +15 نقطة<br>
+                        👥 مستخدم قديم: +1 نقطة
+                    </p>
                     
                     <div id="referralNotification" class="referral-notification hidden"></div>
                     
@@ -708,6 +724,10 @@
                             <div class="referral-stat-number" id="referralBalance">0</div>
                             <div class="referral-stat-label">نقاط الدعوة</div>
                         </div>
+                    </div>
+                    
+                    <div class="refresh-note" id="refreshNote">
+                        🔄 يتم تحديث الإحصائيات تلقائياً
                     </div>
                 </div>
             </div>
@@ -751,7 +771,8 @@
         // ========== الإعدادات الثابتة ==========
         const DAILY_LIMIT = 5;
         const VOTE_REWARD = 10;
-        const REFERRAL_REWARD = 15;
+        const REFERRAL_REWARD_NEW = 15;     // نقاط المستخدم الجديد
+        const REFERRAL_REWARD_EXISTING = 1;  // نقاط المستخدم الحالي
         const BOT_USERNAME = "oclin_vote_bot";
         const MINI_APP_NAME = "oclinapp";
 
@@ -835,8 +856,7 @@
                 completedTasks: {},
                 joinedAt: new Date().toISOString(),
                 tgInfo: tgUser,
-                // قائمة لتخزين IDs الأشخاص الذين دعاهم
-                referredUsers: []
+                referredUsers: [] // قائمة IDs المدعوين
             };
         }
 
@@ -856,6 +876,17 @@
                 userData.lastVoteDate = today;
                 saveUserData();
             }
+        }
+
+        // ========== تحديث جميع الإحصائيات في الواجهة ==========
+        function refreshAllStats() {
+            // تحديث الرصيد في الملف الشخصي
+            document.getElementById("profileBalance").innerText = userData.balance || 0;
+            
+            // تحديث إحصائيات الإحالة
+            updateReferralDisplay();
+            
+            console.log('✅ تم تحديث جميع الإحصائيات');
         }
 
         // ========== نظام الإحالة المتكامل ==========
@@ -886,32 +917,41 @@
                     return;
                 }
 
-                // التحقق من أن المستخدم جديد (ليس لديه بيانات مخزنة مسبقاً)
+                // التحقق من أن المستخدم جديد أم لا
                 const isNewUser = !localStorage.getItem(`oclin_user_${userData.id}`);
                 
-                if (isNewUser && !userData.referredBy) {
-                    console.log('🎉 مستخدم جديد عبر رابط إحالة من:', referrerId);
-                    
-                    // 1. إضافة نقاط للمُحيل
-                    const referrerRewardGiven = giveReferrerReward(referrerId, userData.id);
-                    
-                    // 2. إضافة نقاط للمستخدم الجديد
-                    if (referrerRewardGiven) {
-                        // إضافة 15 نقطة للمستخدم الجديد
-                        userData.balance = (userData.balance || 0) + REFERRAL_REWARD;
+                // تحديد النقاط حسب نوع المستخدم
+                let pointsToAdd = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
+                let userType = isNewUser ? 'جديد' : 'قديم';
+                
+                console.log(`👤 مستخدم ${userType} عبر رابط إحالة من: ${referrerId} (${pointsToAdd} نقطة)`);
+                
+                // إضافة نقاط للمُحيل
+                const rewardGiven = giveReferrerReward(referrerId, userData.id, pointsToAdd, isNewUser);
+                
+                if (rewardGiven) {
+                    // إذا كان المستخدم جديد، سجل من دعاه
+                    if (isNewUser) {
                         userData.referredBy = referrerId;
-                        saveUserData();
-                        
-                        const message = `🎉 مرحباً بك! تم إضافة ${REFERRAL_REWARD} نقطة هدية ترحيبية!`;
-                        document.getElementById('splashMessage').innerText = message;
-                        
-                        showReferralNotification(message);
-                        playSound();
                     }
-                } else if (userData.referredBy) {
-                    document.getElementById('splashMessage').innerText = `مرحباً بعودتك! أنت مسجل كصديق مدعو`;
-                } else {
-                    document.getElementById('splashMessage').innerText = 'مرحباً بعودتك!';
+                    
+                    // دائماً احفظ بيانات المستخدم الحالي
+                    saveUserData();
+                    
+                    // رسالة للمستخدم حسب نوعه
+                    let message;
+                    if (isNewUser) {
+                        message = `🎉 مرحباً بك! تم تسجيل دخولك عبر رابط صديق وحصل على ${pointsToAdd} نقطة!`;
+                    } else {
+                        message = `👋 مرحباً بعودتك! صديك حصل على ${pointsToAdd} نقطة لدعوته إياك!`;
+                    }
+                    
+                    document.getElementById('splashMessage').innerText = message;
+                    showReferralNotification(message);
+                    playSound();
+                    
+                    // تحديث الإحصائيات فوراً
+                    refreshAllStats();
                 }
                 
             } catch (e) {
@@ -921,51 +961,52 @@
         }
 
         // ========== إعطاء نقاط للمُحيل ==========
-        function giveReferrerReward(referrerId, newUserId) {
+        function giveReferrerReward(referrerId, newUserId, points, isNewUser) {
             try {
                 let referrerData = localStorage.getItem(`oclin_user_${referrerId}`);
                 
                 if (referrerData) {
                     referrerData = JSON.parse(referrerData);
                     
-                    // التأكد من وجود مصفوفة referredUsers
-                    if (!referrerData.referredUsers) {
-                        referrerData.referredUsers = [];
-                    }
+                    // التأكد من وجود المصفوفات المطلوبة
+                    if (!referrerData.referredUsers) referrerData.referredUsers = [];
                     
                     // التحقق من أن هذا المستخدم لم تتم دعوته سابقاً
                     if (!referrerData.referredUsers.includes(newUserId)) {
                         referrerData.referredUsers.push(newUserId);
-                        referrerData.referralBalance = (referrerData.referralBalance || 0) + REFERRAL_REWARD;
-                        referrerData.balance = (referrerData.balance || 0) + REFERRAL_REWARD;
+                        referrerData.referralBalance = (referrerData.referralBalance || 0) + points;
+                        referrerData.balance = (referrerData.balance || 0) + points;
                         referrerData.referralsCount = referrerData.referredUsers.length;
                         
                         localStorage.setItem(`oclin_user_${referrerId}`, JSON.stringify(referrerData));
                         
-                        console.log(`✅ تم إضافة ${REFERRAL_REWARD} نقاط للمُحيل:`, referrerId);
+                        console.log(`✅ تم إضافة ${points} نقاط للمُحيل:`, referrerId);
                         console.log(`عدد المدعوين الآن: ${referrerData.referralsCount}`);
                         
-                        // إذا كان المُحيل هو المستخدم الحالي (للاختبار)
+                        // إذا كان المُحيل هو المستخدم الحالي (للتحديث المباشر)
                         if (referrerId === userData.id) {
                             userData.referralBalance = referrerData.referralBalance;
                             userData.balance = referrerData.balance;
                             userData.referralsCount = referrerData.referralsCount;
                             userData.referredUsers = referrerData.referredUsers;
                             saveUserData();
+                            
+                            // تحديث فوري للواجهة
+                            refreshAllStats();
                         }
                         
                         return true;
                     } else {
-                        console.log('هذا المستخدم تمت دعوته مسبقاً');
+                        console.log('⚠️ هذا المستخدم تمت دعوته مسبقاً');
                         return false;
                     }
                 } else {
-                    console.log('المُحيل غير موجود، يتم إنشاء سجل جديد له');
+                    console.log('➕ المُحيل غير موجود، يتم إنشاء سجل جديد له');
                     
                     const newReferrerData = {
                         id: referrerId,
-                        balance: REFERRAL_REWARD,
-                        referralBalance: REFERRAL_REWARD,
+                        balance: points,
+                        referralBalance: points,
                         referralsCount: 1,
                         referredUsers: [newUserId],
                         dailyVotes: 0,
@@ -976,10 +1017,18 @@
                     };
                     
                     localStorage.setItem(`oclin_user_${referrerId}`, JSON.stringify(newReferrerData));
+                    
+                    // إذا كان المستخدم الحالي هو المُحيل (للتحديث المباشر)
+                    if (referrerId === userData.id) {
+                        userData = {...userData, ...newReferrerData};
+                        saveUserData();
+                        refreshAllStats();
+                    }
+                    
                     return true;
                 }
             } catch (e) {
-                console.error('خطأ في إعطاء النقاط للمُحيل:', e);
+                console.error('❌ خطأ في إعطاء النقاط للمُحيل:', e);
                 return false;
             }
         }
@@ -993,7 +1042,7 @@
                 
                 setTimeout(() => {
                     notification.classList.add('hidden');
-                }, 5000);
+                }, 6000);
             }
         }
 
@@ -1003,14 +1052,14 @@
             
             document.getElementById("referralLink").value = miniAppLink;
             
-            // عرض عدد المدعوين الفعلي
+            // عدد المدعوين
             const referralsCount = userData.referredUsers ? userData.referredUsers.length : (userData.referralsCount || 0);
             document.getElementById("totalReferrals").innerText = referralsCount;
             
-            // عرض نقاط الدعوة
+            // نقاط الدعوة
             document.getElementById("referralBalance").innerText = userData.referralBalance || 0;
             
-            console.log(`عدد المدعوين: ${referralsCount}`);
+            console.log(`📊 إحصائيات: ${referralsCount} مدعو - ${userData.referralBalance || 0} نقطة`);
         }
 
         // ========== نسخ رابط الإحالة ==========
@@ -1235,9 +1284,7 @@
             userData.votedCoins[index] = true;
 
             saveUserData();
-
-            document.getElementById("profileBalance").innerText = userData.balance;
-            updateVotesCounter();
+            refreshAllStats();
             showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
 
             if (voteContainers[index]) {
@@ -1354,8 +1401,7 @@
             userData.balance = (userData.balance || 0) + link.reward;
             userData.completedTasks[link.platform] = true;
             saveUserData();
-
-            document.getElementById("profileBalance").innerText = userData.balance;
+            refreshAllStats();
             showToast(`✅ تم إضافة ${link.reward} نقاط`);
 
             initTasksPage();
@@ -1372,8 +1418,7 @@
             userData.balance = (userData.balance || 0) + 5;
             userData.completedTasks['post_' + index] = true;
             saveUserData();
-
-            document.getElementById("profileBalance").innerText = userData.balance;
+            refreshAllStats();
             showToast('✅ تم إضافة 5 نقاط');
 
             initTasksPage();
@@ -1433,9 +1478,8 @@
             
             // تحديث البيانات
             checkAndResetDailyVotes();
-            document.getElementById("profileBalance").innerText = userData.balance || 0;
+            refreshAllStats();
             updateVotesCounter();
-            updateReferralDisplay();
 
             // تحميل العملات
             fetchCoins();
@@ -1453,6 +1497,15 @@
                 fetchCoins(true);
             }
         }, 60000);
+
+        // الاستماع لأي تغيير في localStorage (للتحديث بين التبويبات)
+        window.addEventListener('storage', function(e) {
+            if (e.key === `oclin_user_${userData.id}`) {
+                console.log('🔄 تم تحديث البيانات من مكان آخر');
+                userData = JSON.parse(e.newValue);
+                refreshAllStats();
+            }
+        });
 
         document.addEventListener("DOMContentLoaded", init);
     </script>
