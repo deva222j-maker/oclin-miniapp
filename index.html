@@ -658,6 +658,17 @@
             margin-top: 10px;
             border: 1px dashed #8B5CF6;
         }
+
+        .live-update-badge {
+            background: #2ecc71;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 50px;
+            font-size: 11px;
+            display: inline-block;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
     </style>
 </head>
 
@@ -727,7 +738,7 @@
                     </div>
                     
                     <div class="refresh-note" id="refreshNote">
-                        🔄 يتم تحديث الإحصائيات تلقائياً
+                        <span class="live-update-badge">مباشر</span> 🔄 يتم تحديث الإحصائيات تلقائياً كل 3 ثواني
                     </div>
                 </div>
             </div>
@@ -881,7 +892,10 @@
         // ========== تحديث جميع الإحصائيات في الواجهة ==========
         function refreshAllStats() {
             // تحديث الرصيد في الملف الشخصي
-            document.getElementById("profileBalance").innerText = userData.balance || 0;
+            const balanceElement = document.getElementById("profileBalance");
+            if (balanceElement) {
+                balanceElement.innerText = userData.balance || 0;
+            }
             
             // تحديث إحصائيات الإحالة
             updateReferralDisplay();
@@ -943,7 +957,7 @@
                     if (isNewUser) {
                         message = `🎉 مرحباً بك! تم تسجيل دخولك عبر رابط صديق وحصل على ${pointsToAdd} نقطة!`;
                     } else {
-                        message = `👋 مرحباً بعودتك! صديك حصل على ${pointsToAdd} نقطة لدعوته إياك!`;
+                        message = `👋 مرحباً بعودتك! صديقك حصل على ${pointsToAdd} نقطة لدعوته إياك!`;
                     }
                     
                     document.getElementById('splashMessage').innerText = message;
@@ -952,6 +966,16 @@
                     
                     // تحديث الإحصائيات فوراً
                     refreshAllStats();
+                    
+                    // إرسال إشارة تحديث لكل النوافذ المفتوحة
+                    if (window.BroadcastChannel) {
+                        const channel = new BroadcastChannel('oclin_updates');
+                        channel.postMessage({
+                            type: 'referral_update',
+                            userId: referrerId,
+                            timestamp: Date.now()
+                        });
+                    }
                 }
                 
             } catch (e) {
@@ -1050,16 +1074,25 @@
         function updateReferralDisplay() {
             const miniAppLink = `https://t.me/${BOT_USERNAME}/${MINI_APP_NAME}?startapp=${userData.id}`;
             
-            document.getElementById("referralLink").value = miniAppLink;
+            const linkInput = document.getElementById("referralLink");
+            if (linkInput) {
+                linkInput.value = miniAppLink;
+            }
             
-            // عدد المدعوين
+            // عدد المدعوين - تأكد من استخدام referredUsers
             const referralsCount = userData.referredUsers ? userData.referredUsers.length : (userData.referralsCount || 0);
-            document.getElementById("totalReferrals").innerText = referralsCount;
+            const totalElement = document.getElementById("totalReferrals");
+            if (totalElement) {
+                totalElement.innerText = referralsCount;
+            }
             
             // نقاط الدعوة
-            document.getElementById("referralBalance").innerText = userData.referralBalance || 0;
+            const balanceElement = document.getElementById("referralBalance");
+            if (balanceElement) {
+                balanceElement.innerText = userData.referralBalance || 0;
+            }
             
-            console.log(`📊 إحصائيات: ${referralsCount} مدعو - ${userData.referralBalance || 0} نقطة`);
+            console.log(`📊 تم التحديث: ${referralsCount} مدعو - ${userData.referralBalance || 0} نقطة`);
         }
 
         // ========== نسخ رابط الإحالة ==========
@@ -1498,12 +1531,62 @@
             }
         }, 60000);
 
-        // الاستماع لأي تغيير في localStorage (للتحديث بين التبويبات)
-        window.addEventListener('storage', function(e) {
-            if (e.key === `oclin_user_${userData.id}`) {
-                console.log('🔄 تم تحديث البيانات من مكان آخر');
-                userData = JSON.parse(e.newValue);
-                refreshAllStats();
+        // ========== نظام التحديث المباشر ==========
+        // 1. التحديث الدوري كل 3 ثواني
+        setInterval(function() {
+            const updatedData = localStorage.getItem(`oclin_user_${userData.id}`);
+            if (updatedData) {
+                const newData = JSON.parse(updatedData);
+                
+                // التحقق من تغير البيانات
+                const oldBalance = userData.referralBalance || 0;
+                const oldCount = userData.referralsCount || 0;
+                const newBalance = newData.referralBalance || 0;
+                const newCount = newData.referralsCount || 0;
+                
+                if (newBalance !== oldBalance || newCount !== oldCount) {
+                    console.log('🔄 تم اكتشاف تحديث في الإحصائيات!');
+                    
+                    // تحديث البيانات
+                    userData = newData;
+                    refreshAllStats();
+                    
+                    // إظهار إشعار بالتحديث
+                    if (newBalance > oldBalance) {
+                        showToast(`✨ تم إضافة ${newBalance - oldBalance} نقطة جديدة!`);
+                    }
+                }
+            }
+        }, 3000); // كل 3 ثواني
+
+        // 2. التحديث عبر BroadcastChannel (للتحديث الفوري بين التبويبات)
+        if (window.BroadcastChannel) {
+            const channel = new BroadcastChannel('oclin_updates');
+            
+            channel.onmessage = function(event) {
+                if (event.data.type === 'referral_update' && event.data.userId === userData.id) {
+                    console.log('📡 تحديث فوري من تبويب آخر');
+                    
+                    // إعادة تحميل البيانات
+                    const freshData = localStorage.getItem(`oclin_user_${userData.id}`);
+                    if (freshData) {
+                        userData = JSON.parse(freshData);
+                        refreshAllStats();
+                        showToast(`🎉 تم تحديث الإحصائيات!`);
+                    }
+                }
+            };
+        }
+
+        // 3. تحديث عند العودة للصفحة
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log('👁️ العودة للصفحة - تحديث البيانات');
+                const freshData = localStorage.getItem(`oclin_user_${userData.id}`);
+                if (freshData) {
+                    userData = JSON.parse(freshData);
+                    refreshAllStats();
+                }
             }
         });
 
