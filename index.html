@@ -780,10 +780,11 @@
             Telegram.WebApp.disableVerticalSwipes();
         }
 
-        // ========== إعدادات Supabase (مع البيانات الصحيحة) ==========
+        // ========== إعدادات Supabase ==========
         const SUPABASE_URL = 'https://qyonklnofxypmhdmdbng.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_wUbYBh85pQ5eY7jzfitPNA_FPOaoKrz';
         
+        // تهيئة Supabase
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ========== الإعدادات الثابتة ==========
@@ -802,6 +803,14 @@
         const coinsGrid = document.getElementById("coinsGrid");
         let voteContainers = [];
         let userData = null;
+
+        // ========== دوال مساعدة ==========
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 2000);
+        }
 
         function playSound() {
             try {
@@ -861,6 +870,21 @@
             return data?.[0];
         }
 
+        async function getUserStats(userId) {
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+                
+            if (error) {
+                console.error('خطأ في جلب بيانات المستخدم:', error);
+                return null;
+            }
+            
+            return data;
+        }
+
         async function handleReferral(referrerId, newUserId, isNewUser) {
             const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
             
@@ -903,21 +927,6 @@
             }
         }
 
-        async function getUserStats(userId) {
-            const { data, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('id', userId)
-                .single();
-                
-            if (error) {
-                console.error('خطأ في جلب بيانات المستخدم:', error);
-                return null;
-            }
-            
-            return data;
-        }
-
         async function addVotePoints(userId, coinIndex) {
             const today = new Date().toISOString().split('T')[0];
             
@@ -927,15 +936,16 @@
                     .from('daily_votes')
                     .select('*')
                     .eq('user_id', userId)
-                    .eq('vote_date', today);
+                    .eq('vote_date', today)
+                    .maybeSingle();
                     
                 if (voteError) {
                     console.error('خطأ في جلب التصويتات:', voteError);
                     return { success: false, message: 'خطأ في النظام' };
                 }
                 
-                let votesCount = votes?.[0]?.votes_count || 0;
-                let coinsVoted = votes?.[0]?.coins_voted || [];
+                let votesCount = votes?.votes_count || 0;
+                let coinsVoted = votes?.coins_voted || [];
                 
                 if (votesCount >= DAILY_LIMIT) {
                     return { success: false, message: 'لقد استنفذت حد التصويت اليومي' };
@@ -985,7 +995,7 @@
             }
         }
 
-        async function addSocialTaskReward(userId, points, taskName) {
+        async function addSocialTaskReward(userId, points) {
             try {
                 const { error } = await supabase
                     .from('users')
@@ -1008,17 +1018,6 @@
         }
 
         // ========== دوال الإحالة ==========
-        function refreshAllStats() {
-            if (!userData) return;
-            
-            const balanceElement = document.getElementById("profileBalance");
-            if (balanceElement) {
-                balanceElement.innerText = userData.balance || 0;
-            }
-            updateUIBalance();
-            console.log('✅ تم تحديث جميع الإحصائيات');
-        }
-
         function updateUIBalance() {
             if (!userData) return;
             
@@ -1044,12 +1043,10 @@
         }
 
         function updateVotesCounter() {
-            if (!userData) return;
-            
-            // هذا مؤقت - سنحتاج لجلب عدد التصويتات من قاعدة البيانات
+            // سيتم تحديثها لاحقاً
             const counterElement = document.getElementById('votesCounter');
             if (counterElement) {
-                counterElement.textContent = `(0/${DAILY_LIMIT})`; // سيتم تحديثها لاحقاً
+                counterElement.textContent = `(0/${DAILY_LIMIT})`;
             }
         }
 
@@ -1403,7 +1400,7 @@
 
             window.open(link.url, '_blank');
             
-            const success = await addSocialTaskReward(userData.id, link.reward, link.platform);
+            const success = await addSocialTaskReward(userData.id, link.reward);
             
             if (success) {
                 showToast(`✅ تم إضافة ${link.reward} نقاط`);
@@ -1413,18 +1410,11 @@
         async function likePost(index) {
             if (!userData) return;
 
-            const success = await addSocialTaskReward(userData.id, 5, 'post_' + index);
+            const success = await addSocialTaskReward(userData.id, 5);
             
             if (success) {
                 showToast('✅ تم إضافة 5 نقاط');
             }
-        }
-
-        function showToast(msg) {
-            const t = document.getElementById("toast");
-            t.innerText = msg;
-            t.classList.add("show");
-            setTimeout(() => t.classList.remove("show"), 2000);
         }
 
         async function showPage(page, event) {
@@ -1483,15 +1473,21 @@
             }
         }, 3000);
 
+        // ========== دالة البدء ==========
         async function init() {
-            await checkReferral();
-            updateUIBalance();
-            fetchCoins();
+            try {
+                await checkReferral();
+                updateUIBalance();
+                fetchCoins();
 
-            setTimeout(() => {
-                document.getElementById('splashScreen').classList.add('hidden');
-                document.getElementById('homePage').classList.remove('hidden');
-            }, 2000);
+                setTimeout(() => {
+                    document.getElementById('splashScreen').classList.add('hidden');
+                    document.getElementById('homePage').classList.remove('hidden');
+                }, 2000);
+            } catch (e) {
+                console.error('خطأ في بدء التطبيق:', e);
+                document.getElementById('splashMessage').innerText = 'حدث خطأ، حاول مرة أخرى';
+            }
         }
 
         document.addEventListener("DOMContentLoaded", init);
