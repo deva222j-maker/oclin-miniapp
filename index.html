@@ -1087,7 +1087,7 @@
                     // إظهار إشعار إذا زاد عدد المدعوين
                     if (newCount > oldCount) {
                         const pointsGained = (newData.referral_balance || 0) - (userData?.referral_balance || 0);
-                        showToast(`✨ تمت إضافة صديق جديد! +${pointsGained} نقطة`);
+                        showToast(`+${pointsGained} نقطة`);
                         playSound();
                     }
                 }
@@ -1193,10 +1193,6 @@
                 if (success) {
                     // تحديث بيانات المستخدم الحالي فوراً
                     await refreshUserData();
-                    
-                    let message = isNewUser 
-                        ? `🎉 مرحباً بك! تم إضافة ${points} نقطة لصديقك!`
-                        : `👋 مرحباً بعودتك! تم إضافة ${points} نقطة لصديقك!`;
                     
                     document.getElementById('splashMessage').innerText = message;
                     showReferralNotification(message);
@@ -1572,3 +1568,4 @@
     </script>
 </body>
 </html>
+
