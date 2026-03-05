@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* نفس التنسيقات السابقة */
         * {
             margin: 0;
             padding: 0;
@@ -781,9 +780,9 @@
             Telegram.WebApp.disableVerticalSwipes();
         }
 
-        // ========== إعدادات Supabase ==========
-        const SUPABASE_URL = 'https://your-project.supabase.co'; // ضع رابط مشروعك هنا
-        const SUPABASE_KEY = 'your-anon-key'; // ضع مفتاحك هنا
+        // ========== إعدادات Supabase (مع البيانات الصحيحة) ==========
+        const SUPABASE_URL = 'https://qyonklnofxypmhdmdbng.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_wUbYBh85pQ5eY7jzfitPNA_FPOaoKrz';
         
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -865,28 +864,43 @@
         async function handleReferral(referrerId, newUserId, isNewUser) {
             const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
             
-            // 1. إضافة النقاط للمُحيل
-            const { data: referrer, error: updateError } = await supabase
-                .from('users')
-                .update({
-                    referral_balance: supabase.raw(`referral_balance + ${points}`),
-                    balance: supabase.raw(`balance + ${points}`),
-                    referrals_count: supabase.raw(`referrals_count + 1`)
-                })
-                .eq('id', referrerId)
-                .select();
+            try {
+                // 1. إضافة النقاط للمُحيل
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({
+                        referral_balance: supabase.raw(`referral_balance + ${points}`),
+                        balance: supabase.raw(`balance + ${points}`),
+                        referrals_count: supabase.raw(`referrals_count + 1`)
+                    })
+                    .eq('id', referrerId);
+                    
+                if (updateError) {
+                    console.error('خطأ في تحديث المُحيل:', updateError);
+                    return false;
+                }
                 
-            // 2. تسجيل الإحالة
-            const { error: referralError } = await supabase
-                .from('referrals')
-                .insert({
-                    referrer_id: referrerId,
-                    referred_id: newUserId,
-                    points_earned: points,
-                    is_new_user: isNewUser
-                });
+                // 2. تسجيل الإحالة
+                const { error: referralError } = await supabase
+                    .from('referrals')
+                    .insert({
+                        referrer_id: referrerId,
+                        referred_id: newUserId,
+                        points_earned: points,
+                        is_new_user: isNewUser
+                    });
+                    
+                if (referralError) {
+                    console.error('خطأ في تسجيل الإحالة:', referralError);
+                    return false;
+                }
                 
-            return !updateError && !referralError;
+                return true;
+                
+            } catch (e) {
+                console.error('خطأ في معالجة الإحالة:', e);
+                return false;
+            }
         }
 
         async function getUserStats(userId) {
@@ -907,69 +921,90 @@
         async function addVotePoints(userId, coinIndex) {
             const today = new Date().toISOString().split('T')[0];
             
-            // التحقق من التصويتات اليومية
-            const { data: votes, error: voteError } = await supabase
-                .from('daily_votes')
-                .select('*')
-                .eq('user_id', userId)
-                .eq('vote_date', today);
+            try {
+                // التحقق من التصويتات اليومية
+                const { data: votes, error: voteError } = await supabase
+                    .from('daily_votes')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .eq('vote_date', today);
+                    
+                if (voteError) {
+                    console.error('خطأ في جلب التصويتات:', voteError);
+                    return { success: false, message: 'خطأ في النظام' };
+                }
                 
-            let votesCount = votes?.[0]?.votes_count || 0;
-            let coinsVoted = votes?.[0]?.coins_voted || [];
-            
-            if (votesCount >= DAILY_LIMIT) {
-                return { success: false, message: 'لقد استنفذت حد التصويت اليومي' };
-            }
-            
-            if (coinsVoted.includes(coinIndex)) {
-                return { success: false, message: 'لقد صوتت لهذه العملة مسبقاً' };
-            }
-            
-            // إضافة التصويت
-            coinsVoted.push(coinIndex);
-            
-            const { error: upsertError } = await supabase
-                .from('daily_votes')
-                .upsert({
-                    user_id: userId,
-                    vote_date: today,
-                    votes_count: votesCount + 1,
-                    coins_voted: coinsVoted
-                });
+                let votesCount = votes?.[0]?.votes_count || 0;
+                let coinsVoted = votes?.[0]?.coins_voted || [];
                 
-            if (upsertError) {
-                return { success: false, message: 'خطأ في تسجيل التصويت' };
-            }
-            
-            // إضافة النقاط
-            const { error: pointsError } = await supabase
-                .from('users')
-                .update({ balance: supabase.raw(`balance + ${VOTE_REWARD}`) })
-                .eq('id', userId);
+                if (votesCount >= DAILY_LIMIT) {
+                    return { success: false, message: 'لقد استنفذت حد التصويت اليومي' };
+                }
                 
-            if (pointsError) {
-                return { success: false, message: 'خطأ في إضافة النقاط' };
+                if (coinsVoted.includes(coinIndex)) {
+                    return { success: false, message: 'لقد صوتت لهذه العملة مسبقاً' };
+                }
+                
+                // إضافة التصويت
+                coinsVoted.push(coinIndex);
+                
+                const { error: upsertError } = await supabase
+                    .from('daily_votes')
+                    .upsert({
+                        user_id: userId,
+                        vote_date: today,
+                        votes_count: votesCount + 1,
+                        coins_voted: coinsVoted
+                    });
+                    
+                if (upsertError) {
+                    console.error('خطأ في تسجيل التصويت:', upsertError);
+                    return { success: false, message: 'خطأ في تسجيل التصويت' };
+                }
+                
+                // إضافة النقاط
+                const { error: pointsError } = await supabase
+                    .from('users')
+                    .update({ balance: supabase.raw(`balance + ${VOTE_REWARD}`) })
+                    .eq('id', userId);
+                    
+                if (pointsError) {
+                    console.error('خطأ في إضافة النقاط:', pointsError);
+                    return { success: false, message: 'خطأ في إضافة النقاط' };
+                }
+                
+                // تحديث بيانات المستخدم المحلية
+                userData = await getUserStats(userId);
+                updateUIBalance();
+                
+                return { success: true, message: `✅ تم التصويت! +${VOTE_REWARD} نقاط` };
+                
+            } catch (e) {
+                console.error('خطأ:', e);
+                return { success: false, message: 'حدث خطأ غير متوقع' };
             }
-            
-            // تحديث بيانات المستخدم المحلية
-            userData = await getUserStats(userId);
-            updateUIBalance();
-            
-            return { success: true, message: `✅ تم التصويت! +${VOTE_REWARD} نقاط` };
         }
 
         async function addSocialTaskReward(userId, points, taskName) {
-            const { error } = await supabase
-                .from('users')
-                .update({ balance: supabase.raw(`balance + ${points}`) })
-                .eq('id', userId);
+            try {
+                const { error } = await supabase
+                    .from('users')
+                    .update({ balance: supabase.raw(`balance + ${points}`) })
+                    .eq('id', userId);
+                    
+                if (error) {
+                    console.error('خطأ في إضافة نقاط المهمة:', error);
+                    return false;
+                }
                 
-            if (!error) {
                 userData = await getUserStats(userId);
                 updateUIBalance();
                 return true;
+                
+            } catch (e) {
+                console.error('خطأ:', e);
+                return false;
             }
-            return false;
         }
 
         // ========== دوال الإحالة ==========
@@ -1008,6 +1043,16 @@
             }
         }
 
+        function updateVotesCounter() {
+            if (!userData) return;
+            
+            // هذا مؤقت - سنحتاج لجلب عدد التصويتات من قاعدة البيانات
+            const counterElement = document.getElementById('votesCounter');
+            if (counterElement) {
+                counterElement.textContent = `(0/${DAILY_LIMIT})`; // سيتم تحديثها لاحقاً
+            }
+        }
+
         // ========== معالجة الإحالة عند فتح التطبيق ==========
         async function checkReferral() {
             try {
@@ -1023,7 +1068,10 @@
                 }
 
                 const tgUser = getTelegramUser();
-                if (!tgUser) return;
+                if (!tgUser) {
+                    document.getElementById('splashMessage').innerText = 'الرجاء فتح التطبيق من تليجرام';
+                    return;
+                }
 
                 // تسجيل المستخدم أولاً
                 await registerUser(tgUser);
@@ -1034,14 +1082,14 @@
                     return;
                 }
 
-                // التحقق من أن المستخدم جديد
-                const { data: existingUser } = await supabase
-                    .from('users')
+                // التحقق مما إذا كان هذا المستخدم قد سجل إحالة من قبل
+                const { data: existingReferral } = await supabase
+                    .from('referrals')
                     .select('id')
-                    .eq('id', tgUser.id)
-                    .single();
+                    .eq('referred_id', tgUser.id)
+                    .maybeSingle();
 
-                const isNewUser = !existingUser;
+                const isNewUser = !existingReferral;
 
                 // معالجة الإحالة
                 const success = await handleReferral(referrerId, tgUser.id, isNewUser);
@@ -1051,7 +1099,7 @@
                     userData = await getUserStats(tgUser.id);
                     
                     let message = isNewUser 
-                        ? `🎉 مرحباً بك! تم تسجيل دخولك عبر رابط صديق وحصل على ${REFERRAL_REWARD_NEW} نقطة!`
+                        ? `🎉 مرحباً بك! تم تسجيل دخولك عبر رابط صديق وتم إضافة ${REFERRAL_REWARD_NEW} نقطة لصديقك!`
                         : `👋 مرحباً بعودتك! صديقك حصل على ${REFERRAL_REWARD_EXISTING} نقطة لدعوته إياك!`;
                     
                     document.getElementById('splashMessage').innerText = message;
@@ -1178,7 +1226,6 @@
 
             coinsGrid.innerHTML = "";
             voteContainers = [];
-            const hasVotesLeft = userData?.daily_votes < DAILY_LIMIT;
 
             coins.forEach((coin, i) => {
                 const container = document.createElement("div");
@@ -1187,12 +1234,6 @@
 
                 const coinCard = document.createElement("div");
                 coinCard.className = "coin-card";
-
-                if (userData?.voted_coins?.includes(i)) {
-                    coinCard.classList.add("voted");
-                } else if (!hasVotesLeft) {
-                    coinCard.classList.add("disabled");
-                }
 
                 coinCard.innerHTML = `
                     <div class="coin-icon"><img src="${coin.image}" alt="${coin.name}" onerror="this.src='https://via.placeholder.com/45?text=${coin.symbol}'"></div>
@@ -1205,19 +1246,17 @@
                 const voteOptions = document.createElement("div");
                 voteOptions.className = "vote-options";
                 voteOptions.innerHTML = `
-                    <div class="vote-btn vote-up ${!hasVotesLeft ? 'disabled' : ''}" onclick="castVote(${i}, 'up')">⬆️ Up</div>
-                    <div class="vote-btn vote-down ${!hasVotesLeft ? 'disabled' : ''}" onclick="castVote(${i}, 'down')">⬇️ Down</div>
+                    <div class="vote-btn vote-up" onclick="castVote(${i}, 'up')">⬆️ Up</div>
+                    <div class="vote-btn vote-down" onclick="castVote(${i}, 'down')">⬇️ Down</div>
                 `;
 
                 container.appendChild(coinCard);
                 container.appendChild(voteOptions);
 
-                if (hasVotesLeft && !userData?.voted_coins?.includes(i)) {
-                    coinCard.onclick = (e) => {
-                        e.stopPropagation();
-                        selectCoin(i, container);
-                    };
-                }
+                coinCard.onclick = (e) => {
+                    e.stopPropagation();
+                    selectCoin(i, container);
+                };
 
                 coinsGrid.appendChild(container);
                 voteContainers.push(container);
@@ -1225,11 +1264,6 @@
         }
 
         function selectCoin(index, container) {
-            if (userData?.daily_votes >= DAILY_LIMIT) {
-                showToast("لقد استنفذت حد التصويت اليومي");
-                return;
-            }
-
             if (selectedIndex === index) {
                 voteContainers.forEach(c => {
                     c.classList.remove("selected");
@@ -1237,11 +1271,6 @@
                     if (voteOpts) voteOpts.classList.remove('show');
                 });
                 selectedIndex = -1;
-                return;
-            }
-
-            if (userData?.voted_coins?.includes(index)) {
-                showToast("لقد صوتت لهذه العملة مسبقاً");
                 return;
             }
 
@@ -1264,7 +1293,10 @@
                 return;
             }
 
-            if (!userData) return;
+            if (!userData) {
+                showToast("الرجاء تسجيل الدخول أولاً");
+                return;
+            }
 
             const result = await addVotePoints(userData.id, index);
             showToast(result.message);
@@ -1332,7 +1364,7 @@
 
             socialLinks.forEach(link => {
                 const card = document.createElement('div');
-                card.className = `social-link-card ${userData?.completed_tasks?.[link.platform] ? 'completed' : ''}`;
+                card.className = `social-link-card`;
                 card.innerHTML = `
                     <div class="social-icon">${link.icon}</div>
                     <div class="social-name">${link.name}</div>
@@ -1359,9 +1391,7 @@
                     </div>
                     <div class="post-content">${post.content}</div>
                     <div class="post-actions">
-                        <button class="post-action-btn ${userData?.completed_tasks?.['post_' + index] ? 'completed' : ''}" onclick="likePost(${index})">
-                            ${userData?.completed_tasks?.['post_' + index] ? '✅ تم الإعجاب' : '👍 إعجاب +5'}
-                        </button>
+                        <button class="post-action-btn" onclick="likePost(${index})">👍 إعجاب +5</button>
                     </div>
                 `;
                 postsGrid.appendChild(postDiv);
@@ -1370,11 +1400,6 @@
 
         async function completeSocialTask(link) {
             if (!userData) return;
-            
-            if (userData.completed_tasks?.[link.platform]) {
-                showToast('لقد أكملت هذه المهمة مسبقاً');
-                return;
-            }
 
             window.open(link.url, '_blank');
             
@@ -1382,23 +1407,16 @@
             
             if (success) {
                 showToast(`✅ تم إضافة ${link.reward} نقاط`);
-                initTasksPage();
             }
         }
 
         async function likePost(index) {
             if (!userData) return;
-            
-            if (userData.completed_tasks?.['post_' + index]) {
-                showToast('لقد أعجبت بهذا المنشور مسبقاً');
-                return;
-            }
 
             const success = await addSocialTaskReward(userData.id, 5, 'post_' + index);
             
             if (success) {
                 showToast('✅ تم إضافة 5 نقاط');
-                initTasksPage();
             }
         }
 
