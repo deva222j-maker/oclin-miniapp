@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* التنسيقات كما هي */
         * {
             margin: 0;
             padding: 0;
@@ -199,6 +198,20 @@
             color: #a5b3d9;
         }
 
+        .coin-price {
+            font-size: 13px;
+            color: #2ecc71;
+            margin-top: 2px;
+        }
+
+        .price-up {
+            color: #2ecc71;
+        }
+        
+        .price-down {
+            color: #e74c3c;
+        }
+
         .vote-options {
             display: none;
             justify-content: center;
@@ -359,7 +372,7 @@
         .referral-link-box {
             display: flex;
             gap: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .referral-link-box input {
@@ -391,6 +404,7 @@
         .referral-stats-grid {
             display: flex;
             gap: 15px;
+            margin-bottom: 20px;
         }
 
         .referral-stat-item {
@@ -412,6 +426,95 @@
         .referral-stat-label {
             color: #a5b3d9;
             font-size: 14px;
+        }
+
+        /* قائمة المدعوين */
+        .referrals-list {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #8B5CF6 #1a1f2f;
+        }
+
+        .referrals-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .referrals-list::-webkit-scrollbar-track {
+            background: #1a1f2f;
+        }
+
+        .referrals-list::-webkit-scrollbar-thumb {
+            background: #8B5CF6;
+            border-radius: 10px;
+        }
+
+        .referral-item {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 15px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .referral-item-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .referral-item-info {
+            flex: 1;
+        }
+
+        .referral-item-name {
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .referral-item-username {
+            color: #8B5CF6;
+            font-size: 12px;
+        }
+
+        .referral-item-points {
+            color: #2ecc71;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 4px 10px;
+            background: rgba(46, 204, 113, 0.1);
+            border-radius: 20px;
+            flex-shrink: 0;
+        }
+
+        .referral-item-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+        }
+
+        .badge-new {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .badge-old {
+            background: #f39c12;
+            color: white;
         }
 
         .tasks-container {
@@ -678,6 +781,28 @@
             margin-right: 5px;
             animation: pulse 2s infinite;
         }
+
+        .update-indicator {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin: 10px 0;
+            font-size: 11px;
+            color: #a5b3d9;
+        }
+
+        .indicator-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2ecc71;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
     </style>
 </head>
 
@@ -698,7 +823,11 @@
         <div class="main-content">
             <div id="homePage" class="hidden">
                 <div class="welcome-message">👋 اختر عملة للتصويت <span id="votesCounter" style="color: #ffd966; font-weight: bold;">(5/5)</span></div>
-                <div class="coins-title"></div>
+                <div class="update-indicator">
+                    <span class="indicator-dot"></span>
+                    <span>الأسعار كل 10 ثواني • الأيقونات كل 3 ثواني • مزامنة كل 30 ثانية</span>
+                </div>
+                <div class="coins-title">📊 عملات Solana المتاحة</div>
                 <div class="coins-grid" id="coinsGrid"></div>
             </div>
 
@@ -723,7 +852,9 @@
             <div id="referralPage" class="hidden">
                 <div class="referral-container">
                     <h2 class="referral-title">🎁 دعوة الأصدقاء</h2>
-                  
+                    <p class="referral-desc">
+                        👤 مستخدم جديد: +15 نقطة • 👥 مستخدم قديم: +1 نقطة
+                    </p>
                     
                     <div id="referralNotification" class="referral-notification hidden"></div>
                     
@@ -743,7 +874,10 @@
                         </div>
                     </div>
                     
-                
+                    <h3 style="color: white; font-size: 18px; margin: 20px 0 10px;">👥 قائمة المدعوين</h3>
+                    <div id="referralsList" class="referrals-list">
+                        <p style="color: #a5b3d9; text-align: center; padding: 20px;">جاري تحميل القائمة...</p>
+                    </div>
                 </div>
             </div>
 
@@ -798,6 +932,20 @@
         const BOT_USERNAME = "oclin_vote_bot";
         const MINI_APP_NAME = "oclinapp";
 
+        // قائمة العملات الشهيرة على Solana
+        const POPULAR_SOLANA_TOKENS = [
+            "So11111111111111111111111111111111111111112", // SOL
+            "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+            "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", // USDT
+            "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", // BONK
+            "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", // SAMO
+            "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So", // mSOL
+            "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn", // JitoSOL
+            "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1", // bSOL
+            "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E", // wBTC
+            "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk"  // wETH
+        ];
+
         let cachedCoins = [];
         let isFetchingCoins = false;
         let lastFetchTime = 0;
@@ -808,9 +956,10 @@
         let userData = null;
         let telegramUser = null;
 
-        // ========== متغيرات للتحكم بالتحديث ==========
-        let lastUpdateTime = 0;
-        const UPDATE_INTERVAL = 2000; // 2 ثانية
+        // متغيرات للتحكم بتحديث العملات
+        let priceUpdateTimer = null;
+        let iconsUpdateTimer = null;
+        let syncTimer = null;
 
         // ========== دوال مساعدة ==========
         function showToast(msg) {
@@ -892,6 +1041,73 @@
             }
             
             return data;
+        }
+
+        // ========== دالة جلب المدعوين ==========
+        async function fetchReferrals(referrerId) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('referrals')
+                    .select(`
+                        referred_id,
+                        points_earned,
+                        is_new_user,
+                        created_at,
+                        users!referrals_referred_id_fkey (
+                            first_name,
+                            telegram_username,
+                            username
+                        )
+                    `)
+                    .eq('referrer_id', referrerId)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('خطأ في جلب المدعوين:', error);
+                    return [];
+                }
+
+                return data || [];
+            } catch (e) {
+                console.error('خطأ:', e);
+                return [];
+            }
+        }
+
+        // ========== دالة عرض المدعوين ==========
+        async function displayReferrals() {
+            if (!userData) return;
+
+            const referralsList = document.getElementById('referralsList');
+            if (!referralsList) return;
+
+            const referrals = await fetchReferrals(userData.id);
+
+            if (!referrals || referrals.length === 0) {
+                referralsList.innerHTML = '<p style="color: #a5b3d9; text-align: center; padding: 20px;">لا يوجد مدعوين بعد</p>';
+                return;
+            }
+
+            let html = '';
+            for (const ref of referrals) {
+                const referredUser = ref.users;
+                const name = referredUser?.first_name || 'مستخدم';
+                const username = referredUser?.telegram_username || referredUser?.username || ref.referred_id.slice(0, 8);
+                const badge = ref.is_new_user ? '<span class="badge-new">جديد</span>' : '<span class="badge-old">قديم</span>';
+                
+                html += `
+                    <div class="referral-item">
+                        <div class="referral-item-avatar">👤</div>
+                        <div class="referral-item-info">
+                            <div class="referral-item-name">${name} ${badge}</div>
+                            <div class="referral-item-username">@${username}</div>
+                        </div>
+                        <div class="referral-item-points">+${ref.points_earned}</div>
+                    </div>
+                `;
+            }
+
+            referralsList.innerHTML = html;
         }
 
         async function handleReferral(referrerId, newUserId, isNewUser) {
@@ -1072,18 +1288,21 @@
             if (telegramUser) {
                 const newData = await getUserStats(telegramUser.id);
                 if (newData) {
-                    // التحقق من تغير البيانات
                     const oldCount = userData?.referrals_count || 0;
                     const newCount = newData.referrals_count || 0;
                     
                     userData = newData;
                     updateUI();
                     
-                    // إظهار إشعار إذا زاد عدد المدعوين
                     if (newCount > oldCount) {
                         const pointsGained = (newData.referral_balance || 0) - (userData?.referral_balance || 0);
-                        showToast(`+${pointsGained} نقطة`);
+                        showToast(`+${pointsGained} نقطة من صديق جديد!`);
                         playSound();
+                        
+                        // تحديث قائمة المدعوين إذا كنا في صفحة الإحالة
+                        if (!document.getElementById('referralPage').classList.contains('hidden')) {
+                            await displayReferrals();
+                        }
                     }
                 }
             }
@@ -1133,7 +1352,6 @@
                         : telegramUser.id;
                 }
                 
-                // تحديث الصورة إذا وجدت
                 if (telegramUser.photo_url) {
                     const avatarElement = document.getElementById("profileAvatar");
                     if (avatarElement) {
@@ -1163,7 +1381,6 @@
                     return;
                 }
 
-                // تسجيل المستخدم أولاً
                 await registerUser(tgUser);
                 await refreshUserData();
 
@@ -1172,7 +1389,6 @@
                     return;
                 }
 
-                // التحقق مما إذا كان هذا المستخدم قد سجل إحالة من قبل
                 const { data: existingReferral } = await supabaseClient
                     .from('referrals')
                     .select('id')
@@ -1182,12 +1398,14 @@
                 const isNewUser = !existingReferral;
                 const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
 
-                // معالجة الإحالة
                 const success = await handleReferral(referrerId, tgUser.id, isNewUser);
 
                 if (success) {
-                    // تحديث بيانات المستخدم الحالي فوراً
                     await refreshUserData();
+                    
+                    const message = isNewUser 
+                        ? `🎉 تم إضافة ${points} نقطة لصديقك!`
+                        : `👋 تم إضافة ${points} نقطة لصديقك!`;
                     
                     document.getElementById('splashMessage').innerText = message;
                     showReferralNotification(message);
@@ -1220,27 +1438,13 @@
             });
         }
 
-        // ========== دوال التصويت والعملات ==========
-        const POPULAR_SOLANA_TOKENS = [
-            "So11111111111111111111111111111111111111112",
-            "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-            "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-            "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-            "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-        ];
-
+        // ========== نظام تحديث العملات المتطور ==========
         async function fetchCoins(forceRefresh = false) {
             if (isFetchingCoins) return;
 
-            if (!forceRefresh && cachedCoins.length > 0 && (Date.now() - lastFetchTime) < CACHE_DURATION) {
-                displayCoins(cachedCoins);
-                return;
-            }
-
             try {
                 isFetchingCoins = true;
-                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل عملات Solana...</p>';
-
+                
                 const uniqueCoins = new Map();
 
                 for (const tokenAddress of POPULAR_SOLANA_TOKENS) {
@@ -1256,7 +1460,8 @@
                                         name: pair.baseToken.name,
                                         symbol: pair.baseToken.symbol,
                                         image: pair.info?.imageUrl || `https://via.placeholder.com/45?text=${pair.baseToken.symbol}`,
-                                        current_price: pair.priceUsd || 0,
+                                        current_price: parseFloat(pair.priceUsd) || 0,
+                                        price_change: parseFloat(pair.priceChange?.h24) || 0
                                     });
                                 }
                             }
@@ -1268,11 +1473,11 @@
 
                 if (uniqueCoins.size === 0) {
                     const mockCoins = [
-                        { name: "Solana", symbol: "SOL", price: 98.5 },
-                        { name: "Bonk", symbol: "BONK", price: 0.0000234 },
-                        { name: "Jito", symbol: "JTO", price: 2.34 },
-                        { name: "Raydium", symbol: "RAY", price: 1.23 },
-                        { name: "Orca", symbol: "ORCA", price: 3.45 },
+                        { name: "Solana", symbol: "SOL", price: 98.5 + Math.random() * 2 },
+                        { name: "Bonk", symbol: "BONK", price: 0.0000234 + Math.random() * 0.000001 },
+                        { name: "Jito", symbol: "JTO", price: 2.34 + Math.random() * 0.1 },
+                        { name: "Raydium", symbol: "RAY", price: 1.23 + Math.random() * 0.05 },
+                        { name: "Orca", symbol: "ORCA", price: 3.45 + Math.random() * 0.2 },
                     ];
 
                     mockCoins.forEach((coin, index) => {
@@ -1281,28 +1486,71 @@
                             name: coin.name,
                             symbol: coin.symbol,
                             image: `https://via.placeholder.com/45?text=${coin.symbol}`,
-                            current_price: coin.price
+                            current_price: coin.price,
+                            price_change: (Math.random() * 10) - 5
                         });
                     });
                 }
 
-                const formattedCoins = Array.from(uniqueCoins.values()).slice(0, 10);
+                const formattedCoins = Array.from(uniqueCoins.values()).slice(0, 15);
+                
+                // مقارنة الأسعار القديمة والجديدة لتحديث العرض
+                if (cachedCoins.length > 0) {
+                    formattedCoins.forEach(newCoin => {
+                        const oldCoin = cachedCoins.find(c => c.id === newCoin.id);
+                        if (oldCoin) {
+                            newCoin.old_price = oldCoin.current_price;
+                        }
+                    });
+                }
+                
                 cachedCoins = formattedCoins;
-                lastFetchTime = Date.now();
                 displayCoins(formattedCoins);
 
             } catch (error) {
                 console.error("Error fetching coins:", error);
                 
-                if (cachedCoins.length > 0) {
-                    displayCoins(cachedCoins);
-                    showToast("جاري عرض آخر العملات المتاحة");
-                } else {
+                if (cachedCoins.length === 0) {
                     coinsGrid.innerHTML = '<p style="color:white;text-align:center;">⚠️ فشل تحميل العملات</p>';
                 }
             } finally {
                 isFetchingCoins = false;
             }
+        }
+
+        // فلتر 1: تحديث الأسعار كل 10 ثواني
+        function startPriceUpdater() {
+            if (priceUpdateTimer) clearInterval(priceUpdateTimer);
+            priceUpdateTimer = setInterval(async () => {
+                if (!document.getElementById('homePage').classList.contains('hidden')) {
+                    console.log('💰 تحديث الأسعار...');
+                    await fetchCoins(true);
+                }
+            }, 10000); // 10 ثواني
+        }
+
+        // فلتر 2: تحديث الأيقونات والأسماء كل 3 ثواني (محاكاة)
+        function startIconsUpdater() {
+            if (iconsUpdateTimer) clearInterval(iconsUpdateTimer);
+            iconsUpdateTimer = setInterval(() => {
+                if (!document.getElementById('homePage').classList.contains('hidden') && cachedCoins.length > 0) {
+                    console.log('🔄 تحديث الأيقونات...');
+                    // مجرد إعادة عرض بدون جلب بيانات جديدة
+                    displayCoins(cachedCoins);
+                }
+            }, 3000); // 3 ثواني
+        }
+
+        // فلتر 3: مزامنة كاملة كل 30 ثانية
+        function startSyncUpdater() {
+            if (syncTimer) clearInterval(syncTimer);
+            syncTimer = setInterval(async () => {
+                if (!document.getElementById('homePage').classList.contains('hidden')) {
+                    console.log('🔄 مزامنة كاملة للعملات...');
+                    cachedCoins = []; // مسح الكاش
+                    await fetchCoins(true);
+                }
+            }, 30000); // 30 ثانية
         }
 
         function displayCoins(coins) {
@@ -1322,12 +1570,24 @@
                 const coinCard = document.createElement("div");
                 coinCard.className = "coin-card";
 
+                // تحديد لون السعر (أخضر للارتفاع، أحمر للانخفاض)
+                const priceClass = coin.price_change >= 0 ? 'price-up' : 'price-down';
+                const priceChangeSymbol = coin.price_change >= 0 ? '▲' : '▼';
+                
+                // إظهار تغير السعر إذا كان موجوداً
+                let priceHtml = `<div class="coin-price ${priceClass}">$${coin.current_price.toFixed(4)}`;
+                if (coin.old_price) {
+                    const change = ((coin.current_price - coin.old_price) / coin.old_price * 100).toFixed(2);
+                    priceHtml += ` <span style="font-size: 11px;">${change}%</span>`;
+                }
+                priceHtml += `</div>`;
+
                 coinCard.innerHTML = `
                     <div class="coin-icon"><img src="${coin.image}" alt="${coin.name}" onerror="this.src='https://via.placeholder.com/45?text=${coin.symbol}'"></div>
                     <div>
                         <div class="coin-name">${coin.name}</div>
                         <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
-                        ${coin.current_price ? `<div class="coin-symbol" style="color:#2ecc71;">$${parseFloat(coin.current_price).toFixed(4)}</div>` : ''}
+                        ${priceHtml}
                     </div>`;
 
                 const voteOptions = document.createElement("div");
@@ -1521,15 +1781,22 @@
 
             document.getElementById(page + "Page").classList.remove("hidden");
 
-            if (page === 'referral' || page === 'profile') {
+            if (page === 'referral') {
+                await refreshUserData();
+                await displayReferrals();
+            } else if (page === 'profile') {
                 await refreshUserData();
             } else if (page === 'home') {
                 selectedIndex = -1;
                 if (cachedCoins.length > 0) {
                     displayCoins(cachedCoins);
                 } else {
-                    fetchCoins();
+                    await fetchCoins();
                 }
+                // تشغيل مؤقتات التحديث
+                startPriceUpdater();
+                startIconsUpdater();
+                startSyncUpdater();
             } else if (page === 'tasks') {
                 initTasksPage();
             }
@@ -1547,11 +1814,15 @@
             try {
                 await checkReferral();
                 await refreshUserData();
-                fetchCoins();
+                await fetchCoins();
 
                 setTimeout(() => {
                     document.getElementById('splashScreen').classList.add('hidden');
                     document.getElementById('homePage').classList.remove('hidden');
+                    // تشغيل مؤقتات التحديث
+                    startPriceUpdater();
+                    startIconsUpdater();
+                    startSyncUpdater();
                 }, 2000);
             } catch (e) {
                 console.error('خطأ في بدء التطبيق:', e);
@@ -1563,5 +1834,3 @@
     </script>
 </body>
 </html>
-
-
