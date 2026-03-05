@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* التنسيقات كما هي */
         * {
             margin: 0;
             padding: 0;
@@ -812,6 +813,10 @@
         let userData = null;
         let telegramUser = null;
 
+        // ========== متغيرات للتحكم بالتحديث ==========
+        let lastUpdateTime = 0;
+        const UPDATE_INTERVAL = 2000; // 2 ثانية
+
         // ========== دوال مساعدة ==========
         function showToast(msg) {
             const t = document.getElementById("toast");
@@ -1022,7 +1027,7 @@
                     return { success: false, message: 'خطأ في إضافة النقاط' };
                 }
                 
-                // تحديث بيانات المستخدم المحلية
+                // تحديث بيانات المستخدم المحلية فوراً
                 await refreshUserData();
                 
                 return { success: true, message: `✅ تم التصويت! +${VOTE_REWARD} نقاط` };
@@ -1070,8 +1075,22 @@
         // ========== تحديث بيانات المستخدم ==========
         async function refreshUserData() {
             if (telegramUser) {
-                userData = await getUserStats(telegramUser.id);
-                updateUI();
+                const newData = await getUserStats(telegramUser.id);
+                if (newData) {
+                    // التحقق من تغير البيانات
+                    const oldCount = userData?.referrals_count || 0;
+                    const newCount = newData.referrals_count || 0;
+                    
+                    userData = newData;
+                    updateUI();
+                    
+                    // إظهار إشعار إذا زاد عدد المدعوين
+                    if (newCount > oldCount) {
+                        const pointsGained = (newData.referral_balance || 0) - (userData?.referral_balance || 0);
+                        showToast(`✨ تمت إضافة صديق جديد! +${pointsGained} نقطة`);
+                        playSound();
+                    }
+                }
             }
         }
 
@@ -1155,7 +1174,6 @@
 
                 if (!referrerId || referrerId === tgUser.id) {
                     document.getElementById('splashMessage').innerText = 'مرحباً بك في OCLIN!';
-                    updateUI();
                     return;
                 }
 
@@ -1167,17 +1185,18 @@
                     .maybeSingle();
 
                 const isNewUser = !existingReferral;
+                const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
 
                 // معالجة الإحالة
                 const success = await handleReferral(referrerId, tgUser.id, isNewUser);
 
                 if (success) {
-                    // تحديث بيانات المستخدم الحالي
+                    // تحديث بيانات المستخدم الحالي فوراً
                     await refreshUserData();
                     
                     let message = isNewUser 
-                        ? `🎉 مرحباً بك! تم تسجيل دخولك عبر رابط صديق وتم إضافة ${REFERRAL_REWARD_NEW} نقطة لصديقك!`
-                        : `👋 مرحباً بعودتك! صديقك حصل على ${REFERRAL_REWARD_EXISTING} نقطة لدعوته إياك!`;
+                        ? `🎉 مرحباً بك! تم إضافة ${points} نقطة لصديقك!`
+                        : `👋 مرحباً بعودتك! تم إضافة ${points} نقطة لصديقك!`;
                     
                     document.getElementById('splashMessage').innerText = message;
                     showReferralNotification(message);
@@ -1483,7 +1502,7 @@
             
             if (success) {
                 showToast(`✅ تم إضافة ${link.reward} نقاط`);
-                updateUI();
+                await refreshUserData();
             }
         }
 
@@ -1494,7 +1513,7 @@
             
             if (success) {
                 showToast('✅ تم إضافة 5 نقاط');
-                updateUI();
+                await refreshUserData();
             }
         }
 
@@ -1511,9 +1530,8 @@
 
             document.getElementById(page + "Page").classList.remove("hidden");
 
-            if (page === 'referral') {
+            if (page === 'referral' || page === 'profile') {
                 await refreshUserData();
-                updateUI();
             } else if (page === 'home') {
                 selectedIndex = -1;
                 if (cachedCoins.length > 0) {
@@ -1523,15 +1541,12 @@
                 }
             } else if (page === 'tasks') {
                 initTasksPage();
-            } else if (page === 'profile') {
-                await refreshUserData();
-                updateUI();
             }
         }
 
         // ========== التحديث الدوري (كل ثانيتين) ==========
         setInterval(async function() {
-            if (userData && !document.getElementById('referralPage').classList.contains('hidden')) {
+            if (userData) {
                 await refreshUserData();
             }
         }, 2000);
@@ -1540,7 +1555,7 @@
         async function init() {
             try {
                 await checkReferral();
-                updateUI();
+                await refreshUserData();
                 fetchCoins();
 
                 setTimeout(() => {
