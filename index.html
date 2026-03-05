@@ -224,6 +224,26 @@
             margin-top: 2px;
         }
 
+        .dex-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+            color: white;
+        }
+
+        .badge-raydium {
+            background: #4caf50;
+        }
+
+        .badge-pumpfun {
+            background: #ff9800;
+        }
+
+        .badge-other {
+            background: #9c27b0;
+        }
+
         .vote-options {
             display: none;
             justify-content: center;
@@ -440,7 +460,6 @@
             font-size: 14px;
         }
 
-        /* قائمة المدعوين */
         .referrals-list {
             margin-top: 20px;
             max-height: 300px;
@@ -816,13 +835,54 @@
             50% { opacity: 0.3; }
         }
 
-        .birdeye-badge {
-            background: #00aaff;
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 10px 0;
+            margin-bottom: 10px;
+            scrollbar-width: none;
+        }
+
+        .filter-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-left: 5px;
+            padding: 8px 15px;
+            border-radius: 30px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.3s;
+            white-space: nowrap;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            border-color: transparent;
+        }
+
+        .filter-btn.raydium {
+            border-color: #4caf50;
+            color: #4caf50;
+        }
+
+        .filter-btn.raydium.active {
+            background: #4caf50;
+            color: white;
+        }
+
+        .filter-btn.pumpfun {
+            border-color: #ff9800;
+            color: #ff9800;
+        }
+
+        .filter-btn.pumpfun.active {
+            background: #ff9800;
+            color: white;
         }
     </style>
 </head>
@@ -844,11 +904,16 @@
         <div class="main-content">
             <div id="homePage" class="hidden">
                 <div class="welcome-message">👋 اختر عملة للتصويت <span id="votesCounter" style="color: #ffd966; font-weight: bold;">(5/5)</span></div>
+                <div class="filter-bar" id="filterBar">
+                    <button class="filter-btn active" onclick="setFilter('all')">الكل</button>
+                    <button class="filter-btn raydium" onclick="setFilter('raydium')">Raydium</button>
+                    <button class="filter-btn pumpfun" onclick="setFilter('pumpfun')">Pump.fun</button>
+                </div>
                 <div class="update-indicator">
                     <span class="indicator-dot"></span>
-                    <span>Birdeye • DexScreener • تحديث مباشر</span>
+                    <span>منسق • سريع • محدث</span>
                 </div>
-                <div class="coins-title">📊 عملات Solana الأكثر تداولاً</div>
+                <div class="coins-title">📊 عملات Solana</div>
                 <div class="coins-grid" id="coinsGrid"></div>
             </div>
 
@@ -954,19 +1019,20 @@
         const MINI_APP_NAME = "oclinapp";
 
         let cachedCoins = [];
+        let filteredCoins = [];
         let isFetchingCoins = false;
         let lastFetchTime = 0;
-        const CACHE_DURATION = 60000;
+        const CACHE_DURATION = 120000; // دقيقتين كاش
         let selectedIndex = -1;
         const coinsGrid = document.getElementById("coinsGrid");
         let voteContainers = [];
         let userData = null;
         let telegramUser = null;
+        let currentFilter = 'all';
 
         // متغيرات للتحكم بتحديث العملات
         let priceUpdateTimer = null;
         let iconsUpdateTimer = null;
-        let syncTimer = null;
 
         // ========== دوال مساعدة ==========
         function showToast(msg) {
@@ -1121,7 +1187,6 @@
             const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
             
             try {
-                // 1. جلب بيانات المُحيل الحالية
                 const { data: referrerData, error: fetchError } = await supabaseClient
                     .from('users')
                     .select('*')
@@ -1133,12 +1198,10 @@
                     return false;
                 }
                 
-                // 2. حساب القيم الجديدة
                 const newReferralBalance = (referrerData.referral_balance || 0) + points;
                 const newBalance = (referrerData.balance || 0) + points;
                 const newReferralsCount = (referrerData.referrals_count || 0) + 1;
                 
-                // 3. تحديث المُحيل
                 const { error: updateError } = await supabaseClient
                     .from('users')
                     .update({
@@ -1153,7 +1216,6 @@
                     return false;
                 }
                 
-                // 4. تسجيل الإحالة
                 const { error: referralError } = await supabaseClient
                     .from('referrals')
                     .insert({
@@ -1180,7 +1242,6 @@
             const today = new Date().toISOString().split('T')[0];
             
             try {
-                // التحقق من التصويتات اليومية
                 const { data: votes, error: voteError } = await supabaseClient
                     .from('daily_votes')
                     .select('*')
@@ -1204,7 +1265,6 @@
                     return { success: false, message: 'لقد صوتت لهذه العملة مسبقاً' };
                 }
                 
-                // إضافة التصويت
                 coinsVoted.push(coinIndex);
                 
                 const { error: upsertError } = await supabaseClient
@@ -1221,7 +1281,6 @@
                     return { success: false, message: 'خطأ في تسجيل التصويت' };
                 }
                 
-                // إضافة النقاط
                 const { data: userData, error: fetchError } = await supabaseClient
                     .from('users')
                     .select('balance')
@@ -1245,7 +1304,6 @@
                     return { success: false, message: 'خطأ في إضافة النقاط' };
                 }
                 
-                // تحديث بيانات المستخدم المحلية فوراً
                 await refreshUserData();
                 
                 return { success: true, message: `✅ تم التصويت! +${VOTE_REWARD} نقاط` };
@@ -1306,7 +1364,6 @@
                         showToast(`+${pointsGained} نقطة من صديق جديد!`);
                         playSound();
                         
-                        // تحديث قائمة المدعوين إذا كنا في صفحة الإحالة
                         if (!document.getElementById('referralPage').classList.contains('hidden')) {
                             await displayReferrals();
                         }
@@ -1319,13 +1376,11 @@
         function updateUI() {
             if (!userData) return;
             
-            // تحديث رابط الإحالة
             const linkInput = document.getElementById("referralLink");
             if (linkInput) {
                 linkInput.value = `https://t.me/${BOT_USERNAME}/${MINI_APP_NAME}?startapp=${userData.id}`;
             }
             
-            // تحديث إحصائيات الإحالة
             const totalElement = document.getElementById("totalReferrals");
             if (totalElement) {
                 totalElement.innerText = userData.referrals_count || 0;
@@ -1336,13 +1391,11 @@
                 balanceElement.innerText = userData.referral_balance || 0;
             }
             
-            // تحديث الملف الشخصي
             const profileBalance = document.getElementById("profileBalance");
             if (profileBalance) {
                 profileBalance.innerText = userData.balance || 0;
             }
             
-            // تحديث بيانات تليجرام في الملف الشخصي
             if (telegramUser) {
                 const nameElement = document.getElementById("profileDisplayName");
                 if (nameElement) {
@@ -1368,7 +1421,7 @@
             }
         }
 
-        // ========== معالجة الإحالة عند فتح التطبيق ==========
+        // ========== معالجة الإحالة ==========
         async function checkReferral() {
             try {
                 let referrerId = null;
@@ -1445,181 +1498,127 @@
             });
         }
 
-        // ========== نظام العملات المتطور مع Birdeye و DexScreener ==========
-        
-        // دالة جلب العملات من Birdeye
-        async function fetchBirdeyeCoins() {
-            try {
-                const response = await fetch('https://public-api.birdeye.so/public/tokenlist?sort_by=volume_5m&sort_type=desc&offset=0&limit=50', {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Birdeye API error');
-                }
-                
-                const data = await response.json();
-                return data.data?.tokens || [];
-            } catch (e) {
-                console.log('Birdeye error:', e);
-                return [];
-            }
+        // ========== نظام الفلترة ==========
+        function setFilter(filter) {
+            currentFilter = filter;
+            
+            // تحديث الأزرار
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // تطبيق الفلتر
+            applyFilter();
         }
 
-        // دالة جلب بيانات العملة من DexScreener
+        function applyFilter() {
+            if (!cachedCoins.length) return;
+            
+            if (currentFilter === 'all') {
+                filteredCoins = [...cachedCoins];
+            } else {
+                filteredCoins = cachedCoins.filter(coin => coin.dexId === currentFilter);
+            }
+            
+            displayCoins(filteredCoins);
+        }
+
+        // ========== نظام العملات المحسن مع كاش ==========
         async function fetchDexScreenerData(tokenAddress) {
             try {
                 const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`);
                 if (!response.ok) return null;
                 
                 const data = await response.json();
-                if (data.pairs && data.pairs.length > 0) {
-                    return data.pairs[0];
-                }
-                return null;
+                return data.pairs || [];
             } catch (e) {
                 console.log(`DexScreener error for ${tokenAddress}:`, e);
                 return null;
             }
         }
 
-        // دالة دمج البيانات من المصدرين
-        async function fetchMergedCoins() {
-            try {
-                // 1. جلب القائمة من Birdeye
-                const birdeyeTokens = await fetchBirdeyeCoins();
-                
-                if (birdeyeTokens.length === 0) {
-                    // إذا فشل Birdeye، استخدم DexScreener للعملات المعروفة
-                    return await fetchDexScreenerFallback();
-                }
+        async function fetchCoins(forceRefresh = false) {
+            // استخدام الكاش إذا كان محدثاً
+            if (!forceRefresh && cachedCoins.length > 0 && (Date.now() - lastFetchTime) < CACHE_DURATION) {
+                applyFilter();
+                return;
+            }
 
-                const uniqueCoins = new Map();
-                
-                // 2. معالجة كل عملة من Birdeye
-                for (const token of birdeyeTokens.slice(0, 30)) {
+            if (isFetchingCoins) return;
+
+            try {
+                isFetchingCoins = true;
+                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل العملات...</p>';
+
+                // قائمة العملات المعروفة مع عناوينها
+                const knownTokens = [
+                    { address: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL" },
+                    { address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", name: "USD Coin", symbol: "USDC" },
+                    { address: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", name: "Tether USD", symbol: "USDT" },
+                    { address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", name: "Bonk", symbol: "BONK" },
+                    { address: "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", name: "Samoyedcoin", symbol: "SAMO" },
+                    { address: "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So", name: "Marinade Staked SOL", symbol: "mSOL" },
+                    { address: "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn", name: "Jito Staked SOL", symbol: "JitoSOL" },
+                    { address: "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1", name: "BlazeStake Staked SOL", symbol: "bSOL" },
+                    { address: "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E", name: "Wrapped BTC", symbol: "WBTC" },
+                    { address: "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk", name: "Wrapped ETH", symbol: "WETH" },
+                    { address: "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R", name: "Raydium", symbol: "RAY" },
+                    { address: "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE", name: "Orca", symbol: "ORCA" }
+                ];
+
+                const coins = [];
+
+                for (const token of knownTokens) {
                     try {
-                        // جلب بيانات السعر من DexScreener
-                        const dexData = await fetchDexScreenerData(token.address);
+                        const pairs = await fetchDexScreenerData(token.address);
                         
-                        // بناء كائن العملة الموحد
-                        const coinData = {
-                            id: token.address,
-                            name: token.name || token.symbol,
-                            symbol: token.symbol,
-                            image: token.logoURI || `https://via.placeholder.com/45?text=${token.symbol}`,
-                            current_price: dexData?.priceUsd ? parseFloat(dexData.priceUsd) : (token.price || 0),
-                            volume_5m: token.volume_5m || 0,
-                            volume_24h: token.volume_24h || 0,
-                            price_change_24h: token.price_change_24h || 0,
-                            source: 'birdeye'
-                        };
-                        
-                        uniqueCoins.set(token.address, coinData);
+                        if (pairs && pairs.length > 0) {
+                            // تطبيق الفلتر: نأخذ أزواج Raydium فقط، ونتجنب Pump.fun
+                            const filteredPairs = pairs.filter(pair => {
+                                // إذا كان من Pump.fun، نتجاهله
+                                if (pair.dexId === 'pumpfun') return false;
+                                
+                                // نأخذ Raydium أو أي DEX آخر
+                                return true;
+                            });
+
+                            if (filteredPairs.length > 0) {
+                                // نأخذ أول زوج (الأكثر سيولة)
+                                const pair = filteredPairs[0];
+                                
+                                coins.push({
+                                    id: token.address,
+                                    name: token.name,
+                                    symbol: token.symbol,
+                                    image: pair.info?.imageUrl || `https://via.placeholder.com/45?text=${token.symbol}`,
+                                    current_price: parseFloat(pair.priceUsd) || 0,
+                                    price_change_24h: parseFloat(pair.priceChange?.h24) || 0,
+                                    volume_24h: parseFloat(pair.volume?.h24) || 0,
+                                    dexId: pair.dexId,
+                                    pairAddress: pair.pairAddress,
+                                    url: pair.url,
+                                    createdAt: pair.pairCreatedAt
+                                });
+                            }
+                        }
                         
                         // تأخير بسيط لتجنب تجاوز حدود API
-                        await new Promise(resolve => setTimeout(resolve, 50));
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
                     } catch (e) {
                         console.log(`Error processing ${token.symbol}:`, e);
                     }
                 }
 
-                return Array.from(uniqueCoins.values()).slice(0, 20);
+                // ترتيب العملات حسب السيولة
+                coins.sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0));
+
+                cachedCoins = coins;
+                lastFetchTime = Date.now();
                 
-            } catch (e) {
-                console.error('Error in fetchMergedCoins:', e);
-                return await fetchDexScreenerFallback();
-            }
-        }
-
-        // دالة احتياطية: DexScreener للعملات المعروفة
-        async function fetchDexScreenerFallback() {
-            const popularTokens = [
-                "So11111111111111111111111111111111111111112", // SOL
-                "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
-                "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", // USDT
-                "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", // BONK
-                "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", // SAMO
-                "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So", // mSOL
-                "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn", // JitoSOL
-                "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1"  // bSOL
-            ];
-
-            const coins = [];
-
-            for (const tokenAddress of popularTokens) {
-                try {
-                    const dexData = await fetchDexScreenerData(tokenAddress);
-                    if (dexData) {
-                        coins.push({
-                            id: tokenAddress,
-                            name: dexData.baseToken.name,
-                            symbol: dexData.baseToken.symbol,
-                            image: dexData.info?.imageUrl || `https://via.placeholder.com/45?text=${dexData.baseToken.symbol}`,
-                            current_price: parseFloat(dexData.priceUsd) || 0,
-                            volume_5m: 0,
-                            volume_24h: parseFloat(dexData.volume?.h24) || 0,
-                            price_change_24h: parseFloat(dexData.priceChange?.h24) || 0,
-                            source: 'dexscreener'
-                        });
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                } catch (e) {
-                    console.log(`Error fetching ${tokenAddress}:`, e);
-                }
-            }
-
-            return coins;
-        }
-
-        // الدالة الرئيسية لجلب العملات
-        async function fetchCoins(forceRefresh = false) {
-            if (isFetchingCoins) return;
-
-            try {
-                isFetchingCoins = true;
-                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل العملات من Birdeye و DexScreener...</p>';
-
-                const mergedCoins = await fetchMergedCoins();
-
-                if (mergedCoins.length === 0) {
-                    // إذا فشل كل شيء، استخدم بيانات وهمية
-                    const mockCoins = [
-                        { name: "Solana", symbol: "SOL", price: 98.5 + Math.random() * 2 },
-                        { name: "Bonk", symbol: "BONK", price: 0.0000234 + Math.random() * 0.000001 },
-                        { name: "Jito", symbol: "JTO", price: 2.34 + Math.random() * 0.1 },
-                        { name: "Raydium", symbol: "RAY", price: 1.23 + Math.random() * 0.05 },
-                        { name: "Orca", symbol: "ORCA", price: 3.45 + Math.random() * 0.2 },
-                    ];
-
-                    mergedCoins.push(...mockCoins.map((coin, index) => ({
-                        id: 'mock_' + index,
-                        name: coin.name,
-                        symbol: coin.symbol,
-                        image: `https://via.placeholder.com/45?text=${coin.symbol}`,
-                        current_price: coin.price,
-                        volume_5m: Math.random() * 1000000,
-                        volume_24h: Math.random() * 10000000,
-                        price_change_24h: (Math.random() * 20) - 10,
-                        source: 'mock'
-                    })));
-                }
-
-                // مقارنة الأسعار القديمة
-                if (cachedCoins.length > 0) {
-                    mergedCoins.forEach(newCoin => {
-                        const oldCoin = cachedCoins.find(c => c.id === newCoin.id);
-                        if (oldCoin) {
-                            newCoin.old_price = oldCoin.current_price;
-                        }
-                    });
-                }
-
-                cachedCoins = mergedCoins;
-                displayCoins(mergedCoins);
+                // تطبيق الفلتر الحالي
+                applyFilter();
 
             } catch (error) {
                 console.error("Error fetching coins:", error);
@@ -1632,38 +1631,45 @@
             }
         }
 
-        // فلتر 1: تحديث الأسعار كل 10 ثواني
+        // تحديث الأسعار فقط (كل 10 ثواني)
+        async function updatePrices() {
+            if (!cachedCoins.length || document.getElementById('homePage').classList.contains('hidden')) return;
+            
+            console.log('💰 تحديث الأسعار...');
+            
+            for (let i = 0; i < cachedCoins.length; i++) {
+                try {
+                    const pairs = await fetchDexScreenerData(cachedCoins[i].id);
+                    if (pairs && pairs.length > 0) {
+                        const pair = pairs.find(p => p.dexId === cachedCoins[i].dexId) || pairs[0];
+                        if (pair) {
+                            cachedCoins[i].old_price = cachedCoins[i].current_price;
+                            cachedCoins[i].current_price = parseFloat(pair.priceUsd) || 0;
+                            cachedCoins[i].price_change_24h = parseFloat(pair.priceChange?.h24) || 0;
+                        }
+                    }
+                } catch (e) {
+                    console.log(`Error updating price for ${cachedCoins[i].symbol}`);
+                }
+            }
+            
+            applyFilter();
+        }
+
+        // تحديث العرض فقط (كل 3 ثواني)
+        function refreshDisplay() {
+            if (!filteredCoins.length || document.getElementById('homePage').classList.contains('hidden')) return;
+            displayCoins(filteredCoins);
+        }
+
         function startPriceUpdater() {
             if (priceUpdateTimer) clearInterval(priceUpdateTimer);
-            priceUpdateTimer = setInterval(async () => {
-                if (!document.getElementById('homePage').classList.contains('hidden')) {
-                    console.log('💰 تحديث الأسعار من DexScreener...');
-                    await fetchCoins(true);
-                }
-            }, 10000);
+            priceUpdateTimer = setInterval(updatePrices, 10000);
         }
 
-        // فلتر 2: تحديث الأيقونات والأسماء كل 3 ثواني
-        function startIconsUpdater() {
+        function startDisplayUpdater() {
             if (iconsUpdateTimer) clearInterval(iconsUpdateTimer);
-            iconsUpdateTimer = setInterval(() => {
-                if (!document.getElementById('homePage').classList.contains('hidden') && cachedCoins.length > 0) {
-                    console.log('🔄 تحديث العرض...');
-                    displayCoins(cachedCoins);
-                }
-            }, 3000);
-        }
-
-        // فلتر 3: مزامنة كاملة مع Birdeye كل 30 ثانية
-        function startSyncUpdater() {
-            if (syncTimer) clearInterval(syncTimer);
-            syncTimer = setInterval(async () => {
-                if (!document.getElementById('homePage').classList.contains('hidden')) {
-                    console.log('🔄 مزامنة كاملة مع Birdeye...');
-                    cachedCoins = []; // مسح الكاش
-                    await fetchCoins(true);
-                }
-            }, 30000);
+            iconsUpdateTimer = setInterval(refreshDisplay, 3000);
         }
 
         function displayCoins(coins) {
@@ -1683,43 +1689,44 @@
                 const coinCard = document.createElement("div");
                 coinCard.className = "coin-card";
 
-                // تحديد لون السعر
                 const priceClass = coin.price_change_24h >= 0 ? 'price-up' : 'price-down';
                 
-                // أيقونة المصدر
-                const sourceBadge = coin.source === 'birdeye' ? '<span class="birdeye-badge">Birdeye</span>' : '';
+                // شارة DEX
+                let dexBadge = '';
+                if (coin.dexId === 'raydium') {
+                    dexBadge = '<span class="dex-badge badge-raydium">Raydium</span>';
+                } else if (coin.dexId) {
+                    dexBadge = `<span class="dex-badge badge-other">${coin.dexId}</span>`;
+                }
                 
                 let priceHtml = `<div class="coin-price ${priceClass}">$${coin.current_price?.toFixed(4) || '0.00'}`;
                 
-                // إضافة نسبة التغيير
                 if (coin.price_change_24h) {
                     const changeSymbol = coin.price_change_24h >= 0 ? '▲' : '▼';
                     priceHtml += ` <span style="font-size: 11px;">${changeSymbol} ${Math.abs(coin.price_change_24h).toFixed(2)}%</span>`;
                 }
                 
-                // إضافة التغيير اللحظي إذا وجد
                 if (coin.old_price) {
                     const change = ((coin.current_price - coin.old_price) / coin.old_price * 100).toFixed(2);
-                    priceHtml += ` <span style="font-size: 10px; color: #8B5CF6;">(${change}%)</span>`;
+                    if (Math.abs(change) > 0.01) {
+                        const changeClass = change >= 0 ? 'price-up' : 'price-down';
+                        priceHtml += ` <span style="font-size: 10px;" class="${changeClass}">(${change}%)</span>`;
+                    }
                 }
                 
                 priceHtml += `</div>`;
 
-                // إضافة حجم التداول
-                if (coin.volume_5m > 0) {
-                    const volumeFormatted = (coin.volume_5m / 1000).toFixed(0) + 'K';
-                    priceHtml += `<div class="coin-volume">📊 حجم 5 د: $${volumeFormatted}</div>`;
-                } else if (coin.volume_24h > 0) {
-                    const volumeFormatted = (coin.volume_24h / 1000000).toFixed(1) + 'M';
-                    priceHtml += `<div class="coin-volume">📊 حجم 24 س: $${volumeFormatted}</div>`;
+                if (coin.volume_24h > 0) {
+                    const volumeFormatted = (coin.volume_24h / 1000000).toFixed(2) + 'M';
+                    priceHtml += `<div class="coin-volume">📊 حجم 24h: $${volumeFormatted}</div>`;
                 }
 
                 coinCard.innerHTML = `
                     <div class="coin-icon">
-                        ${coin.image ? `<img src="${coin.image}" alt="${coin.name}" onerror="this.src='https://via.placeholder.com/45?text=${coin.symbol}'">` : coin.symbol[0]}
+                        <img src="${coin.image}" alt="${coin.name}" onerror="this.src='https://via.placeholder.com/45?text=${coin.symbol}'">
                     </div>
                     <div>
-                        <div class="coin-name">${coin.name} ${sourceBadge}</div>
+                        <div class="coin-name">${coin.name} ${dexBadge}</div>
                         <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
                         ${priceHtml}
                     </div>`;
@@ -1923,19 +1930,18 @@
             } else if (page === 'home') {
                 selectedIndex = -1;
                 if (cachedCoins.length > 0) {
-                    displayCoins(cachedCoins);
+                    applyFilter();
                 } else {
                     await fetchCoins();
                 }
                 startPriceUpdater();
-                startIconsUpdater();
-                startSyncUpdater();
+                startDisplayUpdater();
             } else if (page === 'tasks') {
                 initTasksPage();
             }
         }
 
-        // ========== التحديث الدوري (كل ثانيتين) ==========
+        // ========== التحديث الدوري ==========
         setInterval(async function() {
             if (userData) {
                 await refreshUserData();
@@ -1953,8 +1959,7 @@
                     document.getElementById('splashScreen').classList.add('hidden');
                     document.getElementById('homePage').classList.remove('hidden');
                     startPriceUpdater();
-                    startIconsUpdater();
-                    startSyncUpdater();
+                    startDisplayUpdater();
                 }, 2000);
             } catch (e) {
                 console.error('خطأ في بدء التطبيق:', e);
