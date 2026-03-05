@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* التنسيقات كما هي */
         * {
             margin: 0;
             padding: 0;
@@ -255,6 +256,13 @@
             justify-content: center;
             font-size: 40px;
             color: white;
+            overflow: hidden;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .profile-name {
@@ -697,8 +705,8 @@
             <div id="profilePage" class="hidden">
                 <div class="profile-card">
                     <div class="profile-avatar" id="profileAvatar">👤</div>
-                    <div class="profile-name" id="profileDisplayName">Random User</div>
-                    <div class="profile-username" id="profileUsername">@random_user</div>
+                    <div class="profile-name" id="profileDisplayName">جاري التحميل...</div>
+                    <div class="profile-username" id="profileUsername">@...</div>
                     <div class="profile-balance">
                         <div class="balance-label">الرصيد</div>
                         <div class="balance-amount">
@@ -723,7 +731,7 @@
                     <div id="referralNotification" class="referral-notification hidden"></div>
                     
                     <div class="referral-link-box">
-                        <input type="text" id="referralLink" readonly>
+                        <input type="text" id="referralLink" readonly placeholder="جاري تحميل الرابط...">
                         <button onclick="copyReferralLink()">نسخ</button>
                     </div>
 
@@ -785,7 +793,7 @@
         const SUPABASE_KEY = 'sb_publishable_wUbYBh85pQ5eY7jzfitPNA_FPOaoKrz';
         
         // تهيئة Supabase
-       const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ========== الإعدادات الثابتة ==========
         const DAILY_LIMIT = 5;
@@ -803,6 +811,7 @@
         const coinsGrid = document.getElementById("coinsGrid");
         let voteContainers = [];
         let userData = null;
+        let telegramUser = null;
 
         // ========== دوال مساعدة ==========
         function showToast(msg) {
@@ -834,13 +843,14 @@
             try {
                 if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
                     const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
-                    return {
+                    telegramUser = {
                         id: `tg_${tgUser.id}`,
-                        first_name: tgUser.first_name || 'User',
+                        first_name: tgUser.first_name || '',
                         last_name: tgUser.last_name || '',
-                        username: tgUser.username || `user_${tgUser.id}`,
+                        username: tgUser.username || null,
                         photo_url: tgUser.photo_url || null
                     };
+                    return telegramUser;
                 }
             } catch (e) {
                 console.log('Telegram user not available');
@@ -857,7 +867,7 @@
                 last_active: new Date()
             };
             
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('users')
                 .upsert(userData, { onConflict: 'id' })
                 .select();
@@ -871,7 +881,7 @@
         }
 
         async function getUserStats(userId) {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('users')
                 .select('*')
                 .eq('id', userId)
@@ -890,12 +900,12 @@
             
             try {
                 // 1. إضافة النقاط للمُحيل
-                const { error: updateError } = await supabase
+                const { error: updateError } = await supabaseClient
                     .from('users')
                     .update({
-                        referral_balance: supabase.raw(`referral_balance + ${points}`),
-                        balance: supabase.raw(`balance + ${points}`),
-                        referrals_count: supabase.raw(`referrals_count + 1`)
+                        referral_balance: supabaseClient.rpc('increment', { x: points }),
+                        balance: supabaseClient.rpc('increment', { x: points }),
+                        referrals_count: supabaseClient.rpc('increment', { x: 1 })
                     })
                     .eq('id', referrerId);
                     
@@ -905,7 +915,7 @@
                 }
                 
                 // 2. تسجيل الإحالة
-                const { error: referralError } = await supabase
+                const { error: referralError } = await supabaseClient
                     .from('referrals')
                     .insert({
                         referrer_id: referrerId,
@@ -932,7 +942,7 @@
             
             try {
                 // التحقق من التصويتات اليومية
-                const { data: votes, error: voteError } = await supabase
+                const { data: votes, error: voteError } = await supabaseClient
                     .from('daily_votes')
                     .select('*')
                     .eq('user_id', userId)
@@ -958,7 +968,7 @@
                 // إضافة التصويت
                 coinsVoted.push(coinIndex);
                 
-                const { error: upsertError } = await supabase
+                const { error: upsertError } = await supabaseClient
                     .from('daily_votes')
                     .upsert({
                         user_id: userId,
@@ -973,9 +983,9 @@
                 }
                 
                 // إضافة النقاط
-                const { error: pointsError } = await supabase
+                const { error: pointsError } = await supabaseClient
                     .from('users')
-                    .update({ balance: supabase.raw(`balance + ${VOTE_REWARD}`) })
+                    .update({ balance: supabaseClient.rpc('increment', { x: VOTE_REWARD }) })
                     .eq('id', userId);
                     
                 if (pointsError) {
@@ -985,7 +995,7 @@
                 
                 // تحديث بيانات المستخدم المحلية
                 userData = await getUserStats(userId);
-                updateUIBalance();
+                updateUI();
                 
                 return { success: true, message: `✅ تم التصويت! +${VOTE_REWARD} نقاط` };
                 
@@ -997,9 +1007,9 @@
 
         async function addSocialTaskReward(userId, points) {
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('users')
-                    .update({ balance: supabase.raw(`balance + ${points}`) })
+                    .update({ balance: supabaseClient.rpc('increment', { x: points }) })
                     .eq('id', userId);
                     
                 if (error) {
@@ -1008,7 +1018,7 @@
                 }
                 
                 userData = await getUserStats(userId);
-                updateUIBalance();
+                updateUI();
                 return true;
                 
             } catch (e) {
@@ -1017,15 +1027,17 @@
             }
         }
 
-        // ========== دوال الإحالة ==========
-        function updateUIBalance() {
+        // ========== تحديث واجهة المستخدم ==========
+        function updateUI() {
             if (!userData) return;
             
+            // تحديث رابط الإحالة
             const linkInput = document.getElementById("referralLink");
             if (linkInput) {
                 linkInput.value = `https://t.me/${BOT_USERNAME}/${MINI_APP_NAME}?startapp=${userData.id}`;
             }
             
+            // تحديث إحصائيات الإحالة
             const totalElement = document.getElementById("totalReferrals");
             if (totalElement) {
                 totalElement.innerText = userData.referrals_count || 0;
@@ -1036,17 +1048,36 @@
                 balanceElement.innerText = userData.referral_balance || 0;
             }
             
+            // تحديث الملف الشخصي
             const profileBalance = document.getElementById("profileBalance");
             if (profileBalance) {
                 profileBalance.innerText = userData.balance || 0;
             }
-        }
-
-        function updateVotesCounter() {
-            // سيتم تحديثها لاحقاً
-            const counterElement = document.getElementById('votesCounter');
-            if (counterElement) {
-                counterElement.textContent = `(0/${DAILY_LIMIT})`;
+            
+            // تحديث بيانات تليجرام في الملف الشخصي
+            if (telegramUser) {
+                const nameElement = document.getElementById("profileDisplayName");
+                if (nameElement) {
+                    const fullName = telegramUser.last_name 
+                        ? `${telegramUser.first_name} ${telegramUser.last_name}` 
+                        : telegramUser.first_name || 'مستخدم';
+                    nameElement.innerText = fullName;
+                }
+                
+                const usernameElement = document.getElementById("profileUsername");
+                if (usernameElement) {
+                    usernameElement.innerText = telegramUser.username 
+                        ? `@${telegramUser.username}` 
+                        : telegramUser.id;
+                }
+                
+                // تحديث الصورة إذا وجدت
+                if (telegramUser.photo_url) {
+                    const avatarElement = document.getElementById("profileAvatar");
+                    if (avatarElement) {
+                        avatarElement.innerHTML = `<img src="${telegramUser.photo_url}" alt="Profile">`;
+                    }
+                }
             }
         }
 
@@ -1076,11 +1107,12 @@
 
                 if (!referrerId || referrerId === tgUser.id) {
                     document.getElementById('splashMessage').innerText = 'مرحباً بك في OCLIN!';
+                    updateUI();
                     return;
                 }
 
                 // التحقق مما إذا كان هذا المستخدم قد سجل إحالة من قبل
-                const { data: existingReferral } = await supabase
+                const { data: existingReferral } = await supabaseClient
                     .from('referrals')
                     .select('id')
                     .eq('referred_id', tgUser.id)
@@ -1102,6 +1134,7 @@
                     document.getElementById('splashMessage').innerText = message;
                     showReferralNotification(message);
                     playSound();
+                    updateUI();
                 }
                 
             } catch (e) {
@@ -1309,7 +1342,6 @@
                 if (coinCard) coinCard.classList.add('voted');
 
                 selectedIndex = -1;
-                updateUIBalance();
             }
         }
 
@@ -1431,9 +1463,8 @@
             document.getElementById(page + "Page").classList.remove("hidden");
 
             if (page === 'referral') {
-                updateUIBalance();
+                updateUI();
             } else if (page === 'home') {
-                updateVotesCounter();
                 selectedIndex = -1;
                 if (cachedCoins.length > 0) {
                     displayCoins(cachedCoins);
@@ -1443,16 +1474,7 @@
             } else if (page === 'tasks') {
                 initTasksPage();
             } else if (page === 'profile') {
-                if (userData) {
-                    document.getElementById("profileBalance").innerText = userData.balance || 0;
-                    
-                    const tgUser = getTelegramUser();
-                    if (tgUser) {
-                        const fullName = tgUser.last_name ? `${tgUser.first_name} ${tgUser.last_name}` : tgUser.first_name;
-                        document.getElementById("profileDisplayName").innerText = fullName;
-                        document.getElementById("profileUsername").innerText = `@${tgUser.username || tgUser.id}`;
-                    }
-                }
+                updateUI();
             }
         }
 
@@ -1466,7 +1488,7 @@
                     
                     if (newCount > oldCount) {
                         userData = freshData;
-                        updateUIBalance();
+                        updateUI();
                         showToast(`✨ تمت إضافة صديق جديد!`);
                     }
                 }
@@ -1477,7 +1499,7 @@
         async function init() {
             try {
                 await checkReferral();
-                updateUIBalance();
+                updateUI();
                 fetchCoins();
 
                 setTimeout(() => {
@@ -1494,4 +1516,3 @@
     </script>
 </body>
 </html>
-
