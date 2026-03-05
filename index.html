@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* التنسيقات كما هي */
         * {
             margin: 0;
             padding: 0;
@@ -899,13 +898,30 @@
             const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
             
             try {
-                // 1. إضافة النقاط للمُحيل
+                // 1. جلب بيانات المُحيل الحالية
+                const { data: referrerData, error: fetchError } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('id', referrerId)
+                    .single();
+                    
+                if (fetchError) {
+                    console.error('خطأ في جلب بيانات المُحيل:', fetchError);
+                    return false;
+                }
+                
+                // 2. حساب القيم الجديدة
+                const newReferralBalance = (referrerData.referral_balance || 0) + points;
+                const newBalance = (referrerData.balance || 0) + points;
+                const newReferralsCount = (referrerData.referrals_count || 0) + 1;
+                
+                // 3. تحديث المُحيل
                 const { error: updateError } = await supabaseClient
                     .from('users')
                     .update({
-                        referral_balance: supabaseClient.rpc('increment', { x: points }),
-                        balance: supabaseClient.rpc('increment', { x: points }),
-                        referrals_count: supabaseClient.rpc('increment', { x: 1 })
+                        referral_balance: newReferralBalance,
+                        balance: newBalance,
+                        referrals_count: newReferralsCount
                     })
                     .eq('id', referrerId);
                     
@@ -914,7 +930,7 @@
                     return false;
                 }
                 
-                // 2. تسجيل الإحالة
+                // 4. تسجيل الإحالة
                 const { error: referralError } = await supabaseClient
                     .from('referrals')
                     .insert({
@@ -983,9 +999,22 @@
                 }
                 
                 // إضافة النقاط
+                const { data: userData, error: fetchError } = await supabaseClient
+                    .from('users')
+                    .select('balance')
+                    .eq('id', userId)
+                    .single();
+                    
+                if (fetchError) {
+                    console.error('خطأ في جلب بيانات المستخدم:', fetchError);
+                    return { success: false, message: 'خطأ في إضافة النقاط' };
+                }
+                
+                const newBalance = (userData.balance || 0) + VOTE_REWARD;
+                
                 const { error: pointsError } = await supabaseClient
                     .from('users')
-                    .update({ balance: supabaseClient.rpc('increment', { x: VOTE_REWARD }) })
+                    .update({ balance: newBalance })
                     .eq('id', userId);
                     
                 if (pointsError) {
@@ -994,8 +1023,7 @@
                 }
                 
                 // تحديث بيانات المستخدم المحلية
-                userData = await getUserStats(userId);
-                updateUI();
+                await refreshUserData();
                 
                 return { success: true, message: `✅ تم التصويت! +${VOTE_REWARD} نقاط` };
                 
@@ -1007,9 +1035,22 @@
 
         async function addSocialTaskReward(userId, points) {
             try {
+                const { data: userData, error: fetchError } = await supabaseClient
+                    .from('users')
+                    .select('balance')
+                    .eq('id', userId)
+                    .single();
+                    
+                if (fetchError) {
+                    console.error('خطأ في جلب بيانات المستخدم:', fetchError);
+                    return false;
+                }
+                
+                const newBalance = (userData.balance || 0) + points;
+                
                 const { error } = await supabaseClient
                     .from('users')
-                    .update({ balance: supabaseClient.rpc('increment', { x: points }) })
+                    .update({ balance: newBalance })
                     .eq('id', userId);
                     
                 if (error) {
@@ -1017,13 +1058,20 @@
                     return false;
                 }
                 
-                userData = await getUserStats(userId);
-                updateUI();
+                await refreshUserData();
                 return true;
                 
             } catch (e) {
                 console.error('خطأ:', e);
                 return false;
+            }
+        }
+
+        // ========== تحديث بيانات المستخدم ==========
+        async function refreshUserData() {
+            if (telegramUser) {
+                userData = await getUserStats(telegramUser.id);
+                updateUI();
             }
         }
 
@@ -1103,7 +1151,7 @@
 
                 // تسجيل المستخدم أولاً
                 await registerUser(tgUser);
-                userData = await getUserStats(tgUser.id);
+                await refreshUserData();
 
                 if (!referrerId || referrerId === tgUser.id) {
                     document.getElementById('splashMessage').innerText = 'مرحباً بك في OCLIN!';
@@ -1125,7 +1173,7 @@
 
                 if (success) {
                     // تحديث بيانات المستخدم الحالي
-                    userData = await getUserStats(tgUser.id);
+                    await refreshUserData();
                     
                     let message = isNewUser 
                         ? `🎉 مرحباً بك! تم تسجيل دخولك عبر رابط صديق وتم إضافة ${REFERRAL_REWARD_NEW} نقطة لصديقك!`
@@ -1134,7 +1182,6 @@
                     document.getElementById('splashMessage').innerText = message;
                     showReferralNotification(message);
                     playSound();
-                    updateUI();
                 }
                 
             } catch (e) {
@@ -1436,6 +1483,7 @@
             
             if (success) {
                 showToast(`✅ تم إضافة ${link.reward} نقاط`);
+                updateUI();
             }
         }
 
@@ -1446,6 +1494,7 @@
             
             if (success) {
                 showToast('✅ تم إضافة 5 نقاط');
+                updateUI();
             }
         }
 
@@ -1463,6 +1512,7 @@
             document.getElementById(page + "Page").classList.remove("hidden");
 
             if (page === 'referral') {
+                await refreshUserData();
                 updateUI();
             } else if (page === 'home') {
                 selectedIndex = -1;
@@ -1474,26 +1524,17 @@
             } else if (page === 'tasks') {
                 initTasksPage();
             } else if (page === 'profile') {
+                await refreshUserData();
                 updateUI();
             }
         }
 
-        // ========== التحديث الدوري ==========
+        // ========== التحديث الدوري (كل ثانيتين) ==========
         setInterval(async function() {
-            if (userData) {
-                const freshData = await getUserStats(userData.id);
-                if (freshData) {
-                    const oldCount = userData.referrals_count || 0;
-                    const newCount = freshData.referrals_count || 0;
-                    
-                    if (newCount > oldCount) {
-                        userData = freshData;
-                        updateUI();
-                        showToast(`✨ تمت إضافة صديق جديد!`);
-                    }
-                }
+            if (userData && !document.getElementById('referralPage').classList.contains('hidden')) {
+                await refreshUserData();
             }
-        }, 3000);
+        }, 2000);
 
         // ========== دالة البدء ==========
         async function init() {
