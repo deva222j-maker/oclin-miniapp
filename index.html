@@ -915,7 +915,7 @@
 
         <div class="main-content">
             <div id="homePage" class="hidden">
-                <div class="welcome-message">👋 اختر عملة للتصويت <span id="votesCounter" style="color: #ffd966; font-weight: bold;">(5/5)</span></div>
+                <div class="welcome-message">👋 اختر عملة للتصويت <span id="votesCounter" style="color: #ffd966; font-weight: bold;"></span></div>
                 <div class="filter-bar" id="filterBar">
                     <button class="filter-btn active" onclick="setFilter('all')">الكل</button>
                     <button class="filter-btn raydium" onclick="setFilter('raydium')">Raydium</button>
@@ -923,9 +923,8 @@
                 </div>
                 <div class="update-indicator">
                     <span class="indicator-dot"></span>
-                    <span>تحديث كل دقيقة • <span id="coinsCount">0</span> عملة</span>
                 </div>
-                <div class="coins-title">📊 عملات Solana</div>
+                <div class="coins-title"></div>
                 <div class="coins-grid" id="coinsGrid"></div>
             </div>
 
@@ -950,10 +949,7 @@
             <div id="referralPage" class="hidden">
                 <div class="referral-container">
                     <h2 class="referral-title">🎁 دعوة الأصدقاء</h2>
-                    <p class="referral-desc">
-                        👤 مستخدم جديد: +15 نقطة • 👥 مستخدم قديم: +1 نقطة
-                    </p>
-                    
+                 
                     <div id="referralNotification" class="referral-notification hidden"></div>
                     
                     <div class="referral-link-box">
@@ -1477,10 +1473,6 @@
 
                 if (success) {
                     await refreshUserData();
-                    
-                    const message = isNewUser 
-                        ? `🎉 تم إضافة ${points} نقطة لصديقك!`
-                        : `👋 تم إضافة ${points} نقطة لصديقك!`;
                     
                     document.getElementById('splashMessage').innerText = message;
                     showReferralNotification(message);
@@ -2145,4 +2137,5 @@
     </script>
 </body>
 </html>
+
 
