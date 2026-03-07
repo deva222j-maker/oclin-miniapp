@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* نفس التنسيقات السابقة - لم تتغير */
         * {
             margin: 0;
             padding: 0;
@@ -126,11 +125,36 @@
             font-size: 14px;
         }
 
+        .votes-remaining {
+            background: rgba(139, 92, 246, 0.2);
+            padding: 8px 15px;
+            border-radius: 30px;
+            color: #8B5CF6;
+            font-weight: 700;
+            font-size: 14px;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+
+        .votes-remaining span {
+            color: #ffd966;
+            font-size: 18px;
+            margin: 0 5px;
+        }
+
         .coins-title {
             color: #fff;
             font-size: 18px;
             font-weight: 700;
             margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .last-update {
+            font-size: 12px;
+            color: #a5b3d9;
         }
 
         .coins-grid {
@@ -220,8 +244,8 @@
             color: #e74c3c;
         }
 
-        .coin-volume {
-            font-size: 11px;
+        .coin-created {
+            font-size: 10px;
             color: #8B5CF6;
             margin-top: 2px;
         }
@@ -266,6 +290,11 @@
             border: 2px solid;
             background: rgba(10, 15, 30, 0.9);
             font-size: 14px;
+            transition: 0.3s;
+        }
+
+        .vote-btn:hover {
+            transform: scale(0.95);
         }
 
         .vote-up {
@@ -793,50 +822,6 @@
             }
         }
 
-        .refresh-note {
-            background: rgba(139, 92, 246, 0.2);
-            color: #b886ff;
-            padding: 8px;
-            border-radius: 20px;
-            font-size: 12px;
-            text-align: center;
-            margin-top: 10px;
-            border: 1px dashed #8B5CF6;
-        }
-
-        .live-update-badge {
-            background: #2ecc71;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 50px;
-            font-size: 11px;
-            display: inline-block;
-            margin-right: 5px;
-            animation: pulse 2s infinite;
-        }
-
-        .update-indicator {
-            display: flex;
-            gap: 5px;
-            justify-content: center;
-            margin: 10px 0;
-            font-size: 11px;
-            color: #a5b3d9;
-        }
-
-        .indicator-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #2ecc71;
-            animation: blink 2s infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
         .filter-bar {
             display: flex;
             gap: 8px;
@@ -867,26 +852,6 @@
             border-color: transparent;
         }
 
-        .filter-btn.raydium {
-            border-color: #4caf50;
-            color: #4caf50;
-        }
-
-        .filter-btn.raydium.active {
-            background: #4caf50;
-            color: white;
-        }
-
-        .filter-btn.pumpfun {
-            border-color: #ff9800;
-            color: #ff9800;
-        }
-
-        .filter-btn.pumpfun.active {
-            background: #ff9800;
-            color: white;
-        }
-
         .new-coins-badge {
             background: #e74c3c;
             color: white;
@@ -914,16 +879,24 @@
 
         <div class="main-content">
             <div id="homePage" class="hidden">
-                <div class="welcome-message">👋 اختر عملة للتصويت <span id="votesCounter" style="color: #ffd966; font-weight: bold;"></span></div>
+                <div class="welcome-message">
+                    👋 اختر عملة للتصويت
+                    <div class="votes-remaining">
+                        التصويتات المتبقية: <span id="votesRemaining">5</span>/5
+                    </div>
+                </div>
+                
+                <div class="coins-title">
+                    <span>🚀 أحدث العملات على Solana</span>
+                    <span class="last-update" id="lastUpdate"></span>
+                </div>
+                
                 <div class="filter-bar" id="filterBar">
                     <button class="filter-btn active" onclick="setFilter('all', event)">الكل</button>
-                    <button class="filter-btn raydium" onclick="setFilter('raydium', event)">Raydium</button>
-                    <button class="filter-btn pumpfun" onclick="setFilter('pumpfun', event)">Pump.fun</button>
+                    <button class="filter-btn" onclick="setFilter('today', event)">آخر 24 ساعة</button>
+                    <button class="filter-btn" onclick="setFilter('hour', event)">آخر ساعة</button>
                 </div>
-                <div class="update-indicator">
-                    <span class="indicator-dot"></span>
-                </div>
-                <div class="coins-title"></div>
+                
                 <div class="coins-grid" id="coinsGrid"></div>
             </div>
 
@@ -1020,27 +993,24 @@
         // ========== الإعدادات الثابتة ==========
         const DAILY_LIMIT = 5;
         const VOTE_REWARD = 10;
-        const REFERRAL_REWARD_NEW = 15;    // للمستخدمين الجدد فقط
-        const REFERRAL_REWARD_EXISTING = 0; // المستخدمين الموجودين = صفر
+        const REFERRAL_REWARD_NEW = 15;
+        const REFERRAL_REWARD_EXISTING = 0;
         const BOT_USERNAME = "oclin_vote_bot";
         const MINI_APP_NAME = "oclinapp";
 
-        let cachedCoins = [];
         let allCoins = [];
         let filteredCoins = [];
         let isFetchingCoins = false;
-        let lastFetchTime = 0;
         let selectedIndex = -1;
         const coinsGrid = document.getElementById("coinsGrid");
         let voteContainers = [];
         let userData = null;
         let telegramUser = null;
         let currentFilter = 'all';
-        const COINS_PER_PAGE = 30;
 
-        // متغيرات للتحكم بتحديث العملات
-        let priceUpdateTimer = null;
-        let newCoinsTimer = null;
+        // متغيرات للتحكم بالتصويت
+        let todayVotes = [];
+        let votesCount = 0;
 
         // ========== دوال مساعدة ==========
         function showToast(msg) {
@@ -1192,10 +1162,7 @@
         }
 
         async function handleReferral(referrerId, newUserId, isNewUser) {
-            // إذا كان المستخدم غير جديد، ما نعطي نقاط
-            if (!isNewUser) {
-                return false;
-            }
+            if (!isNewUser) return false;
             
             const points = REFERRAL_REWARD_NEW;
             
@@ -1251,58 +1218,109 @@
             }
         }
 
-        async function addVotePoints(userId, coinIndex) {
+        // ========== نظام التصويت الجديد ==========
+        async function loadTodayVotes() {
+            if (!telegramUser) return;
+            
             const today = new Date().toISOString().split('T')[0];
             
             try {
-                const { data: votes, error: voteError } = await supabaseClient
+                const { data, error } = await supabaseClient
                     .from('daily_votes')
                     .select('*')
-                    .eq('user_id', userId)
+                    .eq('user_id', telegramUser.id)
                     .eq('vote_date', today)
                     .maybeSingle();
-                    
-                if (voteError) {
-                    console.error('خطأ في جلب التصويتات:', voteError);
-                    return { success: false, message: 'خطأ في النظام' };
+                
+                if (error) {
+                    console.error('خطأ في جلب التصويتات:', error);
+                    return;
                 }
                 
-                let votesCount = votes?.votes_count || 0;
-                let coinsVoted = votes?.coins_voted || [];
-                
-                if (votesCount >= DAILY_LIMIT) {
-                    return { success: false, message: 'لقد استنفذت حد التصويت اليومي' };
+                if (data) {
+                    todayVotes = data.coins_voted || [];
+                    votesCount = data.votes_count || 0;
+                } else {
+                    todayVotes = [];
+                    votesCount = 0;
                 }
                 
-                if (coinsVoted.includes(coinIndex)) {
-                    return { success: false, message: 'لقد صوتت لهذه العملة مسبقاً' };
-                }
+                updateVotesDisplay();
                 
-                coinsVoted.push(coinIndex);
+            } catch (e) {
+                console.error('خطأ:', e);
+            }
+        }
+
+        function updateVotesDisplay() {
+            const remaining = DAILY_LIMIT - votesCount;
+            const counterElement = document.getElementById('votesRemaining');
+            if (counterElement) {
+                counterElement.innerText = remaining;
+            }
+            
+            // تحديث مظهر العملات المصوت عليها
+            if (voteContainers.length > 0) {
+                voteContainers.forEach((container, index) => {
+                    const coinCard = container.querySelector('.coin-card');
+                    if (todayVotes.includes(index)) {
+                        coinCard.classList.add('voted');
+                    } else {
+                        coinCard.classList.remove('voted');
+                    }
+                });
+            }
+        }
+
+        async function addVote(coinIndex, voteType) {
+            if (!telegramUser) {
+                showToast("الرجاء تسجيل الدخول أولاً");
+                return false;
+            }
+            
+            if (votesCount >= DAILY_LIMIT) {
+                showToast("⚠️ لقد استنفذت حد التصويت اليومي (5/5)");
+                return false;
+            }
+            
+            if (todayVotes.includes(coinIndex)) {
+                showToast("⚠️ لقد صوتت لهذه العملة مسبقاً");
+                return false;
+            }
+            
+            const today = new Date().toISOString().split('T')[0];
+            
+            try {
+                // تسجيل التصويت
+                const newVotes = [...todayVotes, coinIndex];
+                const newCount = votesCount + 1;
                 
                 const { error: upsertError } = await supabaseClient
                     .from('daily_votes')
                     .upsert({
-                        user_id: userId,
+                        user_id: telegramUser.id,
                         vote_date: today,
-                        votes_count: votesCount + 1,
-                        coins_voted: coinsVoted
+                        votes_count: newCount,
+                        coins_voted: newVotes,
+                        vote_type: voteType // تخزين نوع التصويت (up/down)
                     });
-                    
+                
                 if (upsertError) {
                     console.error('خطأ في تسجيل التصويت:', upsertError);
-                    return { success: false, message: 'خطأ في تسجيل التصويت' };
+                    showToast("❌ حدث خطأ في تسجيل التصويت");
+                    return false;
                 }
                 
+                // إضافة النقاط
                 const { data: userData, error: fetchError } = await supabaseClient
                     .from('users')
                     .select('balance')
-                    .eq('id', userId)
+                    .eq('id', telegramUser.id)
                     .single();
-                    
+                
                 if (fetchError) {
                     console.error('خطأ في جلب بيانات المستخدم:', fetchError);
-                    return { success: false, message: 'خطأ في إضافة النقاط' };
+                    return false;
                 }
                 
                 const newBalance = (userData.balance || 0) + VOTE_REWARD;
@@ -1310,53 +1328,37 @@
                 const { error: pointsError } = await supabaseClient
                     .from('users')
                     .update({ balance: newBalance })
-                    .eq('id', userId);
-                    
+                    .eq('id', telegramUser.id);
+                
                 if (pointsError) {
                     console.error('خطأ في إضافة النقاط:', pointsError);
-                    return { success: false, message: 'خطأ في إضافة النقاط' };
-                }
-                
-                await refreshUserData();
-                
-                return { success: true, message: `✅ تم التصويت! +${VOTE_REWARD} نقاط` };
-                
-            } catch (e) {
-                console.error('خطأ:', e);
-                return { success: false, message: 'حدث خطأ غير متوقع' };
-            }
-        }
-
-        async function addSocialTaskReward(userId, points) {
-            try {
-                const { data: userData, error: fetchError } = await supabaseClient
-                    .from('users')
-                    .select('balance')
-                    .eq('id', userId)
-                    .single();
-                    
-                if (fetchError) {
-                    console.error('خطأ في جلب بيانات المستخدم:', fetchError);
                     return false;
                 }
                 
-                const newBalance = (userData.balance || 0) + points;
+                // تحديث المتغيرات المحلية
+                todayVotes = newVotes;
+                votesCount = newCount;
                 
-                const { error } = await supabaseClient
-                    .from('users')
-                    .update({ balance: newBalance })
-                    .eq('id', userId);
-                    
-                if (error) {
-                    console.error('خطأ في إضافة نقاط المهمة:', error);
-                    return false;
+                // تحديث واجهة المستخدم
+                updateVotesDisplay();
+                
+                // تحديث مظهر العملة
+                if (voteContainers[coinIndex]) {
+                    const coinCard = voteContainers[coinIndex].querySelector('.coin-card');
+                    coinCard.classList.add('voted');
                 }
                 
+                showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
+                playSound();
+                
+                // تحديث الرصيد في صفحة الملف الشخصي
                 await refreshUserData();
+                
                 return true;
                 
             } catch (e) {
-                console.error('خطأ:', e);
+                console.error('خطأ في التصويت:', e);
+                showToast("❌ حدث خطأ غير متوقع");
                 return false;
             }
         }
@@ -1421,12 +1423,11 @@
             }
         }
 
-        // ========== نظام الإحالة المعدل بالكامل - الحل النهائي ==========
+        // ========== نظام الإحالة ==========
         async function checkReferral() {
             try {
                 let referrerId = null;
                 
-                // 1. الحصول على معرف المُحيل من الرابط
                 if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
                     referrerId = window.Telegram.WebApp.initDataUnsafe.start_param;
                 }
@@ -1436,74 +1437,49 @@
                     referrerId = urlParams.get('startapp');
                 }
 
-                // 2. الحصول على بيانات مستخدم تيليجرام
                 const tgUser = getTelegramUser();
                 if (!tgUser) {
                     document.getElementById('splashMessage').innerText = 'الرجاء فتح التطبيق من تليجرام';
                     return;
                 }
 
-                // 3. تسجيل المستخدم في قاعدة البيانات (إذا ما موجود)
                 await registerUser(tgUser);
                 await refreshUserData();
 
-                // 4. إذا ما في رابط إحالة، نهاية القصة
                 if (!referrerId) {
                     document.getElementById('splashMessage').innerText = 'مرحباً بك في OCLIN!';
                     return;
                 }
                 
-                // 5. منع الإحالة الذاتية (المستخدم يدعو نفسه)
                 if (referrerId === tgUser.id) {
                     document.getElementById('splashMessage').innerText = 'لا يمكنك استخدام رابطك الخاص!';
                     return;
                 }
 
-                // 6. التحقق الأهم: هل هذا المستخدم موجود أصلاً في قاعدة البيانات؟
-                // نتحقق من جدول users إذا كان المستخدم موجود من قبل
-                const { data: existingUser, error: userCheckError } = await supabaseClient
+                const { data: existingUser } = await supabaseClient
                     .from('users')
                     .select('created_at')
                     .eq('id', tgUser.id)
                     .maybeSingle();
 
-                if (userCheckError) {
-                    console.error('خطأ في التحقق من المستخدم:', userCheckError);
-                }
-
-                // 7. التحقق من أن هذا المستخدم لم يستخدم رابط إحالة من قبل
-                const { data: existingReferral, error: refCheckError } = await supabaseClient
+                const { data: existingReferral } = await supabaseClient
                     .from('referrals')
                     .select('id, referrer_id, created_at')
                     .eq('referred_id', tgUser.id)
                     .maybeSingle();
 
-                if (refCheckError) {
-                    console.error('خطأ في التحقق من الإحالة:', refCheckError);
-                }
-
-                // 8. إذا كان المستخدم مسجل مسبقاً كمدعو (حتى لو كان عن طريق رابط آخر)
                 if (existingReferral) {
-                    console.log('🚫 محاولة اختراق: هذا المستخدم استخدم رابط إحالة سابقاً:', existingReferral);
-                    
-                    const referralDate = new Date(existingReferral.created_at).toLocaleDateString('ar-IQ');
-                    
                     if (existingReferral.referrer_id === referrerId) {
-                        document.getElementById('splashMessage').innerText = '⚠️ لقد استخدمت هذا الرابط من قبل! لا يمكنك استخدامه مرة أخرى.';
+                        document.getElementById('splashMessage').innerText = '⚠️ لقد استخدمت هذا الرابط من قبل!';
                     } else {
-                        document.getElementById('splashMessage').innerText = `⚠️ لقد استخدمت رابط إحالة آخر في تاريخ ${referralDate}.`;
+                        document.getElementById('splashMessage').innerText = '⚠️ لقد استخدمت رابط إحالة آخر من قبل';
                     }
-                    
                     return;
                 }
 
-                // 9. التحقق: هل المستخدم جديد أم قديم؟
-                const isNewUser = !existingUser; // إذا ما كان موجود في users، فهو جديد
+                const isNewUser = !existingUser;
                 
                 if (isNewUser) {
-                    // مستخدم جديد 100% - نعطي 15 نقطة
-                    console.log('✅ مستخدم جديد عبر رابط إحالة:', referrerId);
-                    
                     const success = await handleReferral(referrerId, tgUser.id, true);
 
                     if (success) {
@@ -1515,9 +1491,7 @@
                         playSound();
                     }
                 } else {
-                    // مستخدم قديم - لا نعطي أي نقاط
-                    console.log('ℹ️ مستخدم قديم حاول استخدام رابط إحالة:', tgUser.id);
-                    document.getElementById('splashMessage').innerText = 'مرحباً بعودتك! (المستخدمين الجدد فقط يحصلون على نقاط)';
+                    document.getElementById('splashMessage').innerText = 'مرحباً بعودتك!';
                 }
                 
             } catch (e) {
@@ -1555,6 +1529,82 @@
             showToast("🔜 قريباً: السحب متاح");
         }
 
+        // ========== نظام جلب العملات الجديدة ==========
+        async function fetchNewCoins() {
+            try {
+                const response = await fetch('https://api.dexscreener.com/latest/dex/search?q=solana');
+                if (!response.ok) throw new Error('فشل الاتصال');
+                
+                const data = await response.json();
+                
+                if (!data.pairs || data.pairs.length === 0) {
+                    return [];
+                }
+                
+                // تجميع العملات الفريدة (تجنب التكرار)
+                const uniqueCoins = new Map();
+                
+                data.pairs.forEach(pair => {
+                    if (!pair.baseToken || !pair.baseToken.address) return;
+                    
+                    const address = pair.baseToken.address;
+                    
+                    if (!uniqueCoins.has(address)) {
+                        // حساب وقت الإنشاء
+                        let createdText = 'غير معروف';
+                        let createdHours = 999999;
+                        
+                        if (pair.pairCreatedAt) {
+                            const created = new Date(pair.pairCreatedAt);
+                            const now = new Date();
+                            createdHours = Math.floor((now - created) / (1000 * 60 * 60));
+                            
+                            if (createdHours < 1) {
+                                const minutes = Math.floor((now - created) / (1000 * 60));
+                                createdText = `منذ ${minutes} دقيقة`;
+                            } else if (createdHours < 24) {
+                                createdText = `منذ ${createdHours} ساعة`;
+                            } else {
+                                const days = Math.floor(createdHours / 24);
+                                createdText = `منذ ${days} يوم`;
+                            }
+                        }
+                        
+                        uniqueCoins.set(address, {
+                            id: address,
+                            name: pair.baseToken.name || 'غير معروف',
+                            symbol: pair.baseToken.symbol || '???',
+                            image: pair.info?.imageUrl || null,
+                            price: parseFloat(pair.priceUsd) || 0,
+                            priceChange: parseFloat(pair.priceChange?.h24) || 0,
+                            volume: parseFloat(pair.volume?.h24) || 0,
+                            dexId: pair.dexId || 'unknown',
+                            createdAt: pair.pairCreatedAt,
+                            createdHours: createdHours,
+                            createdText: createdText,
+                            url: pair.url
+                        });
+                    }
+                });
+                
+                // تحويل الخريطة إلى مصفوفة
+                let coins = Array.from(uniqueCoins.values());
+                
+                // ترتيب حسب تاريخ الإنشاء (الأحدث أولاً)
+                coins.sort((a, b) => {
+                    if (!a.createdAt) return 1;
+                    if (!b.createdAt) return -1;
+                    return new Date(b.createdAt) - new Date(a.createdAt);
+                });
+                
+                return coins;
+                
+            } catch (error) {
+                console.error('خطأ في جلب العملات:', error);
+                return [];
+            }
+        }
+
         // ========== نظام الفلترة ==========
         function setFilter(filter, event) {
             if (!event) return;
@@ -1572,248 +1622,36 @@
         function applyFilter() {
             if (!allCoins.length) return;
             
+            const now = new Date();
+            
             if (currentFilter === 'all') {
                 filteredCoins = [...allCoins];
-            } else {
-                filteredCoins = allCoins.filter(coin => coin.dexId === currentFilter);
+            } else if (currentFilter === 'today') {
+                // عملات آخر 24 ساعة
+                filteredCoins = allCoins.filter(coin => {
+                    if (!coin.createdAt) return false;
+                    const created = new Date(coin.createdAt);
+                    const diffHours = (now - created) / (1000 * 60 * 60);
+                    return diffHours <= 24;
+                });
+            } else if (currentFilter === 'hour') {
+                // عملات آخر ساعة
+                filteredCoins = allCoins.filter(coin => {
+                    if (!coin.createdAt) return false;
+                    const created = new Date(coin.createdAt);
+                    const diffHours = (now - created) / (1000 * 60 * 60);
+                    return diffHours <= 1;
+                });
             }
             
             displayCoins(filteredCoins);
-        }
-
-        // ========== نظام العملات المحسن مع صور افتراضية ==========
-        function getCoinImage(coin) {
-            const iconMap = {
-                'SOL': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png',
-                'USDC': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png',
-                'USDT': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.png',
-                'BONK': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/logo.png',
-                'RAY': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R/logo.png',
-                'ORCA': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE/logo.png'
-            };
             
-            if (coin.image && coin.image !== 'https://via.placeholder.com/45?text=' + coin.symbol) {
-                return coin.image;
-            }
-            
-            if (iconMap[coin.symbol]) {
-                return iconMap[coin.symbol];
-            }
-            
-            return null;
+            // تحديث وقت آخر تحديث
+            document.getElementById('lastUpdate').innerText = 
+                `آخر تحديث: ${new Date().toLocaleTimeString('ar-IQ')}`;
         }
 
-        async function fetchDexScreenerData(tokenAddress) {
-            try {
-                const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`);
-                if (!response.ok) return null;
-                
-                const data = await response.json();
-                return data.pairs || [];
-            } catch (e) {
-                return null;
-            }
-        }
-
-        async function fetchNewCoins() {
-            try {
-                const randomCount = Math.floor(Math.random() * 40) + 10;
-                
-                const allTokenAddresses = [
-                    "So11111111111111111111111111111111111111112",
-                    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-                    "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-                    "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-                    "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-                    "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
-                    "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",
-                    "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1",
-                    "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E",
-                    "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk",
-                    "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
-                    "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE",
-                    "kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6",
-                    "SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt",
-                    "MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey",
-                    "Saber2gLauYim4Mvftnrasomsv6NvAuncvMEZwcLpD1",
-                    "MERt85fc5boKw3BW1eYdxonEuJNvXbiMbs6hvheau5K",
-                    "StepAscQoEioFxxWGnh2sLBDFp9d8rvKz2Yp39iDpyT",
-                    "CWE8jPTUYhdCTZYWPTe1o5DFqfdjzWKc9WKz6rSjQUdG",
-                    "EchesyfXePKdLtoiZSL8pBe8Myagyy8ZRqsACNCFGnvp",
-                    "AfjX1Qj6FgxP7iLmJzJkQz7gYqLxqKQqFqQqQqQqQqQ",
-                    "MAPS41MDahZ9QdKXhVa4dWB9RuyfV4XqhyAZ8XcYepb",
-                ];
-
-                const shuffled = [...allTokenAddresses].sort(() => 0.5 - Math.random());
-                const selectedTokens = shuffled.slice(0, randomCount);
-
-                const newCoins = [];
-
-                for (const tokenAddress of selectedTokens) {
-                    try {
-                        const pairs = await fetchDexScreenerData(tokenAddress);
-                        
-                        if (pairs && pairs.length > 0) {
-                            const pair = pairs[0];
-                            
-                            const coin = {
-                                id: tokenAddress,
-                                name: pair.baseToken.name || 'Unknown',
-                                symbol: pair.baseToken.symbol || '???',
-                                image: pair.info?.imageUrl || null,
-                                current_price: parseFloat(pair.priceUsd) || 0,
-                                price_change_24h: parseFloat(pair.priceChange?.h24) || 0,
-                                volume_24h: parseFloat(pair.volume?.h24) || 0,
-                                dexId: pair.dexId,
-                                pairAddress: pair.pairAddress,
-                                url: pair.url,
-                                createdAt: pair.pairCreatedAt
-                            };
-                            
-                            newCoins.push(coin);
-                        }
-                        
-                        await new Promise(resolve => setTimeout(resolve, 50));
-                        
-                    } catch (e) {}
-                }
-
-                return newCoins;
-
-            } catch (e) {
-                return [];
-            }
-        }
-
-        async function fetchMainCoins() {
-            const mainTokens = [
-                { address: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL" },
-                { address: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", name: "USD Coin", symbol: "USDC" },
-                { address: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", name: "Tether USD", symbol: "USDT" },
-                { address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", name: "Bonk", symbol: "BONK" },
-                { address: "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", name: "Samoyedcoin", symbol: "SAMO" },
-                { address: "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So", name: "Marinade Staked SOL", symbol: "mSOL" },
-                { address: "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn", name: "Jito Staked SOL", symbol: "JitoSOL" },
-                { address: "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1", name: "BlazeStake Staked SOL", symbol: "bSOL" },
-                { address: "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R", name: "Raydium", symbol: "RAY" },
-                { address: "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE", name: "Orca", symbol: "ORCA" }
-            ];
-
-            const coins = [];
-
-            for (const token of mainTokens) {
-                try {
-                    const pairs = await fetchDexScreenerData(token.address);
-                    
-                    if (pairs && pairs.length > 0) {
-                        const pair = pairs[0];
-                        
-                        coins.push({
-                            id: token.address,
-                            name: token.name,
-                            symbol: token.symbol,
-                            image: pair.info?.imageUrl || null,
-                            current_price: parseFloat(pair.priceUsd) || 0,
-                            price_change_24h: parseFloat(pair.priceChange?.h24) || 0,
-                            volume_24h: parseFloat(pair.volume?.h24) || 0,
-                            dexId: pair.dexId,
-                            pairAddress: pair.pairAddress,
-                            url: pair.url,
-                            createdAt: pair.pairCreatedAt
-                        });
-                    }
-                    
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    
-                } catch (e) {}
-            }
-
-            return coins;
-        }
-
-        async function fetchCoins(forceRefresh = false) {
-            if (isFetchingCoins) return;
-
-            try {
-                isFetchingCoins = true;
-                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل العملات...</p>';
-
-                const mainCoins = await fetchMainCoins();
-                const newCoins = await fetchNewCoins();
-                
-                const coinMap = new Map();
-                
-                mainCoins.forEach(coin => {
-                    coinMap.set(coin.id, coin);
-                });
-                
-                newCoins.forEach(coin => {
-                    if (!coinMap.has(coin.id)) {
-                        coinMap.set(coin.id, coin);
-                    }
-                });
-
-                allCoins = Array.from(coinMap.values());
-                
-                allCoins.sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0));
-
-                applyFilter();
-
-            } catch (error) {
-                if (allCoins.length === 0) {
-                    coinsGrid.innerHTML = '<p style="color:white;text-align:center;">⚠️ فشل تحميل العملات</p>';
-                }
-            } finally {
-                isFetchingCoins = false;
-            }
-        }
-
-        async function updatePrices() {
-            if (!allCoins.length || document.getElementById('homePage').classList.contains('hidden')) return;
-            
-            for (let i = 0; i < Math.min(allCoins.length, 10); i++) {
-                try {
-                    const pairs = await fetchDexScreenerData(allCoins[i].id);
-                    if (pairs && pairs.length > 0) {
-                        const pair = pairs.find(p => p.dexId === allCoins[i].dexId) || pairs[0];
-                        if (pair) {
-                            allCoins[i].old_price = allCoins[i].current_price;
-                            allCoins[i].current_price = parseFloat(pair.priceUsd) || 0;
-                            allCoins[i].price_change_24h = parseFloat(pair.priceChange?.h24) || 0;
-                        }
-                    }
-                } catch (e) {}
-            }
-            
-            applyFilter();
-        }
-
-        async function fetchNewCoinsPeriodically() {
-            if (document.getElementById('homePage').classList.contains('hidden')) return;
-            
-            const newCoins = await fetchNewCoins();
-            
-            if (newCoins.length > 0) {
-                const existingIds = new Set(allCoins.map(c => c.id));
-                const uniqueNewCoins = newCoins.filter(c => !existingIds.has(c.id));
-                
-                if (uniqueNewCoins.length > 0) {
-                    allCoins = [...allCoins, ...uniqueNewCoins];
-                    allCoins.sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0));
-                    applyFilter();
-                    showToast(`✨ تم إضافة ${uniqueNewCoins.length} عملة جديدة!`);
-                }
-            }
-        }
-
-        function startTimers() {
-            if (priceUpdateTimer) clearInterval(priceUpdateTimer);
-            priceUpdateTimer = setInterval(updatePrices, 30000);
-            
-            if (newCoinsTimer) clearInterval(newCoinsTimer);
-            newCoinsTimer = setInterval(fetchNewCoinsPeriodically, 60000);
-        }
-
+        // ========== عرض العملات ==========
         function displayCoins(coins) {
             if (!coins || coins.length === 0) {
                 coinsGrid.innerHTML = '<p style="color:white;text-align:center;">لا توجد عملات متاحة</p>';
@@ -1830,64 +1668,55 @@
 
                 const coinCard = document.createElement("div");
                 coinCard.className = "coin-card";
-
-                const priceClass = coin.price_change_24h >= 0 ? 'price-up' : 'price-down';
                 
+                // التحقق إذا كانت العملة مصوت عليها
+                if (todayVotes.includes(i)) {
+                    coinCard.classList.add('voted');
+                }
+
+                const priceClass = coin.priceChange >= 0 ? 'price-up' : 'price-down';
+                
+                // شارة DEX
                 let dexBadge = '';
                 if (coin.dexId === 'raydium') {
                     dexBadge = '<span class="dex-badge badge-raydium">Raydium</span>';
                 } else if (coin.dexId === 'pumpfun') {
                     dexBadge = '<span class="dex-badge badge-pumpfun">Pump.fun</span>';
-                } else if (coin.dexId) {
+                } else if (coin.dexId && coin.dexId !== 'unknown') {
                     dexBadge = `<span class="dex-badge badge-other">${coin.dexId}</span>`;
                 }
                 
-                const imageUrl = getCoinImage(coin);
-                
-                let priceHtml = `<div class="coin-price ${priceClass}">$${coin.current_price?.toFixed(4) || '0.00'}`;
-                
-                if (coin.price_change_24h) {
-                    const changeSymbol = coin.price_change_24h >= 0 ? '▲' : '▼';
-                    priceHtml += ` <span style="font-size: 11px;">${changeSymbol} ${Math.abs(coin.price_change_24h).toFixed(2)}%</span>`;
+                // صورة العملة
+                let iconHtml = coin.symbol[0];
+                if (coin.image) {
+                    iconHtml = `<img src="${coin.image}" alt="${coin.name}" onerror="this.style.display='none'; this.parentElement.innerHTML='${coin.symbol[0]}';">`;
                 }
                 
-                if (coin.old_price) {
-                    const change = ((coin.current_price - coin.old_price) / coin.old_price * 100).toFixed(2);
-                    if (Math.abs(change) > 0.01) {
-                        const changeClass = change >= 0 ? 'price-up' : 'price-down';
-                        priceHtml += ` <span style="font-size: 10px;" class="${changeClass}">(${change}%)</span>`;
-                    }
-                }
-                
-                priceHtml += `</div>`;
-
-                if (coin.volume_24h > 0) {
-                    const volumeFormatted = (coin.volume_24h / 1000000).toFixed(2) + 'M';
-                    priceHtml += `<div class="coin-volume">📊 حجم: $${volumeFormatted}</div>`;
-                }
-
-                let iconHtml = '';
-                if (imageUrl) {
-                    iconHtml = `<img src="${imageUrl}" alt="${coin.name}" onerror="this.style.display='none'; this.parentElement.innerHTML='${coin.symbol[0]}';">`;
-                } else {
-                    iconHtml = coin.symbol[0];
-                }
+                // تنسيق السعر
+                const priceFormatted = coin.price < 0.001 
+                    ? coin.price.toFixed(8) 
+                    : coin.price.toFixed(4);
 
                 coinCard.innerHTML = `
                     <div class="coin-icon">
                         ${iconHtml}
                     </div>
-                    <div>
+                    <div style="flex: 1;">
                         <div class="coin-name">${coin.name} ${dexBadge}</div>
                         <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
-                        ${priceHtml}
-                    </div>`;
+                        <div class="coin-price ${priceClass}">
+                            $${priceFormatted}
+                            ${coin.priceChange ? `<span style="font-size: 11px; margin-right: 5px;">${coin.priceChange >= 0 ? '▲' : '▼'} ${Math.abs(coin.priceChange).toFixed(2)}%</span>` : ''}
+                        </div>
+                        <div class="coin-created">🆕 ${coin.createdText}</div>
+                    </div>
+                `;
 
                 const voteOptions = document.createElement("div");
                 voteOptions.className = "vote-options";
                 voteOptions.innerHTML = `
-                    <div class="vote-btn vote-up" onclick="castVote(${i}, 'up')">⬆️ Up</div>
-                    <div class="vote-btn vote-down" onclick="castVote(${i}, 'down')">⬇️ Down</div>
+                    <div class="vote-btn vote-up" onclick="handleVote(${i}, 'up')">⬆️ صعود</div>
+                    <div class="vote-btn vote-down" onclick="handleVote(${i}, 'down')">⬇️ هبوط</div>
                 `;
 
                 container.appendChild(coinCard);
@@ -1903,7 +1732,39 @@
             });
         }
 
+        // ========== معالج التصويت ==========
+        async function handleVote(index, type) {
+            if (selectedIndex !== index) {
+                showToast("اختر العملة أولاً");
+                return;
+            }
+            
+            const success = await addVote(index, type);
+            
+            if (success) {
+                // إخفاء خيارات التصويت
+                if (voteContainers[index]) {
+                    voteContainers[index].classList.remove("selected");
+                    const voteOpts = voteContainers[index].querySelector('.vote-options');
+                    if (voteOpts) voteOpts.classList.remove('show');
+                }
+                selectedIndex = -1;
+            }
+        }
+
         function selectCoin(index, container) {
+            // إذا كانت العملة مصوت عليها مسبقاً
+            if (todayVotes.includes(index)) {
+                showToast("لقد صوتت لهذه العملة مسبقاً");
+                return;
+            }
+            
+            // إذا نفدت التصويتات
+            if (votesCount >= DAILY_LIMIT) {
+                showToast("لقد استنفذت حد التصويت اليومي");
+                return;
+            }
+            
             if (selectedIndex === index) {
                 voteContainers.forEach(c => {
                     c.classList.remove("selected");
@@ -1927,34 +1788,15 @@
             selectedIndex = index;
         }
 
-        async function castVote(index, voteType) {
-            if (selectedIndex !== index) {
-                showToast("اختر العملة أولاً");
-                return;
-            }
-
-            if (!userData) {
-                showToast("الرجاء تسجيل الدخول أولاً");
-                return;
-            }
-
-            const result = await addVotePoints(userData.id, index);
-            showToast(result.message);
-
-            if (result.success) {
-                if (voteContainers[index]) {
-                    voteContainers[index].classList.remove("selected");
-                    const voteOpts = voteContainers[index].querySelector('.vote-options');
-                    if (voteOpts) voteOpts.classList.remove('show');
-                }
-
-                const coinCard = voteContainers[index]?.querySelector('.coin-card');
-                if (coinCard) coinCard.classList.add('voted');
-
-                selectedIndex = -1;
+        // ========== تحديث العملات بشكل دوري ==========
+        async function updateCoins() {
+            const newCoins = await fetchNewCoins();
+            if (newCoins.length > 0) {
+                allCoins = newCoins;
+                applyFilter();
             }
         }
-        
+
         // ========== دوال المهام ==========
         const socialLinks = [
             {
@@ -2050,6 +1892,40 @@
             }
         }
 
+        async function addSocialTaskReward(userId, points) {
+            try {
+                const { data: userData, error: fetchError } = await supabaseClient
+                    .from('users')
+                    .select('balance')
+                    .eq('id', userId)
+                    .single();
+                    
+                if (fetchError) {
+                    console.error('خطأ في جلب بيانات المستخدم:', fetchError);
+                    return false;
+                }
+                
+                const newBalance = (userData.balance || 0) + points;
+                
+                const { error } = await supabaseClient
+                    .from('users')
+                    .update({ balance: newBalance })
+                    .eq('id', userId);
+                    
+                if (error) {
+                    console.error('خطأ في إضافة نقاط المهمة:', error);
+                    return false;
+                }
+                
+                await refreshUserData();
+                return true;
+                
+            } catch (e) {
+                console.error('خطأ:', e);
+                return false;
+            }
+        }
+
         async function likePost(index) {
             if (!userData) return;
 
@@ -2084,32 +1960,28 @@
                 if (allCoins.length > 0) {
                     applyFilter();
                 } else {
-                    await fetchCoins();
+                    await updateCoins();
                 }
-                startTimers();
+                await loadTodayVotes();
             } else if (page === 'tasks') {
                 initTasksPage();
             }
         }
-
-        // ========== التحديث الدوري ==========
-        setInterval(async function() {
-            if (userData) {
-                await refreshUserData();
-            }
-        }, 5000);
 
         // ========== دالة البدء ==========
         async function init() {
             try {
                 await checkReferral();
                 await refreshUserData();
-                await fetchCoins();
+                await updateCoins();
+                await loadTodayVotes();
 
                 setTimeout(() => {
                     document.getElementById('splashScreen').classList.add('hidden');
                     document.getElementById('homePage').classList.remove('hidden');
-                    startTimers();
+                    
+                    // تحديث العملات كل دقيقة
+                    setInterval(updateCoins, 60000);
                 }, 2000);
             } catch (e) {
                 console.error('خطأ في بدء التطبيق:', e);
