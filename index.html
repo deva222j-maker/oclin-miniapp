@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* نفس التنسيقات السابقة - لم تتغير */
         * {
             margin: 0;
             padding: 0;
@@ -1019,13 +1020,13 @@
         // ========== الإعدادات الثابتة ==========
         const DAILY_LIMIT = 5;
         const VOTE_REWARD = 10;
-        const REFERRAL_REWARD_NEW = 15;
-        const REFERRAL_REWARD_EXISTING = 1;
+        const REFERRAL_REWARD_NEW = 15;    // للمستخدمين الجدد فقط
+        const REFERRAL_REWARD_EXISTING = 0; // المستخدمين الموجودين = صفر
         const BOT_USERNAME = "oclin_vote_bot";
         const MINI_APP_NAME = "oclinapp";
 
         let cachedCoins = [];
-        let allCoins = []; // جميع العملات المتاحة
+        let allCoins = [];
         let filteredCoins = [];
         let isFetchingCoins = false;
         let lastFetchTime = 0;
@@ -1035,7 +1036,7 @@
         let userData = null;
         let telegramUser = null;
         let currentFilter = 'all';
-        const COINS_PER_PAGE = 30; // عدد العملات لكل صفحة
+        const COINS_PER_PAGE = 30;
 
         // متغيرات للتحكم بتحديث العملات
         let priceUpdateTimer = null;
@@ -1191,7 +1192,12 @@
         }
 
         async function handleReferral(referrerId, newUserId, isNewUser) {
-            const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
+            // إذا كان المستخدم غير جديد، ما نعطي نقاط
+            if (!isNewUser) {
+                return false;
+            }
+            
+            const points = REFERRAL_REWARD_NEW;
             
             try {
                 const { data: referrerData, error: fetchError } = await supabaseClient
@@ -1415,7 +1421,7 @@
             }
         }
 
-        // ========== معالجة الإحالة - معدلة بالكامل ==========
+        // ========== نظام الإحالة المعدل بالكامل - الحل النهائي ==========
         async function checkReferral() {
             try {
                 let referrerId = null;
@@ -1437,7 +1443,7 @@
                     return;
                 }
 
-                // 3. تسجيل المستخدم في قاعدة البيانات
+                // 3. تسجيل المستخدم في قاعدة البيانات (إذا ما موجود)
                 await registerUser(tgUser);
                 await refreshUserData();
 
@@ -1453,43 +1459,65 @@
                     return;
                 }
 
-                // 6. الأهم: التحقق من أن هذا المستخدم لم يستخدم رابط إحالة من قبل
-                //    نتحقق في جدول الإحالات إذا كان هذا المستخدم (referred_id) مسجل مسبقاً
-                const { data: existingReferral, error: checkError } = await supabaseClient
+                // 6. التحقق الأهم: هل هذا المستخدم موجود أصلاً في قاعدة البيانات؟
+                // نتحقق من جدول users إذا كان المستخدم موجود من قبل
+                const { data: existingUser, error: userCheckError } = await supabaseClient
+                    .from('users')
+                    .select('created_at')
+                    .eq('id', tgUser.id)
+                    .maybeSingle();
+
+                if (userCheckError) {
+                    console.error('خطأ في التحقق من المستخدم:', userCheckError);
+                }
+
+                // 7. التحقق من أن هذا المستخدم لم يستخدم رابط إحالة من قبل
+                const { data: existingReferral, error: refCheckError } = await supabaseClient
                     .from('referrals')
-                    .select('id, referrer_id')
+                    .select('id, referrer_id, created_at')
                     .eq('referred_id', tgUser.id)
                     .maybeSingle();
 
-                if (checkError) {
-                    console.error('خطأ في التحقق من الإحالة:', checkError);
+                if (refCheckError) {
+                    console.error('خطأ في التحقق من الإحالة:', refCheckError);
                 }
 
-                // 7. إذا كان المستخدم مسجل مسبقاً كمدعو (حتى لو كان عن طريق رابط آخر)
+                // 8. إذا كان المستخدم مسجل مسبقاً كمدعو (حتى لو كان عن طريق رابط آخر)
                 if (existingReferral) {
-                    console.log('هذا المستخدم استخدم رابط إحالة سابقاً:', existingReferral);
+                    console.log('🚫 محاولة اختراق: هذا المستخدم استخدم رابط إحالة سابقاً:', existingReferral);
                     
-                    // التحقق إذا كان هذا الرابط بالذات هو نفسه الرابط السابق
+                    const referralDate = new Date(existingReferral.created_at).toLocaleDateString('ar-IQ');
+                    
                     if (existingReferral.referrer_id === referrerId) {
-                        document.getElementById('splashMessage').innerText = 'لقد استخدمت هذا الرابط من قبل!';
+                        document.getElementById('splashMessage').innerText = '⚠️ لقد استخدمت هذا الرابط من قبل! لا يمكنك استخدامه مرة أخرى.';
                     } else {
-                        document.getElementById('splashMessage').innerText = 'لقد استخدمت رابط إحالة آخر من قبل';
+                        document.getElementById('splashMessage').innerText = `⚠️ لقد استخدمت رابط إحالة آخر في تاريخ ${referralDate}.`;
                     }
+                    
                     return;
                 }
 
-                // 8. المستخدم جديد 100% ولم يستخدم أي رابط إحالة من قبل
-                console.log('✅ مستخدم جديد عبر رابط إحالة:', referrerId);
+                // 9. التحقق: هل المستخدم جديد أم قديم؟
+                const isNewUser = !existingUser; // إذا ما كان موجود في users، فهو جديد
                 
-                const success = await handleReferral(referrerId, tgUser.id, true);
-
-                if (success) {
-                    await refreshUserData();
+                if (isNewUser) {
+                    // مستخدم جديد 100% - نعطي 15 نقطة
+                    console.log('✅ مستخدم جديد عبر رابط إحالة:', referrerId);
                     
-                    const message = `🎉 تم تفعيل رابط الإحالة! +${REFERRAL_REWARD_NEW} نقطة للمحيل`;
-                    document.getElementById('splashMessage').innerText = message;
-                    showReferralNotification(message);
-                    playSound();
+                    const success = await handleReferral(referrerId, tgUser.id, true);
+
+                    if (success) {
+                        await refreshUserData();
+                        
+                        const message = `🎉 تم تفعيل رابط الإحالة! +${REFERRAL_REWARD_NEW} نقطة للمحيل`;
+                        document.getElementById('splashMessage').innerText = message;
+                        showReferralNotification(message);
+                        playSound();
+                    }
+                } else {
+                    // مستخدم قديم - لا نعطي أي نقاط
+                    console.log('ℹ️ مستخدم قديم حاول استخدام رابط إحالة:', tgUser.id);
+                    document.getElementById('splashMessage').innerText = 'مرحباً بعودتك! (المستخدمين الجدد فقط يحصلون على نقاط)';
                 }
                 
             } catch (e) {
