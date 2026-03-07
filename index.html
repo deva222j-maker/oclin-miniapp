@@ -1360,21 +1360,8 @@
             if (telegramUser) {
                 const newData = await getUserStats(telegramUser.id);
                 if (newData) {
-                    const oldCount = userData?.referrals_count || 0;
-                    const newCount = newData.referrals_count || 0;
-                    
                     userData = newData;
                     updateUI();
-                    
-                    if (newCount > oldCount) {
-                        const pointsGained = (newData.referral_balance || 0) - (userData?.referral_balance || 0);
-                        showToast(`+${pointsGained} نقطة من صديق جديد!`);
-                        playSound();
-                        
-                        if (!document.getElementById('referralPage').classList.contains('hidden')) {
-                            await displayReferrals();
-                        }
-                    }
                 }
             }
         }
@@ -1428,11 +1415,12 @@
             }
         }
 
-        // ========== معالجة الإحالة ==========
+        // ========== معالجة الإحالة - معدلة بالكامل ==========
         async function checkReferral() {
             try {
                 let referrerId = null;
                 
+                // 1. الحصول على معرف المُحيل من الرابط
                 if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
                     referrerId = window.Telegram.WebApp.initDataUnsafe.start_param;
                 }
@@ -1442,38 +1430,57 @@
                     referrerId = urlParams.get('startapp');
                 }
 
+                // 2. الحصول على بيانات مستخدم تيليجرام
                 const tgUser = getTelegramUser();
                 if (!tgUser) {
                     document.getElementById('splashMessage').innerText = 'الرجاء فتح التطبيق من تليجرام';
                     return;
                 }
 
+                // 3. تسجيل المستخدم في قاعدة البيانات
                 await registerUser(tgUser);
                 await refreshUserData();
 
+                // 4. إذا ما في رابط إحالة، نهاية القصة
                 if (!referrerId) {
                     document.getElementById('splashMessage').innerText = 'مرحباً بك في OCLIN!';
                     return;
                 }
                 
-                // منع الإحالة الذاتية
+                // 5. منع الإحالة الذاتية (المستخدم يدعو نفسه)
                 if (referrerId === tgUser.id) {
                     document.getElementById('splashMessage').innerText = 'لا يمكنك استخدام رابطك الخاص!';
                     return;
                 }
 
-                // التحقق من أن الإحالة غير مسجلة مسبقاً
-                const { data: existingReferral } = await supabaseClient
+                // 6. الأهم: التحقق من أن هذا المستخدم لم يستخدم رابط إحالة من قبل
+                //    نتحقق في جدول الإحالات إذا كان هذا المستخدم (referred_id) مسجل مسبقاً
+                const { data: existingReferral, error: checkError } = await supabaseClient
                     .from('referrals')
-                    .select('id')
+                    .select('id, referrer_id')
                     .eq('referred_id', tgUser.id)
                     .maybeSingle();
 
+                if (checkError) {
+                    console.error('خطأ في التحقق من الإحالة:', checkError);
+                }
+
+                // 7. إذا كان المستخدم مسجل مسبقاً كمدعو (حتى لو كان عن طريق رابط آخر)
                 if (existingReferral) {
-                    document.getElementById('splashMessage').innerText = 'تم تسجيلك مسبقاً عبر رابط إحالة';
+                    console.log('هذا المستخدم استخدم رابط إحالة سابقاً:', existingReferral);
+                    
+                    // التحقق إذا كان هذا الرابط بالذات هو نفسه الرابط السابق
+                    if (existingReferral.referrer_id === referrerId) {
+                        document.getElementById('splashMessage').innerText = 'لقد استخدمت هذا الرابط من قبل!';
+                    } else {
+                        document.getElementById('splashMessage').innerText = 'لقد استخدمت رابط إحالة آخر من قبل';
+                    }
                     return;
                 }
 
+                // 8. المستخدم جديد 100% ولم يستخدم أي رابط إحالة من قبل
+                console.log('✅ مستخدم جديد عبر رابط إحالة:', referrerId);
+                
                 const success = await handleReferral(referrerId, tgUser.id, true);
 
                 if (success) {
@@ -1514,7 +1521,6 @@
         // ========== دوال ربط المحفظة ==========
         function connectWallet() {
             showToast("🔜 قريباً: ربط المحافظ الرقمية");
-            // سيتم إضافة مكتبات Web3 لاحقاً
         }
 
         function withdraw() {
@@ -1527,13 +1533,11 @@
             
             currentFilter = filter;
             
-            // تحديث الأزرار
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
             
-            // تطبيق الفلتر
             applyFilter();
         }
 
@@ -1551,7 +1555,6 @@
 
         // ========== نظام العملات المحسن مع صور افتراضية ==========
         function getCoinImage(coin) {
-            // قائمة بأيقونات العملات المعروفة (كاحتياطي)
             const iconMap = {
                 'SOL': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png',
                 'USDC': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png',
@@ -1561,17 +1564,14 @@
                 'ORCA': 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE/logo.png'
             };
             
-            // إذا كانت الصورة موجودة من API، استخدمها
             if (coin.image && coin.image !== 'https://via.placeholder.com/45?text=' + coin.symbol) {
                 return coin.image;
             }
             
-            // إذا كانت العملة معروفة، استخدم الأيقونة من القائمة
             if (iconMap[coin.symbol]) {
                 return iconMap[coin.symbol];
             }
             
-            // إذا لم نجد أي صورة، نعيد null (سيتم استخدام الحرف الافتراضي)
             return null;
         }
 
@@ -1583,44 +1583,39 @@
                 const data = await response.json();
                 return data.pairs || [];
             } catch (e) {
-                console.log(`DexScreener error for ${tokenAddress}:`, e);
                 return null;
             }
         }
 
-        // دالة لجلب عملات جديدة من DexScreener
         async function fetchNewCoins() {
             try {
-                // نحدد عدد العملات العشوائي (بين 10 و 50)
-                const randomCount = Math.floor(Math.random() * 40) + 10; // 10-50
+                const randomCount = Math.floor(Math.random() * 40) + 10;
                 
-                // قائمة موسعة من عناوين العملات
                 const allTokenAddresses = [
-                    "So11111111111111111111111111111111111111112", // SOL
-                    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
-                    "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", // USDT
-                    "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", // BONK
-                    "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU", // SAMO
-                    "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So", // mSOL
-                    "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn", // JitoSOL
-                    "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1", // bSOL
-                    "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E", // WBTC
-                    "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk", // WETH
-                    "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R", // RAY
-                    "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE", // ORCA
-                    "kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6", // KIN
-                    "SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt", // SRM
-                    "MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey", // MNDE
-                    "Saber2gLauYim4Mvftnrasomsv6NvAuncvMEZwcLpD1", // SBR
-                    "MERt85fc5boKw3BW1eYdxonEuJNvXbiMbs6hvheau5K", // MER
-                    "StepAscQoEioFxxWGnh2sLBDFp9d8rvKz2Yp39iDpyT", // STEP
-                    "CWE8jPTUYhdCTZYWPTe1o5DFqfdjzWKc9WKz6rSjQUdG", // CWE
-                    "EchesyfXePKdLtoiZSL8pBe8Myagyy8ZRqsACNCFGnvp", // FIDA
-                    "AfjX1Qj6FgxP7iLmJzJkQz7gYqLxqKQqFqQqQqQqQqQ", // OXY
-                    "MAPS41MDahZ9QdKXhVa4dWB9RuyfV4XqhyAZ8XcYepb", // MAPS
+                    "So11111111111111111111111111111111111111112",
+                    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                    "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+                    "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+                    "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+                    "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",
+                    "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",
+                    "bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1",
+                    "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E",
+                    "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk",
+                    "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R",
+                    "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE",
+                    "kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6",
+                    "SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt",
+                    "MNDEFzGvMt87ueuHvVU9VcTqsAP5b3fTGPsHuuPA5ey",
+                    "Saber2gLauYim4Mvftnrasomsv6NvAuncvMEZwcLpD1",
+                    "MERt85fc5boKw3BW1eYdxonEuJNvXbiMbs6hvheau5K",
+                    "StepAscQoEioFxxWGnh2sLBDFp9d8rvKz2Yp39iDpyT",
+                    "CWE8jPTUYhdCTZYWPTe1o5DFqfdjzWKc9WKz6rSjQUdG",
+                    "EchesyfXePKdLtoiZSL8pBe8Myagyy8ZRqsACNCFGnvp",
+                    "AfjX1Qj6FgxP7iLmJzJkQz7gYqLxqKQqFqQqQqQqQqQ",
+                    "MAPS41MDahZ9QdKXhVa4dWB9RuyfV4XqhyAZ8XcYepb",
                 ];
 
-                // اختر عدد عشوائي من العملات
                 const shuffled = [...allTokenAddresses].sort(() => 0.5 - Math.random());
                 const selectedTokens = shuffled.slice(0, randomCount);
 
@@ -1631,7 +1626,6 @@
                         const pairs = await fetchDexScreenerData(tokenAddress);
                         
                         if (pairs && pairs.length > 0) {
-                            // نأخذ أول زوج (الأكثر سيولة)
                             const pair = pairs[0];
                             
                             const coin = {
@@ -1651,23 +1645,18 @@
                             newCoins.push(coin);
                         }
                         
-                        // تأخير بسيط
                         await new Promise(resolve => setTimeout(resolve, 50));
                         
-                    } catch (e) {
-                        console.log(`Error processing token ${tokenAddress}:`, e);
-                    }
+                    } catch (e) {}
                 }
 
                 return newCoins;
 
             } catch (e) {
-                console.error('Error fetching new coins:', e);
                 return [];
             }
         }
 
-        // دالة لجلب العملات الرئيسية
         async function fetchMainCoins() {
             const mainTokens = [
                 { address: "So11111111111111111111111111111111111111112", name: "Solana", symbol: "SOL" },
@@ -1708,15 +1697,12 @@
                     
                     await new Promise(resolve => setTimeout(resolve, 100));
                     
-                } catch (e) {
-                    console.log(`Error processing ${token.symbol}:`, e);
-                }
+                } catch (e) {}
             }
 
             return coins;
         }
 
-        // الدالة الرئيسية لجلب العملات
         async function fetchCoins(forceRefresh = false) {
             if (isFetchingCoins) return;
 
@@ -1724,21 +1710,15 @@
                 isFetchingCoins = true;
                 coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل العملات...</p>';
 
-                // جلب العملات الرئيسية أولاً
                 const mainCoins = await fetchMainCoins();
-                
-                // جلب عملات جديدة (بين 10 و 50)
                 const newCoins = await fetchNewCoins();
                 
-                // دمج العملات مع تجنب التكرار
                 const coinMap = new Map();
                 
-                // إضافة العملات الرئيسية
                 mainCoins.forEach(coin => {
                     coinMap.set(coin.id, coin);
                 });
                 
-                // إضافة العملات الجديدة (إذا لم تكن موجودة)
                 newCoins.forEach(coin => {
                     if (!coinMap.has(coin.id)) {
                         coinMap.set(coin.id, coin);
@@ -1747,15 +1727,11 @@
 
                 allCoins = Array.from(coinMap.values());
                 
-                // ترتيب حسب حجم التداول
                 allCoins.sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0));
 
-                // تطبيق الفلتر الحالي
                 applyFilter();
 
             } catch (error) {
-                console.error("Error fetching coins:", error);
-                
                 if (allCoins.length === 0) {
                     coinsGrid.innerHTML = '<p style="color:white;text-align:center;">⚠️ فشل تحميل العملات</p>';
                 }
@@ -1764,7 +1740,6 @@
             }
         }
 
-        // تحديث الأسعار فقط
         async function updatePrices() {
             if (!allCoins.length || document.getElementById('homePage').classList.contains('hidden')) return;
             
@@ -1779,28 +1754,23 @@
                             allCoins[i].price_change_24h = parseFloat(pair.priceChange?.h24) || 0;
                         }
                     }
-                } catch (e) {
-                    // تجاهل الأخطاء
-                }
+                } catch (e) {}
             }
             
             applyFilter();
         }
 
-        // جلب عملات جديدة كل دقيقة
         async function fetchNewCoinsPeriodically() {
             if (document.getElementById('homePage').classList.contains('hidden')) return;
             
             const newCoins = await fetchNewCoins();
             
             if (newCoins.length > 0) {
-                // إضافة العملات الجديدة مع تجنب التكرار
                 const existingIds = new Set(allCoins.map(c => c.id));
                 const uniqueNewCoins = newCoins.filter(c => !existingIds.has(c.id));
                 
                 if (uniqueNewCoins.length > 0) {
                     allCoins = [...allCoins, ...uniqueNewCoins];
-                    // إعادة الترتيب
                     allCoins.sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0));
                     applyFilter();
                     showToast(`✨ تم إضافة ${uniqueNewCoins.length} عملة جديدة!`);
@@ -1809,11 +1779,9 @@
         }
 
         function startTimers() {
-            // تحديث الأسعار كل 30 ثانية
             if (priceUpdateTimer) clearInterval(priceUpdateTimer);
             priceUpdateTimer = setInterval(updatePrices, 30000);
             
-            // جلب عملات جديدة كل دقيقة
             if (newCoinsTimer) clearInterval(newCoinsTimer);
             newCoinsTimer = setInterval(fetchNewCoinsPeriodically, 60000);
         }
@@ -1837,7 +1805,6 @@
 
                 const priceClass = coin.price_change_24h >= 0 ? 'price-up' : 'price-down';
                 
-                // شارة DEX
                 let dexBadge = '';
                 if (coin.dexId === 'raydium') {
                     dexBadge = '<span class="dex-badge badge-raydium">Raydium</span>';
@@ -1847,7 +1814,6 @@
                     dexBadge = `<span class="dex-badge badge-other">${coin.dexId}</span>`;
                 }
                 
-                // الحصول على الصورة
                 const imageUrl = getCoinImage(coin);
                 
                 let priceHtml = `<div class="coin-price ${priceClass}">$${coin.current_price?.toFixed(4) || '0.00'}`;
@@ -1872,7 +1838,6 @@
                     priceHtml += `<div class="coin-volume">📊 حجم: $${volumeFormatted}</div>`;
                 }
 
-                // صورة العملة (إما صورة حقيقية أو حرف افتراضي)
                 let iconHtml = '';
                 if (imageUrl) {
                     iconHtml = `<img src="${imageUrl}" alt="${coin.name}" onerror="this.style.display='none'; this.parentElement.innerHTML='${coin.symbol[0]}';">`;
