@@ -915,9 +915,9 @@
             <div id="homePage" class="hidden">
                 <div class="welcome-message">👋 اختر عملة للتصويت <span id="votesCounter" style="color: #ffd966; font-weight: bold;"></span></div>
                 <div class="filter-bar" id="filterBar">
-                    <button class="filter-btn active" onclick="setFilter('all')">الكل</button>
-                    <button class="filter-btn raydium" onclick="setFilter('raydium')">Raydium</button>
-                    <button class="filter-btn pumpfun" onclick="setFilter('pumpfun')">Pump.fun</button>
+                    <button class="filter-btn active" onclick="setFilter('all', event)">الكل</button>
+                    <button class="filter-btn raydium" onclick="setFilter('raydium', event)">Raydium</button>
+                    <button class="filter-btn pumpfun" onclick="setFilter('pumpfun', event)">Pump.fun</button>
                 </div>
                 <div class="update-indicator">
                     <span class="indicator-dot"></span>
@@ -938,8 +938,8 @@
                         </div>
                     </div>
                     <div class="profile-actions">
-                        <button class="profile-action-btn" onclick="showToast('قريباً: ربط المحفظة')">ربط المحفظة</button>
-                        <button class="profile-action-btn primary" onclick="showToast('قريباً: السحب')">سحب</button>
+                        <button class="profile-action-btn" onclick="connectWallet()">ربط المحفظة</button>
+                        <button class="profile-action-btn primary" onclick="withdraw()">سحب</button>
                     </div>
                 </div>
             </div>
@@ -1035,12 +1035,10 @@
         let userData = null;
         let telegramUser = null;
         let currentFilter = 'all';
-        let currentOffset = 0;
         const COINS_PER_PAGE = 30; // عدد العملات لكل صفحة
 
         // متغيرات للتحكم بتحديث العملات
         let priceUpdateTimer = null;
-        let iconsUpdateTimer = null;
         let newCoinsTimer = null;
 
         // ========== دوال مساعدة ==========
@@ -1453,25 +1451,35 @@
                 await registerUser(tgUser);
                 await refreshUserData();
 
-                if (!referrerId || referrerId === tgUser.id) {
+                if (!referrerId) {
                     document.getElementById('splashMessage').innerText = 'مرحباً بك في OCLIN!';
                     return;
                 }
+                
+                // منع الإحالة الذاتية
+                if (referrerId === tgUser.id) {
+                    document.getElementById('splashMessage').innerText = 'لا يمكنك استخدام رابطك الخاص!';
+                    return;
+                }
 
+                // التحقق من أن الإحالة غير مسجلة مسبقاً
                 const { data: existingReferral } = await supabaseClient
                     .from('referrals')
                     .select('id')
                     .eq('referred_id', tgUser.id)
                     .maybeSingle();
 
-                const isNewUser = !existingReferral;
-                const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
+                if (existingReferral) {
+                    document.getElementById('splashMessage').innerText = 'تم تسجيلك مسبقاً عبر رابط إحالة';
+                    return;
+                }
 
-                const success = await handleReferral(referrerId, tgUser.id, isNewUser);
+                const success = await handleReferral(referrerId, tgUser.id, true);
 
                 if (success) {
                     await refreshUserData();
                     
+                    const message = `🎉 تم تفعيل رابط الإحالة! +${REFERRAL_REWARD_NEW} نقطة للمحيل`;
                     document.getElementById('splashMessage').innerText = message;
                     showReferralNotification(message);
                     playSound();
@@ -1503,8 +1511,20 @@
             });
         }
 
+        // ========== دوال ربط المحفظة ==========
+        function connectWallet() {
+            showToast("🔜 قريباً: ربط المحافظ الرقمية");
+            // سيتم إضافة مكتبات Web3 لاحقاً
+        }
+
+        function withdraw() {
+            showToast("🔜 قريباً: السحب متاح");
+        }
+
         // ========== نظام الفلترة ==========
         function setFilter(filter, event) {
+            if (!event) return;
+            
             currentFilter = filter;
             
             // تحديث الأزرار
@@ -1527,7 +1547,6 @@
             }
             
             displayCoins(filteredCoins);
-            document.getElementById('coinsCount').innerText = filteredCoins.length;
         }
 
         // ========== نظام العملات المحسن مع صور افتراضية ==========
@@ -1575,7 +1594,7 @@
                 // نحدد عدد العملات العشوائي (بين 10 و 50)
                 const randomCount = Math.floor(Math.random() * 40) + 10; // 10-50
                 
-                // قائمة موسعة من عناوين العملات (يمكن توسيعها)
+                // قائمة موسعة من عناوين العملات
                 const allTokenAddresses = [
                     "So11111111111111111111111111111111111111112", // SOL
                     "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
@@ -1596,19 +1615,13 @@
                     "MERt85fc5boKw3BW1eYdxonEuJNvXbiMbs6hvheau5K", // MER
                     "StepAscQoEioFxxWGnh2sLBDFp9d8rvKz2Yp39iDpyT", // STEP
                     "CWE8jPTUYhdCTZYWPTe1o5DFqfdjzWKc9WKz6rSjQUdG", // CWE
-                    "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E", // BTC
-                    "2FPyTwcZLUg1MDrwsyoP4D6s1tM7hAkHYRjkNb5w6Pxk", // ETH
                     "EchesyfXePKdLtoiZSL8pBe8Myagyy8ZRqsACNCFGnvp", // FIDA
                     "AfjX1Qj6FgxP7iLmJzJkQz7gYqLxqKQqFqQqQqQqQqQ", // OXY
                     "MAPS41MDahZ9QdKXhVa4dWB9RuyfV4XqhyAZ8XcYepb", // MAPS
-                    "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E", // renBTC
-                    "DgHK9mfhMtUwwugP1rFyXbYqWbQY5PwVJqWbQY5PwVJq", // GENE
-                    "CobakU6K5VcZxXjWzYkZqXjWzYkZqXjWzYkZqXjWzYkZ", // COPE
-                    "GEYrotdkRbfKJfTGfLkzKJfTGfLkzKJfTGfLkzKJfTGf", // GEY
                 ];
 
                 // اختر عدد عشوائي من العملات
-                const shuffled = allTokenAddresses.sort(() => 0.5 - Math.random());
+                const shuffled = [...allTokenAddresses].sort(() => 0.5 - Math.random());
                 const selectedTokens = shuffled.slice(0, randomCount);
 
                 const newCoins = [];
@@ -1620,11 +1633,6 @@
                         if (pairs && pairs.length > 0) {
                             // نأخذ أول زوج (الأكثر سيولة)
                             const pair = pairs[0];
-                            
-                            // تجاهل العملات من Pump.fun إذا أردنا
-                            if (pair.dexId === 'pumpfun' && currentFilter !== 'pumpfun') {
-                                continue;
-                            }
                             
                             const coin = {
                                 id: tokenAddress,
@@ -1760,9 +1768,7 @@
         async function updatePrices() {
             if (!allCoins.length || document.getElementById('homePage').classList.contains('hidden')) return;
             
-            console.log('💰 تحديث الأسعار...');
-            
-            for (let i = 0; i < allCoins.length; i++) {
+            for (let i = 0; i < Math.min(allCoins.length, 10); i++) {
                 try {
                     const pairs = await fetchDexScreenerData(allCoins[i].id);
                     if (pairs && pairs.length > 0) {
@@ -1774,24 +1780,17 @@
                         }
                     }
                 } catch (e) {
-                    console.log(`Error updating price for ${allCoins[i].symbol}`);
+                    // تجاهل الأخطاء
                 }
             }
             
             applyFilter();
         }
 
-        // تحديث العرض
-        function refreshDisplay() {
-            if (!filteredCoins.length || document.getElementById('homePage').classList.contains('hidden')) return;
-            displayCoins(filteredCoins);
-        }
-
         // جلب عملات جديدة كل دقيقة
         async function fetchNewCoinsPeriodically() {
             if (document.getElementById('homePage').classList.contains('hidden')) return;
             
-            console.log('🔄 جلب عملات جديدة...');
             const newCoins = await fetchNewCoins();
             
             if (newCoins.length > 0) {
@@ -1809,19 +1808,14 @@
             }
         }
 
-        function startPriceUpdater() {
+        function startTimers() {
+            // تحديث الأسعار كل 30 ثانية
             if (priceUpdateTimer) clearInterval(priceUpdateTimer);
-            priceUpdateTimer = setInterval(updatePrices, 10000);
-        }
-
-        function startDisplayUpdater() {
-            if (iconsUpdateTimer) clearInterval(iconsUpdateTimer);
-            iconsUpdateTimer = setInterval(refreshDisplay, 3000);
-        }
-
-        function startNewCoinsUpdater() {
+            priceUpdateTimer = setInterval(updatePrices, 30000);
+            
+            // جلب عملات جديدة كل دقيقة
             if (newCoinsTimer) clearInterval(newCoinsTimer);
-            newCoinsTimer = setInterval(fetchNewCoinsPeriodically, 60000); // كل دقيقة
+            newCoinsTimer = setInterval(fetchNewCoinsPeriodically, 60000);
         }
 
         function displayCoins(coins) {
@@ -1833,7 +1827,7 @@
             coinsGrid.innerHTML = "";
             voteContainers = [];
 
-            coins.forEach((coin, i) => {
+            coins.slice(0, 30).forEach((coin, i) => {
                 const container = document.createElement("div");
                 container.className = "coin-vote-container";
                 container.dataset.index = i;
@@ -1967,6 +1961,7 @@
                 selectedIndex = -1;
             }
         }
+        
         // ========== دوال المهام ==========
         const socialLinks = [
             {
@@ -2093,13 +2088,12 @@
                 await refreshUserData();
             } else if (page === 'home') {
                 selectedIndex = -1;
-                if (cachedCoins.length > 0) {
+                if (allCoins.length > 0) {
                     applyFilter();
                 } else {
                     await fetchCoins();
                 }
-                startPriceUpdater();
-                startDisplayUpdater();
+                startTimers();
             } else if (page === 'tasks') {
                 initTasksPage();
             }
@@ -2110,7 +2104,7 @@
             if (userData) {
                 await refreshUserData();
             }
-        }, 2000);
+        }, 5000);
 
         // ========== دالة البدء ==========
         async function init() {
@@ -2122,8 +2116,7 @@
                 setTimeout(() => {
                     document.getElementById('splashScreen').classList.add('hidden');
                     document.getElementById('homePage').classList.remove('hidden');
-                    startPriceUpdater();
-                    startDisplayUpdater();
+                    startTimers();
                 }, 2000);
             } catch (e) {
                 console.error('خطأ في بدء التطبيق:', e);
@@ -2135,6 +2128,3 @@
     </script>
 </body>
 </html>
-
-
-
