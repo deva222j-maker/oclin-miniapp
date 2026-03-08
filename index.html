@@ -907,6 +907,7 @@
                     <button class="filter-btn" onclick="setFilter('1hour', event)">آخر ساعة</button>
                     <button class="filter-btn" onclick="setFilter('24hours', event)">آخر 24 ساعة</button>
                     <button class="filter-btn" onclick="setFilter('3days', event)">آخر 3 أيام</button>
+                    <button class="filter-btn" onclick="setFilter('7days', event)">آخر 7 أيام</button>
                 </div>
                 
                 <div class="coins-grid" id="coinsGrid"></div>
@@ -1656,6 +1657,8 @@
                     maxMinutes = 24 * 60;
                 } else if (currentFilter === '3days') {
                     maxMinutes = 3 * 24 * 60;
+                } else if (currentFilter === '7days') {
+                    maxMinutes = 7 * 24 * 60;
                 }
                 
                 filteredCoins = allCoins.filter(coin => {
