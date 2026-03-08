@@ -142,6 +142,22 @@
             margin: 0 5px;
         }
 
+        .market-cap-filter {
+            background: rgba(46, 204, 113, 0.1);
+            padding: 5px 12px;
+            border-radius: 30px;
+            color: #2ecc71;
+            font-size: 12px;
+            display: inline-block;
+            margin-bottom: 10px;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+
+        .market-cap-filter span {
+            font-weight: 700;
+            color: #2ecc71;
+        }
+
         .coins-title {
             color: #fff;
             font-size: 18px;
@@ -1037,9 +1053,6 @@
         const BOT_USERNAME = "oclin_vote_bot";
         const MINI_APP_NAME = "oclinapp";
 
-        // تم إزالة MIN_MARKET_CAP - لم نعد نفلتر حسب القيمة السوقية
-        const MIN_VOLUME = 0; // لا يوجد حد أدنى لحجم التداول
-
         let allCoins = [];
         let filteredCoins = [];
         let isFetchingCoins = false;
@@ -1049,6 +1062,7 @@
         let userData = null;
         let telegramUser = null;
         let currentFilter = 'all';
+        let lastFetchTime = 0;
 
         // متغيرات للتحكم بالتصويت
         let todayVotes = [];
@@ -1573,13 +1587,11 @@
             showToast("🔜 قريباً: السحب متاح");
         }
 
-        // ========== دالة جلب العملات ==========
+        // ========== نظام جلب العملات المتطور (الرئيسي) ==========
         async function fetchAllCoins() {
             try {
                 if (isFetchingCoins) return allCoins;
                 isFetchingCoins = true;
-                
-                if (loadingCoins) loadingCoins.classList.remove('hidden');
                 
                 lastFetchTime = Date.now();
                 
@@ -1693,57 +1705,54 @@
                 return [];
             } finally {
                 isFetchingCoins = false;
-                if (loadingCoins) loadingCoins.classList.add('hidden');
             }
         }
 
-        // ========== دالة تطبيق الفلتر ==========
-        function applyFilter() {
-            const now = Date.now();
+        // ========== نظام الفلترة حسب الوقت ==========
+        function setFilter(filter, event) {
+            if (!event) return;
             
-            switch(currentFilter) {
-                case 'today':
-                    filteredCoins = allCoins.filter(coin => 
-                        coin.createdAt && (now - coin.createdAt) < 24 * 60 * 60 * 1000
-                    );
-                    break;
-                case '3days':
-                    filteredCoins = allCoins.filter(coin => 
-                        coin.createdAt && (now - coin.createdAt) < 3 * 24 * 60 * 60 * 1000
-                    );
-                    break;
-                case '7days':
-                    filteredCoins = allCoins.filter(coin => 
-                        coin.createdAt && (now - coin.createdAt) < 7 * 24 * 60 * 60 * 1000
-                    );
-                    break;
-                default:
-                    filteredCoins = [...allCoins];
+            currentFilter = filter;
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            applyFilter();
+        }
+
+        function applyFilter() {
+            if (!allCoins.length) {
+                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل العملات...</p>';
+                return;
             }
             
-            if (filteredCoins.length === 0 && allCoins.length > 0) {
+            const now = Date.now();
+            
+            if (currentFilter === 'all') {
                 filteredCoins = [...allCoins];
-                document.querySelectorAll('.filter-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                    if (btn.getAttribute('onclick')?.includes('all')) {
-                        btn.classList.add('active');
-                    }
+            } else {
+                let maxHours = 0;
+                
+                if (currentFilter === 'today') {
+                    maxHours = 24;
+                } else if (currentFilter === '3days') {
+                    maxHours = 72;
+                } else if (currentFilter === '7days') {
+                    maxHours = 168;
+                }
+                
+                filteredCoins = allCoins.filter(coin => {
+                    if (!coin.createdAt) return true;
+                    return coin.createdHours <= maxHours;
                 });
-                currentFilter = 'all';
             }
             
             displayCoins(filteredCoins);
-        }
-
-        // ========== دالة تغيير الفلتر ==========
-        function setFilter(filter, event) {
-            if (event) {
-                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-                event.currentTarget.classList.add('active');
-            }
             
-            currentFilter = filter;
-            applyFilter();
+            document.getElementById('lastUpdate').innerText = 
+                `آخر تحديث: ${new Date().toLocaleTimeString('ar-IQ')}`;
         }
 
         // ========== عرض العملات ==========
@@ -1803,7 +1812,7 @@
                     ? `${(coin.liquidity / 1000000).toFixed(2)}M` 
                     : coin.liquidity > 0 ? `${(coin.liquidity / 1000).toFixed(0)}K` : 'غير معروف';
 
-                // وقت الإنشاء
+                // وقت الإنشاء مع شارات مميزة
                 let createdText = 'غير معروف';
                 let ageBadge = '';
                 
@@ -1811,17 +1820,18 @@
                     const ageHours = coin.createdHours;
                     if (ageHours < 1) {
                         createdText = 'منذ أقل من ساعة';
-                        ageBadge = '<span class="age-badge">🔥 جديد</span>';
+                        ageBadge = '<span class="age-badge" style="background:#2ecc71;">🆕 جديد جداً</span>';
+                    } else if (ageHours < 6) {
+                        createdText = `منذ ${ageHours} ساعة`;
+                        ageBadge = '<span class="age-badge" style="background:#f1c40f;">✨ جديد</span>';
                     } else if (ageHours < 24) {
                         createdText = `منذ ${ageHours} ساعة`;
-                        if (ageHours < 6) {
-                            ageBadge = '<span class="age-badge">✨ جديد</span>';
-                        }
+                        ageBadge = '<span class="age-badge" style="background:#e67e22;">🌟 حديث</span>';
                     } else {
                         const days = Math.floor(ageHours / 24);
                         createdText = `منذ ${days} يوم`;
                         if (days < 3) {
-                            ageBadge = '<span class="age-badge">🌟 جديد</span>';
+                            ageBadge = '<span class="age-badge" style="background:#9b59b6;">⭐ جديد</span>';
                         }
                     }
                 }
@@ -1929,7 +1939,7 @@
 
         // ========== تحديث العملات كل ساعتين ==========
         async function updateCoins() {
-            const newCoins = await fetchAllCoins();
+            const newCoins = await fetchAllCoins(); // تم التعديل هنا
             if (newCoins.length > 0) {
                 allCoins = newCoins;
                 applyFilter();
@@ -2125,6 +2135,11 @@
             } catch (e) {
                 console.error('خطأ في بدء التطبيق:', e);
                 document.getElementById('splashMessage').innerText = 'حدث خطأ، حاول مرة أخرى';
+                
+                setTimeout(() => {
+                    document.getElementById('splashScreen').classList.add('hidden');
+                    document.getElementById('homePage').classList.remove('hidden');
+                }, 3000);
             }
         }
 
@@ -2132,6 +2147,3 @@
     </script>
 </body>
 </html>
-
-
-
