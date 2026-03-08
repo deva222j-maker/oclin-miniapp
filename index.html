@@ -1589,59 +1589,36 @@
         async function fetchRealCoins() {
             try {
                 const allTokens = [];
+                const sources = [
+                    { name: 'new_listing', url: 'https://public-api.birdeye.so/defi/v2/tokens/new_listing' },
+                    { name: 'trending', url: 'https://public-api.birdeye.so/defi/v2/tokens/trending' },
+                    { name: 'gainers', url: 'https://public-api.birdeye.so/defi/v2/tokens/gainers_losers?type=gainers' },
+                    { name: 'losers', url: 'https://public-api.birdeye.so/defi/v2/tokens/gainers_losers?type=losers' },
+                    { name: 'volume', url: 'https://public-api.birdeye.so/defi/v2/tokens/trending?sortBy=volume24h' }
+                ];
                 
-                // 1. جلب أحدث العملات (new listing)
-                try {
-                    const newListingResponse = await fetch('https://public-api.birdeye.so/defi/v2/tokens/new_listing', {
-                        headers: {
-                            'X-API-KEY': BIRDEYE_API_KEY
+                // جلب العملات من جميع المصادر
+                for (const source of sources) {
+                    try {
+                        const response = await fetch(source.url, {
+                            headers: { 'X-API-KEY': BIRDEYE_API_KEY }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.data) {
+                                // تنسيق مختلف حسب المصدر
+                                if (source.name === 'new_listing' && data.data.items) {
+                                    allTokens.push(...data.data.items);
+                                } else if (data.data.tokens) {
+                                    allTokens.push(...data.data.tokens);
+                                }
+                            }
                         }
-                    });
-                    
-                    if (newListingResponse.ok) {
-                        const newListingData = await newListingResponse.json();
-                        if (newListingData.success && newListingData.data && newListingData.data.items) {
-                            allTokens.push(...newListingData.data.items);
-                        }
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    } catch (e) {
+                        console.log(`خطأ في جلب ${source.name}:`, e);
                     }
-                } catch (e) {
-                    console.log('خطأ في جلب new_listing:', e);
-                }
-
-                // 2. جلب العملات الرائجة (trending)
-                try {
-                    const trendingResponse = await fetch('https://public-api.birdeye.so/defi/v2/tokens/trending', {
-                        headers: {
-                            'X-API-KEY': BIRDEYE_API_KEY
-                        }
-                    });
-                    
-                    if (trendingResponse.ok) {
-                        const trendingData = await trendingResponse.json();
-                        if (trendingData.success && trendingData.data && trendingData.data.tokens) {
-                            allTokens.push(...trendingData.data.tokens);
-                        }
-                    }
-                } catch (e) {
-                    console.log('خطأ في جلب trending:', e);
-                }
-
-                // 3. جلب العملات الأكثر ارتفاعاً (gainers)
-                try {
-                    const gainersResponse = await fetch('https://public-api.birdeye.so/defi/v2/tokens/gainers_losers?type=gainers', {
-                        headers: {
-                            'X-API-KEY': BIRDEYE_API_KEY
-                        }
-                    });
-                    
-                    if (gainersResponse.ok) {
-                        const gainersData = await gainersResponse.json();
-                        if (gainersData.success && gainersData.data && gainersData.data.tokens) {
-                            allTokens.push(...gainersData.data.tokens);
-                        }
-                    }
-                } catch (e) {
-                    console.log('خطأ في جلب gainers:', e);
                 }
 
                 console.log(`✅ تم جلب ${allTokens.length} عملة من المصادر المختلفة`);
@@ -1665,9 +1642,7 @@
                 for (const token of uniqueTokensArray.slice(0, 50)) {
                     try {
                         const detailsResponse = await fetch(`https://public-api.birdeye.so/defi/token_overview?address=${token.address}`, {
-                            headers: {
-                                'X-API-KEY': BIRDEYE_API_KEY
-                            }
+                            headers: { 'X-API-KEY': BIRDEYE_API_KEY }
                         });
                         
                         if (detailsResponse.ok) {
@@ -1701,7 +1676,7 @@
                         processedCount++;
                         
                         // تأخير بسيط
-                        await new Promise(resolve => setTimeout(resolve, 50));
+                        await new Promise(resolve => setTimeout(resolve, 100));
                         
                     } catch (e) {
                         console.log(`خطأ في جلب تفاصيل ${token.symbol}:`, e);
