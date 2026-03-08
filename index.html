@@ -1574,7 +1574,7 @@
         }
 
         // ========== دالة جلب العملات ==========
-        async function fetchTrendingCoins() {
+        async function fetchAllCoins() {
             try {
                 if (isFetchingCoins) return allCoins;
                 isFetchingCoins = true;
@@ -1929,7 +1929,7 @@
 
         // ========== تحديث العملات كل ساعتين ==========
         async function updateCoins() {
-            const newCoins = await fetchTrendingCoins();
+            const newCoins = await fetchAllCoins();
             if (newCoins.length > 0) {
                 allCoins = newCoins;
                 applyFilter();
@@ -2132,5 +2132,6 @@
     </script>
 </body>
 </html>
+
 
 
