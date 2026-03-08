@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* نفس التنسيقات السابقة - لم يتم تغييرها */
         * {
             margin: 0;
             padding: 0;
@@ -1267,13 +1266,17 @@
             }
         }
 
-        // ========== نظام التصويت ==========
+        // ========== نظام التصويت المعدل بالكامل ==========
+        
+        // دالة تحميل التصويتات اليومية
         async function loadTodayVotes() {
             if (!telegramUser) return;
             
             const today = new Date().toISOString().split('T')[0];
+            const storageKey = `votes_${telegramUser.id}_${today}`;
             
             try {
+                // محاولة جلب من قاعدة البيانات
                 const { data, error } = await supabaseClient
                     .from('daily_votes')
                     .select('*')
@@ -1283,24 +1286,51 @@
                 
                 if (error) {
                     console.error('خطأ في جلب التصويتات:', error);
-                    return;
-                }
-                
-                if (data) {
-                    todayVotes = data.coins_voted || [];
-                    votesCount = data.votes_count || 0;
+                    // استخدم localStorage كنسخة احتياطية
+                    const savedVotes = localStorage.getItem(storageKey);
+                    if (savedVotes) {
+                        const votesData = JSON.parse(savedVotes);
+                        todayVotes = votesData.coins_voted || [];
+                        votesCount = votesData.votes_count || todayVotes.length;
+                    } else {
+                        todayVotes = [];
+                        votesCount = 0;
+                    }
                 } else {
-                    todayVotes = [];
-                    votesCount = 0;
+                    if (data) {
+                        todayVotes = data.coins_voted || [];
+                        votesCount = data.votes_count || 0;
+                    } else {
+                        todayVotes = [];
+                        votesCount = 0;
+                    }
+                    
+                    // حفظ في localStorage كنسخة احتياطية
+                    localStorage.setItem(storageKey, JSON.stringify({
+                        coins_voted: todayVotes,
+                        votes_count: votesCount
+                    }));
                 }
                 
                 updateVotesDisplay();
                 
             } catch (e) {
-                console.error('خطأ:', e);
+                console.error('خطأ في تحميل التصويتات:', e);
+                // استخدام localStorage في حالة الخطأ
+                const savedVotes = localStorage.getItem(storageKey);
+                if (savedVotes) {
+                    const votesData = JSON.parse(savedVotes);
+                    todayVotes = votesData.coins_voted || [];
+                    votesCount = votesData.votes_count || todayVotes.length;
+                } else {
+                    todayVotes = [];
+                    votesCount = 0;
+                }
+                updateVotesDisplay();
             }
         }
 
+        // دالة تحديث عرض التصويتات
         function updateVotesDisplay() {
             const remaining = DAILY_LIMIT - votesCount;
             const counterElement = document.getElementById('votesRemaining');
@@ -1320,6 +1350,7 @@
             }
         }
 
+        // دالة إضافة تصويت جديدة
         async function addVote(coinIndex, voteType) {
             if (!telegramUser) {
                 showToast("الرجاء تسجيل الدخول أولاً");
@@ -1337,11 +1368,63 @@
             }
             
             const today = new Date().toISOString().split('T')[0];
+            const storageKey = `votes_${telegramUser.id}_${today}`;
             
             try {
+                // تحديث المتغيرات المحلية أولاً
                 const newVotes = [...todayVotes, coinIndex];
                 const newCount = votesCount + 1;
                 
+                // تحديث واجهة المستخدم فوراً
+                todayVotes = newVotes;
+                votesCount = newCount;
+                updateVotesDisplay();
+                
+                // تحديث الـ container
+                if (voteContainers[coinIndex]) {
+                    const coinCard = voteContainers[coinIndex].querySelector('.coin-card');
+                    coinCard.classList.add('voted');
+                }
+                
+                // إغلاق قائمة التصويت
+                if (voteContainers[coinIndex]) {
+                    voteContainers[coinIndex].classList.remove("selected");
+                    const voteOpts = voteContainers[coinIndex].querySelector('.vote-options');
+                    if (voteOpts) voteOpts.classList.remove('show');
+                }
+                selectedIndex = -1;
+                
+                // حفظ في localStorage
+                localStorage.setItem(storageKey, JSON.stringify({
+                    coins_voted: newVotes,
+                    votes_count: newCount
+                }));
+                
+                // تحديث رصيد المستخدم محلياً
+                if (userData) {
+                    userData.balance = (userData.balance || 0) + VOTE_REWARD;
+                    updateUI();
+                }
+                
+                showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
+                playSound();
+                
+                // محاولة الحفظ في قاعدة البيانات (في الخلفية)
+                saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today);
+                
+                return true;
+                
+            } catch (e) {
+                console.error('خطأ في التصويت:', e);
+                showToast("❌ حدث خطأ في التصويت");
+                return false;
+            }
+        }
+
+        // دالة حفظ التصويت في قاعدة البيانات (تعمل في الخلفية)
+        async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today) {
+            try {
+                // محاولة upsert
                 const { error: upsertError } = await supabaseClient
                     .from('daily_votes')
                     .upsert({
@@ -1350,58 +1433,36 @@
                         votes_count: newCount,
                         coins_voted: newVotes,
                         vote_type: voteType
+                    }, {
+                        onConflict: 'user_id, vote_date'
                     });
                 
                 if (upsertError) {
-                    console.error('خطأ في تسجيل التصويت:', upsertError);
-                    showToast("❌ حدث خطأ في تسجيل التصويت");
-                    return false;
+                    console.error('خطأ في حفظ التصويت:', upsertError);
+                    return;
                 }
                 
+                // تحديث رصيد المستخدم
                 const { data: userData, error: fetchError } = await supabaseClient
                     .from('users')
                     .select('balance')
                     .eq('id', telegramUser.id)
                     .single();
                 
-                if (fetchError) {
-                    console.error('خطأ في جلب بيانات المستخدم:', fetchError);
-                    return false;
+                if (!fetchError && userData) {
+                    const newBalance = (userData.balance || 0) + VOTE_REWARD;
+                    
+                    await supabaseClient
+                        .from('users')
+                        .update({ balance: newBalance })
+                        .eq('id', telegramUser.id);
                 }
                 
-                const newBalance = (userData.balance || 0) + VOTE_REWARD;
-                
-                const { error: pointsError } = await supabaseClient
-                    .from('users')
-                    .update({ balance: newBalance })
-                    .eq('id', telegramUser.id);
-                
-                if (pointsError) {
-                    console.error('خطأ في إضافة النقاط:', pointsError);
-                    return false;
-                }
-                
-                todayVotes = newVotes;
-                votesCount = newCount;
-                
-                updateVotesDisplay();
-                
-                if (voteContainers[coinIndex]) {
-                    const coinCard = voteContainers[coinIndex].querySelector('.coin-card');
-                    coinCard.classList.add('voted');
-                }
-                
-                showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
-                playSound();
-                
+                // تحديث بيانات المستخدم
                 await refreshUserData();
                 
-                return true;
-                
             } catch (e) {
-                console.error('خطأ في التصويت:', e);
-                showToast("❌ حدث خطأ غير متوقع");
-                return false;
+                console.error('خطأ في حفظ التصويت:', e);
             }
         }
 
@@ -1571,7 +1632,7 @@
             showToast("🔜 قريباً: السحب متاح");
         }
 
-        // ========== دالة جلب العملات المعدلة - بدون فلاتر ==========
+        // ========== دالة جلب العملات ==========
         async function fetchAllCoins() {
             try {
                 if (isFetchingCoins) return allCoins;
