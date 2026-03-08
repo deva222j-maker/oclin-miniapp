@@ -262,6 +262,12 @@
             margin-top: 2px;
         }
 
+        .coin-liquidity {
+            font-size: 10px;
+            color: #3498db;
+            margin-top: 2px;
+        }
+
         .dex-badge {
             font-size: 10px;
             padding: 2px 6px;
@@ -892,6 +898,53 @@
             margin-left: 5px;
             display: inline-block;
         }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 20px;
+            color: #8B5CF6;
+        }
+
+        /* مؤشرات العمر */
+        .badge-new {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+
+        .badge-recent {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+
+        .badge-old {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        }
+
+        /* تنسيقات إضافية للعملات */
+        .age-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+
+        .age-very-new {
+            background: #2ecc71;
+            box-shadow: 0 0 10px #2ecc71;
+        }
+
+        .age-new {
+            background: #f1c40f;
+            box-shadow: 0 0 10px #f1c40f;
+        }
+
+        .age-recent {
+            background: #e67e22;
+            box-shadow: 0 0 10px #e67e22;
+        }
+
+        .age-old {
+            background: #95a5a6;
+        }
     </style>
 </head>
 
@@ -919,17 +972,18 @@
                 </div>
                 
                 <div class="coins-title">
-                    <span>🔥 العملات الرائجة على Solana</span>
+                    <span>🔥 جميع العملات على Solana</span>
                     <span class="last-update" id="lastUpdate"></span>
                 </div>
                 
                 <div class="filter-bar" id="filterBar">
-                    <button class="filter-btn active" onclick="setFilter('all', event)">الكل</button>
-                    <button class="filter-btn" onclick="setFilter('today', event)">آخر 24 ساعة</button>
-                    <button class="filter-btn" onclick="setFilter('3days', event)">آخر 3 أيام</button>
-                    <button class="filter-btn" onclick="setFilter('7days', event)">آخر 7 أيام</button>
+                    <button class="filter-btn active" onclick="window.setFilter('all', event)">الكل</button>
+                    <button class="filter-btn" onclick="window.setFilter('today', event)">آخر 24 ساعة</button>
+                    <button class="filter-btn" onclick="window.setFilter('3days', event)">آخر 3 أيام</button>
+                    <button class="filter-btn" onclick="window.setFilter('7days', event)">آخر 7 أيام</button>
                 </div>
                 
+                <div id="loadingCoins" class="loading-spinner hidden">جاري تحميل العملات...</div>
                 <div class="coins-grid" id="coinsGrid"></div>
             </div>
 
@@ -945,8 +999,8 @@
                         </div>
                     </div>
                     <div class="profile-actions">
-                        <button class="profile-action-btn" onclick="connectWallet()">ربط المحفظة</button>
-                        <button class="profile-action-btn primary" onclick="withdraw()">سحب</button>
+                        <button class="profile-action-btn" onclick="window.connectWallet()">ربط المحفظة</button>
+                        <button class="profile-action-btn primary" onclick="window.withdraw()">سحب</button>
                     </div>
                 </div>
             </div>
@@ -959,7 +1013,7 @@
                     
                     <div class="referral-link-box">
                         <input type="text" id="referralLink" readonly placeholder="جاري تحميل الرابط...">
-                        <button onclick="copyReferralLink()">نسخ</button>
+                        <button onclick="window.copyReferralLink()">نسخ</button>
                     </div>
 
                     <div class="referral-stats-grid">
@@ -991,16 +1045,16 @@
         </div>
 
         <div class="bottom-nav">
-            <div class="nav-item active" onclick="showPage('home', event)">
+            <div class="nav-item active" onclick="window.showPage('home', event)">
                 🏠 <span>الرئيسية</span>
             </div>
-            <div class="nav-item" onclick="showPage('tasks', event)">
+            <div class="nav-item" onclick="window.showPage('tasks', event)">
                 📋 <span>المهام</span>
             </div>
-            <div class="nav-item" onclick="showPage('profile', event)">
+            <div class="nav-item" onclick="window.showPage('profile', event)">
                 👤 <span>الملف</span>
             </div>
-            <div class="nav-item" onclick="showPage('referral', event)">
+            <div class="nav-item" onclick="window.showPage('referral', event)">
                 ↗️ <span>الدعوة</span>
             </div>
         </div>
@@ -1018,7 +1072,7 @@
 
         // ========== إعدادات Supabase ==========
         const SUPABASE_URL = 'https://qyonklnofxypmhdmdbng.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_wUbYBh85pQ5eY7jzfitPNA_FPOaoKrz';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5b25rbG5vZnh5cG1oZG1kYm5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3MDY4MjksImV4cCI6MjA1MzI4MjgyOX0.YXq_Mc5UUhxI7U01sWpGz6E-hsTd92BZ-PQZvTLEGMo';
         
         // تهيئة Supabase
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1036,10 +1090,12 @@
         let isFetchingCoins = false;
         let selectedIndex = -1;
         const coinsGrid = document.getElementById("coinsGrid");
+        const loadingCoins = document.getElementById("loadingCoins");
         let voteContainers = [];
         let userData = null;
         let telegramUser = null;
         let currentFilter = 'all';
+        let lastFetchTime = 0;
 
         // متغيرات للتحكم بالتصويت
         let todayVotes = [];
@@ -1251,13 +1307,17 @@
             }
         }
 
-        // ========== نظام التصويت ==========
+        // ========== نظام التصويت المحسن ==========
+        
+        // دالة تحميل التصويتات اليومية
         async function loadTodayVotes() {
             if (!telegramUser) return;
             
             const today = new Date().toISOString().split('T')[0];
+            const storageKey = `votes_${telegramUser.id}_${today}`;
             
             try {
+                // محاولة جلب من قاعدة البيانات
                 const { data, error } = await supabaseClient
                     .from('daily_votes')
                     .select('*')
@@ -1267,24 +1327,51 @@
                 
                 if (error) {
                     console.error('خطأ في جلب التصويتات:', error);
-                    return;
-                }
-                
-                if (data) {
-                    todayVotes = data.coins_voted || [];
-                    votesCount = data.votes_count || 0;
+                    // استخدم localStorage كنسخة احتياطية
+                    const savedVotes = localStorage.getItem(storageKey);
+                    if (savedVotes) {
+                        const votesData = JSON.parse(savedVotes);
+                        todayVotes = votesData.coins_voted || [];
+                        votesCount = votesData.votes_count || todayVotes.length;
+                    } else {
+                        todayVotes = [];
+                        votesCount = 0;
+                    }
                 } else {
-                    todayVotes = [];
-                    votesCount = 0;
+                    if (data) {
+                        todayVotes = data.coins_voted || [];
+                        votesCount = data.votes_count || 0;
+                    } else {
+                        todayVotes = [];
+                        votesCount = 0;
+                    }
+                    
+                    // حفظ في localStorage كنسخة احتياطية
+                    localStorage.setItem(storageKey, JSON.stringify({
+                        coins_voted: todayVotes,
+                        votes_count: votesCount
+                    }));
                 }
                 
                 updateVotesDisplay();
                 
             } catch (e) {
-                console.error('خطأ:', e);
+                console.error('خطأ في تحميل التصويتات:', e);
+                // استخدام localStorage في حالة الخطأ
+                const savedVotes = localStorage.getItem(storageKey);
+                if (savedVotes) {
+                    const votesData = JSON.parse(savedVotes);
+                    todayVotes = votesData.coins_voted || [];
+                    votesCount = votesData.votes_count || todayVotes.length;
+                } else {
+                    todayVotes = [];
+                    votesCount = 0;
+                }
+                updateVotesDisplay();
             }
         }
 
+        // دالة تحديث عرض التصويتات
         function updateVotesDisplay() {
             const remaining = DAILY_LIMIT - votesCount;
             const counterElement = document.getElementById('votesRemaining');
@@ -1304,6 +1391,7 @@
             }
         }
 
+        // دالة إضافة تصويت - محسنة للتجاوب السريع
         async function addVote(coinIndex, voteType) {
             if (!telegramUser) {
                 showToast("الرجاء تسجيل الدخول أولاً");
@@ -1321,11 +1409,63 @@
             }
             
             const today = new Date().toISOString().split('T')[0];
+            const storageKey = `votes_${telegramUser.id}_${today}`;
             
             try {
+                // تحديث المتغيرات المحلية أولاً
                 const newVotes = [...todayVotes, coinIndex];
                 const newCount = votesCount + 1;
                 
+                // تحديث واجهة المستخدم فوراً
+                todayVotes = newVotes;
+                votesCount = newCount;
+                updateVotesDisplay();
+                
+                // تحديث الـ container
+                if (voteContainers[coinIndex]) {
+                    const coinCard = voteContainers[coinIndex].querySelector('.coin-card');
+                    coinCard.classList.add('voted');
+                }
+                
+                // إغلاق قائمة التصويت
+                if (voteContainers[coinIndex]) {
+                    voteContainers[coinIndex].classList.remove("selected");
+                    const voteOpts = voteContainers[coinIndex].querySelector('.vote-options');
+                    if (voteOpts) voteOpts.classList.remove('show');
+                }
+                selectedIndex = -1;
+                
+                // حفظ في localStorage
+                localStorage.setItem(storageKey, JSON.stringify({
+                    coins_voted: newVotes,
+                    votes_count: newCount
+                }));
+                
+                // تحديث رصيد المستخدم محلياً
+                if (userData) {
+                    userData.balance = (userData.balance || 0) + VOTE_REWARD;
+                    updateUI();
+                }
+                
+                showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
+                playSound();
+                
+                // محاولة الحفظ في قاعدة البيانات (في الخلفية)
+                saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today);
+                
+                return true;
+                
+            } catch (e) {
+                console.error('خطأ في التصويت:', e);
+                showToast("❌ حدث خطأ في التصويت");
+                return false;
+            }
+        }
+
+        // دالة حفظ التصويت في قاعدة البيانات (تعمل في الخلفية)
+        async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today) {
+            try {
+                // محاولة upsert
                 const { error: upsertError } = await supabaseClient
                     .from('daily_votes')
                     .upsert({
@@ -1334,58 +1474,36 @@
                         votes_count: newCount,
                         coins_voted: newVotes,
                         vote_type: voteType
+                    }, {
+                        onConflict: 'user_id, vote_date'
                     });
                 
                 if (upsertError) {
-                    console.error('خطأ في تسجيل التصويت:', upsertError);
-                    showToast("❌ حدث خطأ في تسجيل التصويت");
-                    return false;
+                    console.error('خطأ في حفظ التصويت:', upsertError);
+                    return;
                 }
                 
+                // تحديث رصيد المستخدم
                 const { data: userData, error: fetchError } = await supabaseClient
                     .from('users')
                     .select('balance')
                     .eq('id', telegramUser.id)
                     .single();
                 
-                if (fetchError) {
-                    console.error('خطأ في جلب بيانات المستخدم:', fetchError);
-                    return false;
+                if (!fetchError && userData) {
+                    const newBalance = (userData.balance || 0) + VOTE_REWARD;
+                    
+                    await supabaseClient
+                        .from('users')
+                        .update({ balance: newBalance })
+                        .eq('id', telegramUser.id);
                 }
                 
-                const newBalance = (userData.balance || 0) + VOTE_REWARD;
-                
-                const { error: pointsError } = await supabaseClient
-                    .from('users')
-                    .update({ balance: newBalance })
-                    .eq('id', telegramUser.id);
-                
-                if (pointsError) {
-                    console.error('خطأ في إضافة النقاط:', pointsError);
-                    return false;
-                }
-                
-                todayVotes = newVotes;
-                votesCount = newCount;
-                
-                updateVotesDisplay();
-                
-                if (voteContainers[coinIndex]) {
-                    const coinCard = voteContainers[coinIndex].querySelector('.coin-card');
-                    coinCard.classList.add('voted');
-                }
-                
-                showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
-                playSound();
-                
+                // تحديث بيانات المستخدم
                 await refreshUserData();
                 
-                return true;
-                
             } catch (e) {
-                console.error('خطأ في التصويت:', e);
-                showToast("❌ حدث خطأ غير متوقع");
-                return false;
+                console.error('خطأ في حفظ التصويت:', e);
             }
         }
 
@@ -1555,115 +1673,183 @@
             showToast("🔜 قريباً: السحب متاح");
         }
 
-        // ========== نظام جلب العملات الرائجة ==========
-        async function fetchTrendingCoins() {
+        // ========== نظام جلب العملات المتطور ==========
+        async function fetchAllCoins() {
             try {
-                const response = await fetch('https://api.dexscreener.com/latest/dex/search?q=solana');
-                if (!response.ok) throw new Error('فشل الاتصال');
+                if (isFetchingCoins) return allCoins;
+                isFetchingCoins = true;
                 
-                const data = await response.json();
+                if (loadingCoins) loadingCoins.classList.remove('hidden');
                 
-                if (!data.pairs || data.pairs.length === 0) {
-                    return [];
-                }
+                lastFetchTime = Date.now();
                 
-                // تجميع العملات الفريدة
-                const uniqueCoins = new Map();
+                // مصدر 1: جلب أحدث العملات
+                const response1 = await fetch('https://api.dexscreener.com/token-profiles/latest/v1');
+                const profiles = await response1.json();
+                
+                // مصدر 2: جلب العملات النشطة
+                const response2 = await fetch('https://api.dexscreener.com/latest/dex/search?q=solana');
+                const searchData = await response2.json();
+                
                 const now = Date.now();
-                
-                data.pairs.forEach(pair => {
-                    // نتأكد أن العملة على شبكة Solana
-                    if (pair.chainId !== 'solana') return;
-                    
-                    const tokenAddress = pair.baseToken.address;
-                    if (!tokenAddress) return;
-                    
-                    // نأخذ أفضل زوج لكل عملة (أعلى سيولة)
-                    if (!uniqueCoins.has(tokenAddress)) {
+                const uniqueCoins = new Map();
+
+                // معالجة الملفات الشخصية
+                if (profiles && profiles.length > 0) {
+                    for (const profile of profiles) {
+                        if (profile.chainId !== 'solana') continue;
+                        
+                        const tokenAddress = profile.tokenAddress;
+                        if (!tokenAddress) continue;
+
+                        try {
+                            const pairResponse = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${tokenAddress}`);
+                            const pairData = await pairResponse.json();
+                            const pair = pairData.pairs?.[0];
+                            
+                            if (!pair) continue;
+
+                            const marketCap = parseFloat(pair.marketCap || pair.fdv || 0);
+                            const volume24h = parseFloat(pair.volume?.h24 || 0);
+                            const liquidity = parseFloat(pair.liquidity?.usd || 0);
+                            
+                            const created = pair.pairCreatedAt ? new Date(pair.pairCreatedAt).getTime() : null;
+                            const ageHours = created ? Math.floor((now - created) / (1000 * 60 * 60)) : 9999;
+
+                            uniqueCoins.set(tokenAddress, {
+                                id: tokenAddress,
+                                name: pair.baseToken?.name || profile.name || "Unknown",
+                                symbol: pair.baseToken?.symbol || profile.symbol || "???",
+                                image: profile.icon || pair.info?.imageUrl || null,
+                                price: parseFloat(pair.priceUsd || 0),
+                                priceChange: parseFloat(pair.priceChange?.h24 || 0),
+                                marketCap: marketCap,
+                                volume24h: volume24h,
+                                liquidity: liquidity,
+                                dexId: pair.dexId || "unknown",
+                                createdAt: created,
+                                createdHours: ageHours,
+                                url: pair.url || profile.url || null
+                            });
+                        } catch (e) {
+                            continue;
+                        }
+                    }
+                }
+
+                // معالجة نتائج البحث
+                if (searchData && searchData.pairs) {
+                    for (const pair of searchData.pairs) {
+                        if (pair.chainId !== 'solana') continue;
+                        
+                        const tokenAddress = pair.baseToken?.address;
+                        if (!tokenAddress || uniqueCoins.has(tokenAddress)) continue;
+
+                        const marketCap = parseFloat(pair.marketCap || pair.fdv || 0);
+                        const volume24h = parseFloat(pair.volume?.h24 || 0);
+                        const liquidity = parseFloat(pair.liquidity?.usd || 0);
+                        
+                        const created = pair.pairCreatedAt ? new Date(pair.pairCreatedAt).getTime() : null;
+                        const ageHours = created ? Math.floor((now - created) / (1000 * 60 * 60)) : 9999;
+
                         uniqueCoins.set(tokenAddress, {
                             id: tokenAddress,
-                            name: pair.baseToken.name || 'غير معروف',
-                            symbol: pair.baseToken.symbol || '???',
+                            name: pair.baseToken?.name || "Unknown",
+                            symbol: pair.baseToken?.symbol || "???",
                             image: pair.info?.imageUrl || null,
-                            price: parseFloat(pair.priceUsd) || 0,
-                            priceChange: parseFloat(pair.priceChange?.h24) || 0,
-                            volume24h: parseFloat(pair.volume?.h24) || 0,
-                            liquidity: parseFloat(pair.liquidity?.usd) || 0,
-                            marketCap: pair.marketCap || 0,
-                            dexId: pair.dexId || 'unknown',
-                            createdAt: pair.pairCreatedAt,
-                            createdHours: pair.pairCreatedAt ? Math.floor((now - new Date(pair.pairCreatedAt)) / (1000 * 60 * 60)) : 999,
+                            price: parseFloat(pair.priceUsd || 0),
+                            priceChange: parseFloat(pair.priceChange?.h24 || 0),
+                            marketCap: marketCap,
+                            volume24h: volume24h,
+                            liquidity: liquidity,
+                            dexId: pair.dexId || "unknown",
+                            createdAt: created,
+                            createdHours: ageHours,
+                            url: pair.url || null
                         });
                     }
-                });
-                
-                // تحويل الخريطة إلى مصفوفة
+                }
+
+                console.log('✅ إجمالي العملات:', uniqueCoins.size);
+
                 let coins = Array.from(uniqueCoins.values());
                 
-                // ترتيب حسب حجم التداول (الأعلى أولاً)
-                coins.sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
+                // ترتيب حسب الحداثة
+                coins.sort((a, b) => {
+                    if (!a.createdAt) return 1;
+                    if (!b.createdAt) return -1;
+                    return b.createdAt - a.createdAt;
+                });
+
+                // أخذ أول 200 عملة
+                coins = coins.slice(0, 200);
                 
-                console.log(`✅ تم جلب ${coins.length} عملة`);
+                document.getElementById('lastUpdate').innerText = new Date().toLocaleTimeString('ar-EG');
                 
                 return coins;
-                
+
             } catch (error) {
-                console.error('خطأ في جلب العملات:', error);
+                console.error("❌ خطأ في جلب العملات:", error);
                 return [];
+            } finally {
+                isFetchingCoins = false;
+                if (loadingCoins) loadingCoins.classList.add('hidden');
             }
         }
 
-        // ========== نظام الفلترة ==========
-        function setFilter(filter, event) {
-            if (!event) return;
-            
-            currentFilter = filter;
-            
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            applyFilter();
-        }
-
+        // ========== دالة تطبيق الفلتر ==========
         function applyFilter() {
-            if (!allCoins.length) {
-                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل العملات...</p>';
-                return;
-            }
-            
             const now = Date.now();
             
-            if (currentFilter === 'all') {
+            switch(currentFilter) {
+                case 'today':
+                    filteredCoins = allCoins.filter(coin => 
+                        coin.createdAt && (now - coin.createdAt) < 24 * 60 * 60 * 1000
+                    );
+                    break;
+                case '3days':
+                    filteredCoins = allCoins.filter(coin => 
+                        coin.createdAt && (now - coin.createdAt) < 3 * 24 * 60 * 60 * 1000
+                    );
+                    break;
+                case '7days':
+                    filteredCoins = allCoins.filter(coin => 
+                        coin.createdAt && (now - coin.createdAt) < 7 * 24 * 60 * 60 * 1000
+                    );
+                    break;
+                default:
+                    filteredCoins = [...allCoins];
+            }
+            
+            if (filteredCoins.length === 0 && allCoins.length > 0) {
                 filteredCoins = [...allCoins];
-            } else {
-                let maxHours = 0;
-                
-                if (currentFilter === 'today') {
-                    maxHours = 24;
-                } else if (currentFilter === '3days') {
-                    maxHours = 72;
-                } else if (currentFilter === '7days') {
-                    maxHours = 168;
-                }
-                
-                filteredCoins = allCoins.filter(coin => {
-                    if (!coin.createdAt) return true;
-                    return coin.createdHours <= maxHours;
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.getAttribute('onclick')?.includes('all')) {
+                        btn.classList.add('active');
+                    }
                 });
+                currentFilter = 'all';
             }
             
             displayCoins(filteredCoins);
+        }
+
+        // ========== دالة تغيير الفلتر ==========
+        function setFilter(filter, event) {
+            if (event) {
+                document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+                event.currentTarget.classList.add('active');
+            }
             
-            document.getElementById('lastUpdate').innerText = 
-                `آخر تحديث: ${new Date().toLocaleTimeString('ar-IQ')}`;
+            currentFilter = filter;
+            applyFilter();
         }
 
         // ========== عرض العملات ==========
         function displayCoins(coins) {
             if (!coins || coins.length === 0) {
-                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">لا توجد عملات متاحة</p>';
+                coinsGrid.innerHTML = '<p style="color:white;text-align:center; padding: 20px;">لا توجد عملات متاحة</p>';
                 return;
             }
 
@@ -1704,27 +1890,46 @@
                     ? coin.price.toFixed(8) 
                     : coin.price.toFixed(4);
 
-                // تنسيق القيمة السوقية
+                // تنسيق القيم
                 const marketCapFormatted = coin.marketCap > 1000000 
                     ? `${(coin.marketCap / 1000000).toFixed(2)}M` 
-                    : `${(coin.marketCap / 1000).toFixed(0)}K`;
+                    : coin.marketCap > 0 ? `${(coin.marketCap / 1000).toFixed(0)}K` : 'غير معروف';
 
-                // تنسيق حجم التداول
                 const volumeFormatted = coin.volume24h > 1000000 
                     ? `${(coin.volume24h / 1000000).toFixed(2)}M` 
-                    : `${(coin.volume24h / 1000).toFixed(0)}K`;
+                    : coin.volume24h > 0 ? `${(coin.volume24h / 1000).toFixed(0)}K` : 'غير معروف';
 
-                // حساب وقت الإنشاء
+                const liquidityFormatted = coin.liquidity > 1000000 
+                    ? `${(coin.liquidity / 1000000).toFixed(2)}M` 
+                    : coin.liquidity > 0 ? `${(coin.liquidity / 1000).toFixed(0)}K` : 'غير معروف';
+
+                // وقت الإنشاء مع شارات مميزة
                 let createdText = 'غير معروف';
+                let ageBadge = '';
+                let ageClass = '';
+                
                 if (coin.createdAt) {
                     const ageHours = coin.createdHours;
                     if (ageHours < 1) {
                         createdText = 'منذ أقل من ساعة';
+                        ageBadge = '<span class="age-badge" style="background:#2ecc71;">🆕 جديد جداً</span>';
+                        ageClass = 'age-very-new';
+                    } else if (ageHours < 6) {
+                        createdText = `منذ ${ageHours} ساعة`;
+                        ageBadge = '<span class="age-badge" style="background:#f1c40f;">✨ جديد</span>';
+                        ageClass = 'age-new';
                     } else if (ageHours < 24) {
                         createdText = `منذ ${ageHours} ساعة`;
+                        ageBadge = '<span class="age-badge" style="background:#e67e22;">🌟 حديث</span>';
+                        ageClass = 'age-recent';
                     } else {
                         const days = Math.floor(ageHours / 24);
                         createdText = `منذ ${days} يوم`;
+                        if (days < 3) {
+                            ageBadge = '<span class="age-badge" style="background:#9b59b6;">⭐ جديد</span>';
+                        } else {
+                            ageBadge = '<span class="age-badge" style="background:#95a5a6;">📅 قديم</span>';
+                        }
                     }
                 }
 
@@ -1734,7 +1939,7 @@
                     </div>
                     <div style="flex: 1;">
                         <div class="coin-name">
-                            ${coin.name} ${dexBadge}
+                            ${coin.name} ${dexBadge} ${ageBadge}
                         </div>
                         <div class="coin-symbol">${coin.symbol.toUpperCase()}</div>
                         <div class="coin-price ${priceClass}">
@@ -1747,8 +1952,12 @@
                         <div class="coin-volume">
                             📊 حجم تداول: $${volumeFormatted}
                         </div>
+                        <div class="coin-liquidity">
+                            💧 سيولة: $${liquidityFormatted}
+                        </div>
                         <div class="coin-created">
                             🕒 ${createdText}
+                            ${ageClass ? `<span class="age-indicator ${ageClass}"></span>` : ''}
                         </div>
                     </div>
                 `;
@@ -1826,12 +2035,14 @@
             selectedIndex = index;
         }
 
-        // ========== تحديث العملات كل ساعة ==========
+        // ========== تحديث العملات ==========
         async function updateCoins() {
-            const newCoins = await fetchTrendingCoins();
+            const newCoins = await fetchAllCoins();
             if (newCoins.length > 0) {
                 allCoins = newCoins;
                 applyFilter();
+            } else {
+                showToast('⚠️ استخدام البيانات المخزنة');
             }
         }
 
@@ -2018,14 +2229,30 @@
                     document.getElementById('splashScreen').classList.add('hidden');
                     document.getElementById('homePage').classList.remove('hidden');
                     
-                    // تحديث العملات كل ساعة
-                    setInterval(updateCoins, 60 * 60 * 1000);
+                    // تحديث العملات كل 5 دقائق
+                    setInterval(updateCoins, 5 * 60 * 1000);
                 }, 2000);
+                
             } catch (e) {
                 console.error('خطأ في بدء التطبيق:', e);
                 document.getElementById('splashMessage').innerText = 'حدث خطأ، حاول مرة أخرى';
+                
+                setTimeout(() => {
+                    document.getElementById('splashScreen').classList.add('hidden');
+                    document.getElementById('homePage').classList.remove('hidden');
+                }, 3000);
             }
         }
+
+        // جعل الدوال متاحة في النطاق العام
+        window.showPage = showPage;
+        window.handleVote = handleVote;
+        window.setFilter = setFilter;
+        window.copyReferralLink = copyReferralLink;
+        window.connectWallet = connectWallet;
+        window.withdraw = withdraw;
+        window.completeSocialTask = completeSocialTask;
+        window.likePost = likePost;
 
         document.addEventListener("DOMContentLoaded", init);
     </script>
