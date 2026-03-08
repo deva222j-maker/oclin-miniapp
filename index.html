@@ -929,7 +929,7 @@
                 </div>
                 
                 <div class="market-cap-filter">
-                    <span>💰 فلتر: قيمة سوقية أكبر من 100,000$</span>
+                    <span>💰 فلتر: قيمة سوقية أكبر من 80,000$</span>
                 </div>
                 
                 <div class="coins-title">
@@ -1050,7 +1050,7 @@
         const REFERRAL_REWARD_EXISTING = 0;
         const BOT_USERNAME = "oclin_vote_bot";
         const MINI_APP_NAME = "oclinapp";
-        const MIN_MARKET_CAP = 100000; // 100 ألف دولار
+        const MIN_MARKET_CAP = 80000; // 80 ألف دولار
 
         let allCoins = [];
         let filteredCoins = [];
@@ -1274,7 +1274,10 @@
 
         // ========== نظام التصويت المحسن ==========
         async function loadTodayVotes() {
-            if (!telegramUser) return;
+            if (!telegramUser) {
+                console.log('ماكو مستخدم تيليجرام');
+                return;
+            }
             
             const today = new Date().toISOString().split('T')[0];
             
@@ -1347,6 +1350,7 @@
                 const newVotes = [...todayVotes, coinIndex];
                 const newCount = votesCount + 1;
                 
+                // تسجيل التصويت
                 const { error: upsertError } = await supabaseClient
                     .from('daily_votes')
                     .upsert({
@@ -1363,6 +1367,7 @@
                     return false;
                 }
                 
+                // جلب الرصيد الحالي
                 const { data: userData, error: fetchError } = await supabaseClient
                     .from('users')
                     .select('balance')
@@ -1376,6 +1381,7 @@
                 
                 const newBalance = (userData.balance || 0) + VOTE_REWARD;
                 
+                // تحديث الرصيد
                 const { error: pointsError } = await supabaseClient
                     .from('users')
                     .update({ balance: newBalance })
@@ -1386,9 +1392,11 @@
                     return false;
                 }
                 
+                // تحديث المتغيرات المحلية
                 todayVotes = newVotes;
                 votesCount = newCount;
                 
+                // تحديث الواجهة
                 updateVotesDisplay();
                 
                 if (voteContainers[coinIndex]) {
@@ -1399,6 +1407,7 @@
                 showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
                 playSound();
                 
+                // تحديث بيانات المستخدم في الواجهة
                 await refreshUserData();
                 
                 return true;
@@ -1637,10 +1646,10 @@
 
                 console.log(`✅ تم جلب ${allTokens.length} عملة من المصادر المختلفة`);
 
-                // إزالة التكرار (نفس العملة قد تظهر في أكثر من مصدر)
+                // إزالة التكرار
                 const uniqueTokens = new Map();
                 for (const token of allTokens) {
-                    if (!uniqueTokens.has(token.address)) {
+                    if (token.address && !uniqueTokens.has(token.address)) {
                         uniqueTokens.set(token.address, token);
                     }
                 }
@@ -1652,7 +1661,8 @@
                 const realTokens = [];
                 let processedCount = 0;
 
-                for (const token of uniqueTokensArray.slice(0, 30)) { // نأخذ أول 30 عملة
+                // نجلب أول 50 عملة
+                for (const token of uniqueTokensArray.slice(0, 50)) {
                     try {
                         const detailsResponse = await fetch(`https://public-api.birdeye.so/defi/token_overview?address=${token.address}`, {
                             headers: {
@@ -1669,8 +1679,8 @@
                                 const price = details.data.price || 0;
                                 const volume24h = details.data.volume24h || 0;
                                 
-                                // فلتر العملات الحقيقية
-                                if ((marketCap > MIN_MARKET_CAP || liquidity > 50000 || volume24h > 50000) && price > 0.000001) {
+                                // فلتر العملات الحقيقية - قيمة سوقية 80,000$
+                                if ((marketCap > MIN_MARKET_CAP || liquidity > 40000 || volume24h > 40000) && price > 0.000001) {
                                     realTokens.push({
                                         id: token.address,
                                         name: token.name || 'غير معروف',
@@ -1681,7 +1691,7 @@
                                         volume24h: volume24h,
                                         liquidity: liquidity,
                                         marketCap: marketCap,
-                                        createdAt: token.createdAt || details.data.createdAt || Date.now() - (processedCount * 60000), // ننشئ تاريخ مختلف لكل عملة
+                                        createdAt: token.createdAt || details.data.createdAt || Date.now() - (processedCount * 60000),
                                         fdv: details.data.fdv || 0
                                     });
                                 }
@@ -1690,8 +1700,8 @@
                         
                         processedCount++;
                         
-                        // تأخير بسيط بين الطلبات
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                        // تأخير بسيط
+                        await new Promise(resolve => setTimeout(resolve, 50));
                         
                     } catch (e) {
                         console.log(`خطأ في جلب تفاصيل ${token.symbol}:`, e);
@@ -1777,7 +1787,7 @@
             coinsGrid.innerHTML = "";
             voteContainers = [];
 
-            coins.slice(0, 30).forEach((coin, i) => {
+            coins.slice(0, 50).forEach((coin, i) => {
                 const container = document.createElement("div");
                 container.className = "coin-vote-container";
                 container.dataset.index = i;
