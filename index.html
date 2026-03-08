@@ -1072,7 +1072,19 @@
                         التصويتات المتبقية: <span id="votesRemaining">5</span>/5
                     </div>
                 </div>
-            
+                
+                <div class="coins-title">
+                    <span></span>
+                    <span class="last-update" id="lastUpdate"></span>
+                </div>
+                
+                <div class="filter-bar" id="filterBar">
+                    <button class="filter-btn active" onclick="setFilter('all', event)"></button>
+                    <button class="filter-btn" onclick="setFilter('today', event)"></button>
+                    <button class="filter-btn" onclick="setFilter('3days', event)"></button>
+                    <button class="filter-btn" onclick="setFilter('7days', event)"></button>
+                </div>
+                
                 <div class="coins-grid" id="coinsGrid"></div>
             </div>
 
@@ -2493,4 +2505,3 @@
     </script>
 </body>
 </html>
-
