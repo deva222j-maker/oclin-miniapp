@@ -1559,7 +1559,7 @@
     try {
 
         // جلب جميع الأزواج من Dexscreener
-        const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/solana');
+        const response = await fetch('https://api.dexscreener.com/token-profiles/latest/v1');
         if (!response.ok) throw new Error('API Error');
 
         const data = await response.json();
@@ -2028,4 +2028,5 @@
     </script>
 </body>
 </html>
+
 
