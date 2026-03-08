@@ -142,21 +142,6 @@
             margin: 0 5px;
         }
 
-        .coins-title {
-            color: #fff;
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .last-update {
-            font-size: 12px;
-            color: #a5b3d9;
-        }
-
         .coins-grid {
             display: flex;
             flex-direction: column;
@@ -989,63 +974,9 @@
             }
         }
 
-        .filter-bar {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding: 10px 0;
-            margin-bottom: 10px;
-            scrollbar-width: none;
-        }
-
-        .filter-bar::-webkit-scrollbar {
+        /* تم إزالة filter-bar بالكامل */
+        .filter-bar, .filter-btn, .coins-title, .last-update {
             display: none;
-        }
-
-        .filter-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 30px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: 0.3s;
-            white-space: nowrap;
-        }
-
-        .filter-btn.active {
-            background: linear-gradient(135deg, #8B5CF6, #EC4899);
-            border-color: transparent;
-        }
-
-        .new-coins-badge {
-            background: #e74c3c;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 11px;
-            margin-left: 8px;
-        }
-
-        .trending-badge {
-            background: #f39c12;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 10px;
-            margin-left: 5px;
-            display: inline-block;
-        }
-
-        .age-badge {
-            background: #8B5CF6;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 10px;
-            margin-left: 5px;
-            display: inline-block;
         }
     </style>
 </head>
@@ -1065,24 +996,13 @@
         </div>
 
         <div class="main-content">
+            <!-- الصفحة الرئيسية - مبسطة بدون نصوص إضافية -->
             <div id="homePage" class="hidden">
                 <div class="welcome-message">
-                    🔥 اختر عملة جديدة للتصويت
+                    اختر عملة للتصويت
                     <div class="votes-remaining">
-                        التصويتات المتبقية: <span id="votesRemaining">5</span>/5
+                        <span id="votesRemaining">5</span>/5
                     </div>
-                </div>
-                
-                <div class="coins-title">
-                    <span>🔥 العملات الرائجة على Solana</span>
-                    <span class="last-update" id="lastUpdate"></span>
-                </div>
-                
-                <div class="filter-bar" id="filterBar">
-                    <button class="filter-btn active" onclick="setFilter('all', event)">الكل</button>
-                    <button class="filter-btn" onclick="setFilter('today', event)">آخر 24 ساعة</button>
-                    <button class="filter-btn" onclick="setFilter('3days', event)">آخر 3 أيام</button>
-                    <button class="filter-btn" onclick="setFilter('7days', event)">آخر 7 أيام</button>
                 </div>
                 
                 <div class="coins-grid" id="coinsGrid"></div>
@@ -1220,7 +1140,7 @@
         let voteContainers = [];
         let userData = null;
         let telegramUser = null;
-        let currentFilter = 'all';
+        let currentFilter = 'all'; // لم نعد نستخدمه ولكن نبقي عليه
         let lastFetchTime = 0;
 
         // متغيرات للتحكم بالتصويت
@@ -2043,8 +1963,6 @@
                 // أخذ أول 200 عملة
                 coins = coins.slice(0, 200);
                 
-                document.getElementById('lastUpdate').innerText = new Date().toLocaleTimeString('ar-EG');
-                
                 return coins;
 
             } catch (error) {
@@ -2055,54 +1973,7 @@
             }
         }
 
-        // ========== نظام الفلترة حسب الوقت ==========
-        function setFilter(filter, event) {
-            if (!event) return;
-            
-            currentFilter = filter;
-            
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            applyFilter();
-        }
-
-        function applyFilter() {
-            if (!allCoins.length) {
-                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">جاري تحميل العملات...</p>';
-                return;
-            }
-            
-            const now = Date.now();
-            
-            if (currentFilter === 'all') {
-                filteredCoins = [...allCoins];
-            } else {
-                let maxHours = 0;
-                
-                if (currentFilter === 'today') {
-                    maxHours = 24;
-                } else if (currentFilter === '3days') {
-                    maxHours = 72;
-                } else if (currentFilter === '7days') {
-                    maxHours = 168;
-                }
-                
-                filteredCoins = allCoins.filter(coin => {
-                    if (!coin.createdAt) return true;
-                    return coin.createdHours <= maxHours;
-                });
-            }
-            
-            displayCoins(filteredCoins);
-            
-            document.getElementById('lastUpdate').innerText = 
-                `آخر تحديث: ${new Date().toLocaleTimeString('ar-IQ')}`;
-        }
-
-        // ========== عرض العملات ==========
+        // ========== عرض العملات (بدون فلترة) ==========
         function displayCoins(coins) {
             if (!coins || coins.length === 0) {
                 coinsGrid.innerHTML = '<p style="color:white;text-align:center; padding: 20px;">لا توجد عملات متاحة</p>';
@@ -2289,7 +2160,8 @@
             const newCoins = await fetchAllCoins();
             if (newCoins.length > 0) {
                 allCoins = newCoins;
-                applyFilter();
+                // عرض العملات مباشرة بدون فلترة
+                displayCoins(allCoins);
             }
         }
 
@@ -2455,7 +2327,7 @@
             } else if (page === 'home') {
                 selectedIndex = -1;
                 if (allCoins.length > 0) {
-                    applyFilter();
+                    displayCoins(allCoins); // عرض مباشر بدون فلترة
                 } else {
                     await updateCoins();
                 }
