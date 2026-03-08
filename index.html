@@ -947,7 +947,6 @@
                     <button class="filter-btn active" onclick="setFilter('all', event)">الكل</button>
                     <button class="filter-btn" onclick="setFilter('today', event)">آخر 24 ساعة</button>
                     <button class="filter-btn" onclick="setFilter('3days', event)">آخر 3 أيام</button>
-                    <button class="filter-btn" onclick="setFilter('7days', event)">آخر 7 أيام</button>
                 </div>
                 
                 <div class="coins-grid" id="coinsGrid"></div>
@@ -1618,12 +1617,6 @@
                     // نتأكد أن العملة لها عنوان صالح
                     if (!tokenAddress) return;
                     
-                    // نتأكد من وجود القيمة السوقية
-                    const marketCap = pair.marketCap || 0;
-                    
-                    // فلتر القيمة السوقية (90,000$ فأكثر)
-                    if (marketCap < MIN_MARKET_CAP) return;
-                    
                     // نتأكد من وجود حجم تداول (عملة نشطة)
                     const volume24h = parseFloat(pair.volume?.h24) || 0;
                     
@@ -2092,3 +2085,4 @@
     </script>
 </body>
 </html>
+
