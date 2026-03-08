@@ -272,6 +272,12 @@
             margin-top: 2px;
         }
 
+        .coin-volume {
+            font-size: 10px;
+            color: #2ecc71;
+            margin-top: 2px;
+        }
+
         .dex-badge {
             font-size: 10px;
             padding: 2px 6px;
@@ -929,17 +935,17 @@
                 </div>
                 
                 <div class="market-cap-filter">
-                    <span>💰 فلتر: قيمة سوقية أكبر من 100,000$</span>
+                    <span>💰 فلتر: قيمة سوقية أكبر من 90,000$</span>
                 </div>
                 
                 <div class="coins-title">
-                    <span>🆕 أحدث العملات على Solana</span>
+                    <span>🔥 العملات الرائجة على Solana</span>
                     <span class="last-update" id="lastUpdate"></span>
                 </div>
                 
                 <div class="filter-bar" id="filterBar">
                     <button class="filter-btn active" onclick="setFilter('all', event)">الكل</button>
-                    <button class="filter-btn" onclick="setFilter('24hours', event)">آخر 24 ساعة</button>
+                    <button class="filter-btn" onclick="setFilter('today', event)">آخر 24 ساعة</button>
                     <button class="filter-btn" onclick="setFilter('3days', event)">آخر 3 أيام</button>
                     <button class="filter-btn" onclick="setFilter('7days', event)">آخر 7 أيام</button>
                 </div>
@@ -1044,7 +1050,8 @@
         const REFERRAL_REWARD_EXISTING = 0;
         const BOT_USERNAME = "oclin_vote_bot";
         const MINI_APP_NAME = "oclinapp";
-        const MIN_MARKET_CAP = 100000; // 100 ألف دولار
+        const MIN_MARKET_CAP = 90000; // 90 ألف دولار
+        const MIN_VOLUME = 50000; // الحد الأدنى لحجم التداول (50K$)
 
         let allCoins = [];
         let filteredCoins = [];
@@ -1579,8 +1586,8 @@
             showToast("🔜 قريباً: السحب متاح");
         }
 
-        // ========== نظام جلب العملات من DexScreener ==========
-        async function fetchNewCoins() {
+        // ========== نظام جلب العملات الرائجة من DexScreener ==========
+        async function fetchTrendingCoins() {
             try {
                 const response = await fetch('https://api.dexscreener.com/latest/dex/search?q=solana');
                 if (!response.ok) throw new Error('فشل الاتصال');
@@ -1595,7 +1602,14 @@
                 const uniqueCoins = new Map();
                 const now = Date.now();
                 
-                data.pairs.forEach(pair => {
+                // ترتيب الأزواج حسب حجم التداول (الأعلى أولاً) - العملات الرائجة
+                const sortedPairs = data.pairs.sort((a, b) => {
+                    const volumeA = parseFloat(a.volume?.h24) || 0;
+                    const volumeB = parseFloat(b.volume?.h24) || 0;
+                    return volumeB - volumeA;
+                });
+                
+                sortedPairs.forEach(pair => {
                     // نتأكد أن العملة على شبكة Solana
                     if (pair.chainId !== 'solana') return;
                     
@@ -1607,10 +1621,13 @@
                     // نتأكد من وجود القيمة السوقية
                     const marketCap = pair.marketCap || 0;
                     
-                    // فلتر القيمة السوقية (100,000$ فأكثر)
+                    // فلتر القيمة السوقية (90,000$ فأكثر)
                     if (marketCap < MIN_MARKET_CAP) return;
                     
-                    // حساب عمر العملة (إذا كان موجود)
+                    // نتأكد من وجود حجم تداول (عملة نشطة)
+                    const volume24h = parseFloat(pair.volume?.h24) || 0;
+                    
+                    // حساب عمر العملة
                     let createdText = 'غير معروف';
                     let createdHours = 999999;
                     let createdDays = 999;
@@ -1640,7 +1657,7 @@
                             image: pair.info?.imageUrl || null,
                             price: parseFloat(pair.priceUsd) || 0,
                             priceChange: parseFloat(pair.priceChange?.h24) || 0,
-                            volume24h: parseFloat(pair.volume?.h24) || 0,
+                            volume24h: volume24h,
                             liquidity: parseFloat(pair.liquidity?.usd) || 0,
                             marketCap: marketCap,
                             fdv: pair.fdv || 0,
@@ -1658,14 +1675,10 @@
                 // تحويل الخريطة إلى مصفوفة
                 let coins = Array.from(uniqueCoins.values());
                 
-                // ترتيب حسب تاريخ الإنشاء (الأحدث أولاً) - إذا ما في تاريخ، نضعه في الآخر
-                coins.sort((a, b) => {
-                    if (!a.createdAt) return 1;
-                    if (!b.createdAt) return -1;
-                    return new Date(b.createdAt) - new Date(a.createdAt);
-                });
+                // ترتيب حسب حجم التداول (الأعلى أولاً) - عملات ترند
+                coins.sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
                 
-                console.log(`✅ تم جلب ${coins.length} عملة من DexScreener`);
+                console.log(`✅ تم جلب ${coins.length} عملة رائجة من DexScreener`);
                 
                 return coins;
                 
@@ -1702,7 +1715,7 @@
             } else {
                 let maxHours = 0;
                 
-                if (currentFilter === '24hours') {
+                if (currentFilter === 'today') {
                     maxHours = 24;
                 } else if (currentFilter === '3days') {
                     maxHours = 72;
@@ -1711,17 +1724,10 @@
                 }
                 
                 filteredCoins = allCoins.filter(coin => {
-                    if (!coin.createdAt) return false;
+                    if (!coin.createdAt) return true; // إذا ما في تاريخ، نعرضه
                     return coin.createdHours <= maxHours;
                 });
             }
-            
-            // ترتيب حسب الأحدث
-            filteredCoins.sort((a, b) => {
-                if (!a.createdAt) return 1;
-                if (!b.createdAt) return -1;
-                return new Date(b.createdAt) - new Date(a.createdAt);
-            });
             
             displayCoins(filteredCoins);
             
@@ -1732,14 +1738,14 @@
         // ========== عرض العملات ==========
         function displayCoins(coins) {
             if (!coins || coins.length === 0) {
-                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">لا توجد عملات جديدة متاحة</p>';
+                coinsGrid.innerHTML = '<p style="color:white;text-align:center;">لا توجد عملات متاحة</p>';
                 return;
             }
 
             coinsGrid.innerHTML = "";
             voteContainers = [];
 
-            coins.slice(0, 30).forEach((coin, i) => {
+            coins.slice(0, 50).forEach((coin, i) => {
                 const container = document.createElement("div");
                 container.className = "coin-vote-container";
                 container.dataset.index = i;
@@ -1778,6 +1784,11 @@
                     ? `${(coin.marketCap / 1000000).toFixed(2)}M` 
                     : `${(coin.marketCap / 1000).toFixed(0)}K`;
 
+                // تنسيق حجم التداول
+                const volumeFormatted = coin.volume24h > 1000000 
+                    ? `${(coin.volume24h / 1000000).toFixed(2)}M` 
+                    : `${(coin.volume24h / 1000).toFixed(0)}K`;
+
                 coinCard.innerHTML = `
                     <div class="coin-icon">
                         ${iconHtml}
@@ -1793,6 +1804,9 @@
                         </div>
                         <div class="coin-market-cap">
                             💰 قيمة سوقية: $${marketCapFormatted}
+                        </div>
+                        <div class="coin-volume">
+                            📊 حجم تداول: $${volumeFormatted}
                         </div>
                         <div class="coin-created">
                             🕒 ${coin.createdText}
@@ -1875,7 +1889,7 @@
 
         // ========== تحديث العملات كل ساعتين ==========
         async function updateCoins() {
-            const newCoins = await fetchNewCoins();
+            const newCoins = await fetchTrendingCoins();
             if (newCoins.length > 0) {
                 allCoins = newCoins;
                 applyFilter();
@@ -2065,7 +2079,7 @@
                     document.getElementById('splashScreen').classList.add('hidden');
                     document.getElementById('homePage').classList.remove('hidden');
                     
-                    // تحديث العملات كل ساعتين (2 * 60 * 60 * 1000 = 7,200,000 ملي ثانية)
+                    // تحديث العملات كل ساعتين
                     setInterval(updateCoins, 2 * 60 * 60 * 1000);
                 }, 2000);
             } catch (e) {
