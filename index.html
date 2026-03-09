@@ -1158,7 +1158,12 @@
         if (window.Telegram?.WebApp) {
             Telegram.WebApp.ready();
             Telegram.WebApp.expand();
-            Telegram.WebApp.disableVerticalSwipes();
+            // تعطيل خاصية غير مدعومة
+            try {
+                Telegram.WebApp.disableVerticalSwipes();
+            } catch (e) {
+                console.log('disableVerticalSwipes not supported');
+            }
         }
 
         // ========== إعدادات Supabase الجديدة ==========
@@ -1435,10 +1440,24 @@
             }
         }
 
+        // دالة محسنة لجلب بيانات المستخدم من Telegram
         function getTelegramUser() {
             try {
-                if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-                    const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+                console.log('Checking Telegram WebApp:', window.Telegram);
+                
+                if (!window.Telegram) {
+                    console.log('Telegram WebApp not initialized');
+                    return null;
+                }
+                
+                const webApp = window.Telegram.WebApp;
+                console.log('WebApp initData:', webApp.initData);
+                console.log('WebApp initDataUnsafe:', webApp.initDataUnsafe);
+                
+                if (webApp.initDataUnsafe && webApp.initDataUnsafe.user) {
+                    const tgUser = webApp.initDataUnsafe.user;
+                    console.log('Telegram user found:', tgUser);
+                    
                     telegramUser = {
                         id: `tg_${tgUser.id}`,
                         first_name: tgUser.first_name || '',
@@ -1446,11 +1465,53 @@
                         username: tgUser.username || null,
                         photo_url: tgUser.photo_url || null
                     };
+                    
+                    console.log('Formatted user:', telegramUser);
                     return telegramUser;
+                } else {
+                    console.log('No user data in initDataUnsafe');
+                    
+                    // تجربة طريقة بديلة
+                    if (webApp.initData) {
+                        try {
+                            const params = new URLSearchParams(webApp.initData);
+                            const userStr = params.get('user');
+                            if (userStr) {
+                                const tgUser = JSON.parse(decodeURIComponent(userStr));
+                                console.log('User from initData string:', tgUser);
+                                
+                                telegramUser = {
+                                    id: `tg_${tgUser.id}`,
+                                    first_name: tgUser.first_name || '',
+                                    last_name: tgUser.last_name || '',
+                                    username: tgUser.username || null,
+                                    photo_url: tgUser.photo_url || null
+                                };
+                                
+                                return telegramUser;
+                            }
+                        } catch (e) {
+                            console.log('Error parsing initData:', e);
+                        }
+                    }
                 }
             } catch (e) {
-                console.log('Telegram user not available');
+                console.error('Error getting Telegram user:', e);
             }
+            
+            // للاختبار المحلي - بيانات وهمية
+            if (window.location.href.includes('localhost') || window.location.href.includes('file://')) {
+                console.log('Using test user for local development');
+                telegramUser = {
+                    id: `tg_test_${Math.floor(Math.random() * 10000)}`,
+                    first_name: 'Test',
+                    last_name: 'User',
+                    username: 'testuser',
+                    photo_url: null
+                };
+                return telegramUser;
+            }
+            
             return null;
         }
 
@@ -1466,6 +1527,8 @@
                 referrals_count: 0
             };
             
+            console.log('Registering user:', userData);
+            
             const { data, error } = await supabaseClient
                 .from('users')
                 .upsert(userData, { onConflict: 'id' })
@@ -1476,10 +1539,13 @@
                 return null;
             }
             
+            console.log('User registered:', data);
             return data?.[0];
         }
 
         async function getUserStats(userId) {
+            console.log('Getting user stats for:', userId);
+            
             const { data, error } = await supabaseClient
                 .from('users')
                 .select('*')
@@ -1491,11 +1557,14 @@
                 return null;
             }
             
+            console.log('User stats:', data);
             return data;
         }
 
         async function fetchReferrals(referrerId) {
             try {
+                console.log('Fetching referrals for:', referrerId);
+                
                 const { data, error } = await supabaseClient
                     .from('referrals')
                     .select(`
@@ -1517,6 +1586,7 @@
                     return [];
                 }
 
+                console.log('Referrals found:', data);
                 return data || [];
             } catch (e) {
                 console.error('Error:', e);
@@ -1569,6 +1639,8 @@
             // تحديد النقاط بناءً على نوع المستخدم
             const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
             
+            console.log('Handling referral:', { referrerId, newUserId, isNewUser, points });
+            
             try {
                 const { data: referrerData, error: fetchError } = await supabaseClient
                     .from('users')
@@ -1580,6 +1652,8 @@
                     console.error('Error fetching referrer data:', fetchError);
                     return false;
                 }
+                
+                console.log('Referrer data:', referrerData);
                 
                 const newReferralBalance = (referrerData.referral_balance || 0) + points;
                 const newBalance = (referrerData.balance || 0) + points;
@@ -1613,6 +1687,7 @@
                     return false;
                 }
                 
+                console.log('Referral processed successfully');
                 return true;
                 
             } catch (e) {
@@ -1633,6 +1708,8 @@
                     const urlParams = new URLSearchParams(window.location.search);
                     referrerId = urlParams.get('startapp');
                 }
+
+                console.log('Referrer ID from URL:', referrerId);
 
                 const tgUser = getTelegramUser();
                 if (!tgUser) {
@@ -1680,6 +1757,7 @@
 
                 // تحديد ما إذا كان المستخدم جديد أم قديم
                 const isNewUser = !existingUser;
+                console.log('Is new user:', isNewUser);
                 
                 // معالجة الإحالة
                 const success = await handleReferral(referrerId, tgUser.id, isNewUser);
@@ -2344,11 +2422,17 @@
         }
 
         function updateUI() {
-            if (!userData) return;
+            if (!userData) {
+                console.log('No user data to update UI');
+                return;
+            }
+            
+            console.log('Updating UI with user data:', userData);
             
             const linkInput = document.getElementById("referralLink");
             if (linkInput) {
                 linkInput.value = `https://t.me/${BOT_USERNAME}/${MINI_APP_NAME}?startapp=${userData.id}`;
+                console.log('Referral link set:', linkInput.value);
             }
             
             const totalElement = document.getElementById("totalReferrals");
@@ -2573,10 +2657,11 @@
         // ========== التهيئة ==========
         async function init() {
             try {
+                console.log('Initializing app...');
+                
                 if (window.Telegram?.WebApp) {
                     Telegram.WebApp.ready();
                     Telegram.WebApp.expand();
-                    Telegram.WebApp.disableVerticalSwipes();
                 }
 
                 const tgUser = getTelegramUser();
