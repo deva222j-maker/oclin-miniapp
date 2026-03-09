@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* جميع الأنماط كما هي - لم أغيرها */
         * {
             margin: 0;
             padding: 0;
@@ -2565,8 +2566,15 @@
                     Telegram.WebApp.disableVerticalSwipes();
                 }
 
+                // جلب بيانات المستخدم من تليجرام
+                const tgUser = getTelegramUser();
+                if (tgUser) {
+                    console.log('Telegram user found:', tgUser);
+                    await registerUser(tgUser);
+                    await refreshUserData();
+                }
+
                 await checkReferral();
-                await refreshUserData();
                 await updateCoins();
                 await loadTodayVotes();
 
