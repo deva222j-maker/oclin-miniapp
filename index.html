@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* جميع الأنماط كما هي من الكود السابق */
+        /* جميع الأنماط كما هي */
         * {
             margin: 0;
             padding: 0;
@@ -1155,10 +1155,18 @@
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
+        if (window.Telegram?.WebApp) {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+            Telegram.WebApp.disableVerticalSwipes();
+        }
+
         // ========== إعدادات Supabase ==========
         const SUPABASE_URL = 'https://qyonklnofxypmhdmdbng.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5b25rbG5vZnh5cG1oZG1kYm5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MDgyMjAsImV4cCI6MjA1Njk4NDIyMH0.wUbYBh85pQ5eY7jzfitPNA_FPOaoKrz';
+        // استخدام المفتاح الصحيح من الكود القديم
+        const SUPABASE_KEY = 'sb_publishable_wUbYBh85pQ5eY7jzfitPNA_FPOaoKrz';
         
+        // تهيئة Supabase
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ========== الإعدادات الثابتة ==========
@@ -1178,7 +1186,7 @@
         let telegramUser = null;
         let todayVotes = [];
         let votesCount = 0;
-        let userVotes = []; // مصفوفة لحفظ تصويتات المستخدم للعرض في صفحة المهام
+        let userVotes = [];
 
         // ========== نظام الترجمة ==========
         const translations = {
@@ -1517,7 +1525,7 @@
 
         async function displayReferrals() {
             if (!userData) {
-                document.getElementById('referralsList').innerHTML = '<p style="color: #a5b3d9; text-align: center; padding: 20px;">Please wait...</p>';
+                document.getElementById('referralsList').innerHTML = '<p style="color: #a5b3d9; text-align: center; padding: 20px;">Loading...</p>';
                 return;
             }
 
@@ -1852,7 +1860,6 @@
                     
                     document.getElementById("profileBalance").innerText = newBalance;
                     
-                    // تحديث في قاعدة البيانات
                     await supabaseClient
                         .from('users')
                         .update({ balance: newBalance })
@@ -2325,7 +2332,6 @@
                     userData = newData;
                     updateUI();
                 } else {
-                    // إذا لم يتم العثور على بيانات، حاول التسجيل مرة أخرى
                     const registered = await registerUser(telegramUser);
                     if (registered) {
                         userData = registered;
@@ -2423,7 +2429,6 @@
             const t = translations[currentLang];
             const tasksContainer = document.querySelector('.tasks-container');
             
-            // إضافة قسم تصويتات المستخدم
             let votesHtml = '<div class="tasks-section-title">' + t.yourVotes + '</div>';
             
             if (userVotes && userVotes.length > 0) {
@@ -2451,17 +2456,13 @@
                 votesHtml += '<p style="color: #a5b3d9; text-align: center; padding: 20px;">' + t.noVotesYet + '</p>';
             }
             
-            // إضافة روابط التواصل الاجتماعي
             votesHtml += '<div class="tasks-section-title">' + t.followUsTitle + '</div>';
             votesHtml += '<div class="social-links-grid" id="socialLinksGrid"></div>';
-            
-            // إضافة المنشورات
             votesHtml += '<div class="tasks-section-title">' + t.latestPostsTitle + '</div>';
             votesHtml += '<div class="posts-grid" id="postsGrid"></div>';
             
             tasksContainer.innerHTML = votesHtml;
             
-            // إضافة روابط التواصل الاجتماعي
             const socialGrid = document.getElementById('socialLinksGrid');
             socialLinks.forEach(link => {
                 const name = currentLang === 'ar' ? 
@@ -2482,8 +2483,13 @@
                 socialGrid.appendChild(card);
             });
 
-            // إضافة المنشورات
             const postsGrid = document.getElementById('postsGrid');
+            const samplePosts = [
+                { platform: 'YouTube', username: '@oclin', content: '🚀 New tutorial: How to earn from voting on coins!', time: '1 hour ago', avatar: '📺' },
+                { platform: 'Telegram', username: '@oclin', content: '🪙 5 new coins added for voting!', time: '3 hours ago', avatar: '📱' },
+                { platform: 'X', username: '@oclin', content: '🔥 Big contest! 1000 points for top 5 winners', time: '5 hours ago', avatar: '🐦' }
+            ];
+
             samplePosts.forEach((post, index) => {
                 const postDiv = document.createElement('div');
                 postDiv.className = 'post-card';
@@ -2503,12 +2509,6 @@
                 postsGrid.appendChild(postDiv);
             });
         }
-
-        const samplePosts = [
-            { platform: 'YouTube', username: '@oclin', content: '🚀 New tutorial: How to earn from voting on coins!', time: '1 hour ago', avatar: '📺' },
-            { platform: 'Telegram', username: '@oclin', content: '🪙 5 new coins added for voting!', time: '3 hours ago', avatar: '📱' },
-            { platform: 'X', username: '@oclin', content: '🔥 Big contest! 1000 points for top 5 winners', time: '5 hours ago', avatar: '🐦' }
-        ];
 
         async function completeSocialTask(link) {
             if (!userData) return;
@@ -2603,15 +2603,12 @@
                     Telegram.WebApp.disableVerticalSwipes();
                 }
 
-                // جلب بيانات المستخدم من تليجرام
                 const tgUser = getTelegramUser();
                 if (tgUser) {
                     console.log('Telegram user found:', tgUser);
-                    // تسجيل المستخدم في قاعدة البيانات
                     const registeredUser = await registerUser(tgUser);
                     console.log('User registered:', registeredUser);
                     
-                    // تحديث بيانات المستخدم
                     await refreshUserData();
                 } else {
                     console.log('No Telegram user found');
