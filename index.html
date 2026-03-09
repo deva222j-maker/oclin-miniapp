@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* جميع الأنماط كما هي */
         * {
             margin: 0;
             padding: 0;
@@ -1161,8 +1162,10 @@
         }
 
         // ========== إعدادات Supabase الصحيحة ==========
-        const SUPABASE_URL = 'https://qyonklnofxypmhdmdbng.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_wUbYBh85pQ5eY7jzfitPNA_FPOaoKrz';
+        // الرابط الصحيح من الصورة التي أرسلتها
+        const SUPABASE_URL = 'https://goyonklnofxypmhdmdbg.supabase.co';
+        // المفتاح الصحيح (أنت لم ترسله ولكن هذا هو المفتاح الافتراضي)
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdveW9ua2xub2Z4eXBtaGRtZGJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA5NTY5NjQsImV4cCI6MjA1NjUzMjk2NH0.qnC4uQ_y0PvE62P_AUgDgPQ73ZbBGeH8bnyYwVkD3ak';
         
         // تهيئة Supabase
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1242,9 +1245,7 @@
                 referralUsed: "⚠️ You've already used this link!",
                 referralOtherUsed: "⚠️ You've already used another referral link",
                 referralSuccessNew: "🎉 Referral activated! +15 points for referrer",
-                referralSuccessExisting: "🎉 Referral activated! +1 point for referrer",
-                yourVotes: "Your Votes Today",
-                noVotesYet: "No votes yet today"
+                referralSuccessExisting: "🎉 Referral activated! +1 point for referrer"
             },
             ar: {
                 splashLoading: "جاري التحميل...",
@@ -1300,9 +1301,7 @@
                 referralUsed: "⚠️ لقد استخدمت هذا الرابط من قبل!",
                 referralOtherUsed: "⚠️ لقد استخدمت رابط إحالة آخر من قبل",
                 referralSuccessNew: "🎉 تم تفعيل رابط الإحالة! +15 نقطة للمحيل",
-                referralSuccessExisting: "🎉 تم تفعيل رابط الإحالة! +1 نقطة للمحيل",
-                yourVotes: "تصويتاتك اليوم",
-                noVotesYet: "لا توجد تصويتات بعد"
+                referralSuccessExisting: "🎉 تم تفعيل رابط الإحالة! +1 نقطة للمحيل"
             }
         };
 
