@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* جميع الأنماط كما هي - لم أغيرها */
+        /* جميع الأنماط كما هي من الكود السابق */
         * {
             margin: 0;
             padding: 0;
@@ -2322,6 +2322,14 @@
                 if (newData) {
                     userData = newData;
                     updateUI();
+                } else {
+                    // إذا لم يتم العثور على بيانات، حاول التسجيل مرة أخرى
+                    await registerUser(telegramUser);
+                    const retryData = await getUserStats(telegramUser.id);
+                    if (retryData) {
+                        userData = retryData;
+                        updateUI();
+                    }
                 }
             }
         }
@@ -2570,8 +2578,15 @@
                 const tgUser = getTelegramUser();
                 if (tgUser) {
                     console.log('Telegram user found:', tgUser);
-                    await registerUser(tgUser);
+                    // تسجيل المستخدم في قاعدة البيانات
+                    const registeredUser = await registerUser(tgUser);
+                    console.log('User registered:', registeredUser);
+                    
+                    // تحديث بيانات المستخدم
                     await refreshUserData();
+                } else {
+                    console.log('No Telegram user found');
+                    document.getElementById('splashMessage').innerText = 'Please open app from Telegram';
                 }
 
                 await checkReferral();
