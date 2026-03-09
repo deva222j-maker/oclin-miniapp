@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* جميع الأنماط كما هي */
         * {
             margin: 0;
             padding: 0;
@@ -1161,9 +1160,8 @@
             Telegram.WebApp.disableVerticalSwipes();
         }
 
-        // ========== إعدادات Supabase ==========
+        // ========== إعدادات Supabase الصحيحة ==========
         const SUPABASE_URL = 'https://qyonklnofxypmhdmdbng.supabase.co';
-        // استخدام المفتاح الصحيح من الكود القديم
         const SUPABASE_KEY = 'sb_publishable_wUbYBh85pQ5eY7jzfitPNA_FPOaoKrz';
         
         // تهيئة Supabase
@@ -1172,8 +1170,8 @@
         // ========== الإعدادات الثابتة ==========
         const DAILY_LIMIT = 5;
         const VOTE_REWARD = 10;
-        const REFERRAL_REWARD_NEW = 15;
-        const REFERRAL_REWARD_EXISTING = 0;
+        const REFERRAL_REWARD_NEW = 15;    // للمستخدم الجديد
+        const REFERRAL_REWARD_EXISTING = 1; // للمستخدم القديم (نقطة واحدة)
         const BOT_USERNAME = "oclin_vote_bot";
         const MINI_APP_NAME = "oclinapp";
 
@@ -1226,7 +1224,7 @@
                 copyError: "❌ Copy failed",
                 comingSoon: "🔜 Coming soon",
                 newUser: "New",
-                oldUser: "Old",
+                oldUser: "Existing",
                 unknown: "Unknown",
                 ageLessThanHour: "Less than hour ago",
                 hoursAgo: "hours ago",
@@ -1243,7 +1241,8 @@
                 invalidSelfReferral: "You can't use your own link!",
                 referralUsed: "⚠️ You've already used this link!",
                 referralOtherUsed: "⚠️ You've already used another referral link",
-                referralSuccess: "🎉 Referral activated! +15 points for referrer",
+                referralSuccessNew: "🎉 Referral activated! +15 points for referrer",
+                referralSuccessExisting: "🎉 Referral activated! +1 point for referrer",
                 yourVotes: "Your Votes Today",
                 noVotesYet: "No votes yet today"
             },
@@ -1283,7 +1282,7 @@
                 copyError: "❌ فشل النسخ",
                 comingSoon: "🔜 قريباً",
                 newUser: "جديد",
-                oldUser: "قديم",
+                oldUser: "موجود",
                 unknown: "غير معروف",
                 ageLessThanHour: "منذ أقل من ساعة",
                 hoursAgo: "ساعة",
@@ -1300,7 +1299,8 @@
                 invalidSelfReferral: "لا يمكنك استخدام رابطك الخاص!",
                 referralUsed: "⚠️ لقد استخدمت هذا الرابط من قبل!",
                 referralOtherUsed: "⚠️ لقد استخدمت رابط إحالة آخر من قبل",
-                referralSuccess: "🎉 تم تفعيل رابط الإحالة! +15 نقطة للمحيل",
+                referralSuccessNew: "🎉 تم تفعيل رابط الإحالة! +15 نقطة للمحيل",
+                referralSuccessExisting: "🎉 تم تفعيل رابط الإحالة! +1 نقطة للمحيل",
                 yourVotes: "تصويتاتك اليوم",
                 noVotesYet: "لا توجد تصويتات بعد"
             }
@@ -1408,6 +1408,10 @@
                 toast.innerText = t.copyError;
             } else if (msg.includes("قريباً") || msg.includes("Coming soon")) {
                 toast.innerText = t.comingSoon;
+            } else if (msg.includes("+15")) {
+                toast.innerText = t.referralSuccessNew;
+            } else if (msg.includes("+1")) {
+                toast.innerText = t.referralSuccessExisting;
             } else {
                 toast.innerText = msg;
             }
@@ -1565,9 +1569,8 @@
         }
 
         async function handleReferral(referrerId, newUserId, isNewUser) {
-            if (!isNewUser) return false;
-            
-            const points = REFERRAL_REWARD_NEW;
+            // تحديد النقاط بناءً على نوع المستخدم
+            const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
             
             try {
                 const { data: referrerData, error: fetchError } = await supabaseClient
@@ -1640,8 +1643,10 @@
                     return;
                 }
 
+                // تسجيل المستخدم الحالي
                 await registerUser(tgUser);
                 await refreshUserData();
+                
                 const t = translations[currentLang];
 
                 if (!referrerId) {
@@ -1654,6 +1659,7 @@
                     return;
                 }
 
+                // التحقق مما إذا كان المستخدم موجود مسبقاً
                 const { data: existingUser } = await supabaseClient
                     .from('users')
                     .select('created_at')
@@ -1675,20 +1681,19 @@
                     return;
                 }
 
+                // تحديد ما إذا كان المستخدم جديد أم قديم
                 const isNewUser = !existingUser;
                 
-                if (isNewUser) {
-                    const success = await handleReferral(referrerId, tgUser.id, true);
+                // معالجة الإحالة
+                const success = await handleReferral(referrerId, tgUser.id, isNewUser);
 
-                    if (success) {
-                        await refreshUserData();
-                        
-                        document.getElementById('splashMessage').innerText = t.referralSuccess;
-                        showReferralNotification(t.referralSuccess);
-                        playSound();
-                    }
-                } else {
-                    document.getElementById('splashMessage').innerText = t.welcomeBack;
+                if (success) {
+                    await refreshUserData();
+                    
+                    const message = isNewUser ? t.referralSuccessNew : t.referralSuccessExisting;
+                    document.getElementById('splashMessage').innerText = message;
+                    showReferralNotification(message);
+                    playSound();
                 }
                 
             } catch (e) {
@@ -2203,7 +2208,7 @@
             }
         }
 
-        // ========== نتائج التصويت ==========
+        // ========== نتائج التصويت (مع ترتيب أول 3) ==========
         async function fetchVoteResults() {
             try {
                 const yesterday = new Date();
@@ -2389,7 +2394,7 @@
             }
         }
 
-        // ========== المهام ==========
+        // ========== المهام (بدون تصويتات) ==========
         const socialLinks = [
             {
                 platform: 'youtube',
@@ -2429,39 +2434,13 @@
             const t = translations[currentLang];
             const tasksContainer = document.querySelector('.tasks-container');
             
-            let votesHtml = '<div class="tasks-section-title">' + t.yourVotes + '</div>';
+            // إزالة قسم التصويتات من صفحة المهام
+            let tasksHtml = '<div class="tasks-section-title">' + t.followUsTitle + '</div>';
+            tasksHtml += '<div class="social-links-grid" id="socialLinksGrid"></div>';
+            tasksHtml += '<div class="tasks-section-title">' + t.latestPostsTitle + '</div>';
+            tasksHtml += '<div class="posts-grid" id="postsGrid"></div>';
             
-            if (userVotes && userVotes.length > 0) {
-                votesHtml += '<div class="posts-grid">';
-                userVotes.forEach(vote => {
-                    const voteTypeEmoji = vote.voteType === 'up' ? '⬆️' : '⬇️';
-                    const voteTypeText = vote.voteType === 'up' ? t.up : t.down;
-                    votesHtml += `
-                        <div class="post-card">
-                            <div class="post-header">
-                                <div class="post-avatar">🪙</div>
-                                <div class="post-info">
-                                    <div class="post-platform">${vote.coinName}</div>
-                                    <div class="post-time">${vote.coinSymbol.toUpperCase()}</div>
-                                </div>
-                            </div>
-                            <div class="post-content">
-                                ${voteTypeEmoji} ${voteTypeText}
-                            </div>
-                        </div>
-                    `;
-                });
-                votesHtml += '</div>';
-            } else {
-                votesHtml += '<p style="color: #a5b3d9; text-align: center; padding: 20px;">' + t.noVotesYet + '</p>';
-            }
-            
-            votesHtml += '<div class="tasks-section-title">' + t.followUsTitle + '</div>';
-            votesHtml += '<div class="social-links-grid" id="socialLinksGrid"></div>';
-            votesHtml += '<div class="tasks-section-title">' + t.latestPostsTitle + '</div>';
-            votesHtml += '<div class="posts-grid" id="postsGrid"></div>';
-            
-            tasksContainer.innerHTML = votesHtml;
+            tasksContainer.innerHTML = tasksHtml;
             
             const socialGrid = document.getElementById('socialLinksGrid');
             socialLinks.forEach(link => {
