@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Oclin.bot</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
@@ -21,7 +22,6 @@
             background: #0a0e17;
         }
 
-        /* Language Switch Button */
         .lang-switch {
             position: absolute;
             top: 15px;
@@ -221,11 +221,6 @@
             pointer-events: none;
         }
 
-        .coin-card.disabled {
-            opacity: .6;
-            pointer-events: none;
-        }
-
         .coin-icon {
             width: 45px;
             height: 45px;
@@ -250,6 +245,10 @@
         .coin-name {
             font-weight: 700;
             color: #fff;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 4px;
         }
 
         .coin-symbol {
@@ -300,6 +299,7 @@
             border-radius: 10px;
             margin-left: 5px;
             color: white;
+            display: inline-block;
         }
 
         .badge-raydium {
@@ -312,6 +312,14 @@
 
         .badge-other {
             background: #9c27b0;
+        }
+
+        .age-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            color: white;
+            display: inline-block;
         }
 
         .vote-options {
@@ -468,14 +476,6 @@
             text-align: center;
         }
 
-        .referral-desc {
-            color: #a5b3d9;
-            font-size: 14px;
-            text-align: center;
-            margin-bottom: 25px;
-            line-height: 1.5;
-        }
-
         .referral-link-box {
             display: flex;
             gap: 10px;
@@ -589,6 +589,9 @@
             font-size: 14px;
             font-weight: 700;
             margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .referral-item-username {
@@ -606,21 +609,20 @@
             flex-shrink: 0;
         }
 
-        .referral-item-badge {
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            margin-left: 5px;
-        }
-
         .badge-new {
             background: #2ecc71;
             color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
         }
 
         .badge-old {
             background: #f39c12;
             color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
         }
 
         .tasks-container {
@@ -656,11 +658,6 @@
         .social-link-card:hover {
             transform: translateY(-2px);
             background: rgba(255, 255, 255, 0.1);
-        }
-
-        .social-link-card.completed {
-            opacity: 0.6;
-            border-color: #2ecc71;
         }
 
         .social-icon {
@@ -782,12 +779,6 @@
             background: rgba(139, 92, 246, 0.3);
         }
 
-        .post-action-btn.completed {
-            background: #2ecc71;
-            border-color: #2ecc71;
-            pointer-events: none;
-        }
-
         .results-container {
             padding: 15px;
         }
@@ -883,6 +874,10 @@
             font-weight: 700;
             font-size: 16px;
             margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .result-item-symbol {
@@ -1046,7 +1041,6 @@
         </div>
 
         <div class="main-content">
-            <!-- Home Page -->
             <div id="homePage" class="hidden">
                 <div class="welcome-message" id="welcomeMessage">
                     Choose a coin to vote
@@ -1160,7 +1154,31 @@
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-        // Translation System
+        // ========== إعدادات Supabase ==========
+        const SUPABASE_URL = 'https://qyonklnofxypmhdmdbng.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5b25rbG5vZnh5cG1oZG1kYm5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE0MDgyMjAsImV4cCI6MjA1Njk4NDIyMH0.wUbYBh85pQ5eY7jzfitPNA_FPOaoKrz';
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ========== الإعدادات الثابتة ==========
+        const DAILY_LIMIT = 5;
+        const VOTE_REWARD = 10;
+        const REFERRAL_REWARD_NEW = 15;
+        const REFERRAL_REWARD_EXISTING = 0;
+        const BOT_USERNAME = "oclin_vote_bot";
+        const MINI_APP_NAME = "oclinapp";
+
+        // ========== المتغيرات العامة ==========
+        let allCoins = [];
+        let isFetchingCoins = false;
+        let selectedIndex = -1;
+        let voteContainers = [];
+        let userData = null;
+        let telegramUser = null;
+        let todayVotes = [];
+        let votesCount = 0;
+
+        // ========== نظام الترجمة ==========
         const translations = {
             en: {
                 splashLoading: "Loading...",
@@ -1302,26 +1320,24 @@
                 document.documentElement.dir = 'ltr';
             }
 
-            // Update all text elements
             updateUIText();
         }
 
         function updateUIText() {
             const t = translations[currentLang];
             
-            // Splash screen
             document.getElementById('splashMessage').textContent = t.splashLoading;
             
-            // Home page
-            document.getElementById('welcomeMessage').childNodes[0].textContent = t.welcomeMessage + ' ';
+            const welcomeMsg = document.getElementById('welcomeMessage');
+            if (welcomeMsg) {
+                welcomeMsg.childNodes[0].textContent = t.welcomeMessage + ' ';
+            }
             
-            // Profile page
             document.getElementById('balanceLabel').textContent = t.balanceLabel;
             document.getElementById('pointsLabel').textContent = t.pointsLabel;
             document.getElementById('connectWalletBtn').textContent = t.connectWalletBtn;
             document.getElementById('withdrawBtn').textContent = t.withdrawBtn;
             
-            // Referral page
             document.getElementById('referralTitle').textContent = t.referralTitle;
             document.getElementById('copyBtn').textContent = t.copyBtn;
             document.getElementById('friendsLabel').textContent = t.friendsLabel;
@@ -1329,24 +1345,20 @@
             document.getElementById('referralsListTitle').textContent = t.referralsListTitle;
             document.getElementById('loadingReferrals').textContent = t.loadingReferrals;
             
-            // Tasks page
             document.getElementById('followUsTitle').textContent = t.followUsTitle;
             document.getElementById('latestPostsTitle').textContent = t.latestPostsTitle;
             
-            // Results page
             document.getElementById('resultsTitle').textContent = t.resultsTitle;
             document.getElementById('resultsDate').textContent = t.resultsDate;
             document.getElementById('totalVotesLabel').textContent = t.totalVotesLabel;
             document.getElementById('votedCoinsLabel').textContent = t.votedCoinsLabel;
             
-            // Navigation
             document.getElementById('navHome').textContent = t.navHome;
             document.getElementById('navResults').textContent = t.navResults;
             document.getElementById('navTasks').textContent = t.navTasks;
             document.getElementById('navProfile').textContent = t.navProfile;
             document.getElementById('navReferral').textContent = t.navReferral;
             
-            // Update dynamic content if visible
             if (!document.getElementById('homePage').classList.contains('hidden')) {
                 displayCoins(allCoins);
             }
@@ -1361,18 +1373,14 @@
             }
         }
 
-        // [Rest of your existing JavaScript code remains exactly the same]
-        // All your existing functions (init, fetchAllCoins, addVote, etc.) stay here
-        // Just update the showToast function to use translations where appropriate
-        
+        // ========== دوال مساعدة ==========
         function showToast(msg) {
             const t = translations[currentLang];
             const toast = document.getElementById("toast");
             
-            // Map common messages to translations
             if (msg.includes("اختر العملة أولاً") || msg.includes("Select a coin first")) {
                 toast.innerText = t.selectCoinFirst;
-            } else if (msg.includes("لقد استنفذت") || msg.includes("voting limit")) {
+            } else if (msg.includes("استنفذت") || msg.includes("reached your daily")) {
                 toast.innerText = t.dailyLimitReached;
             } else if (msg.includes("صوتت لهذه العملة") || msg.includes("already voted")) {
                 toast.innerText = t.alreadyVoted;
@@ -1394,7 +1402,664 @@
             setTimeout(() => toast.classList.remove("show"), 2000);
         }
 
-        // Update the displayCoins function to use translations
+        function playSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.2);
+            } catch (e) {
+                console.log("Audio not supported");
+            }
+        }
+
+        function getTelegramUser() {
+            try {
+                if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+                    const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+                    telegramUser = {
+                        id: `tg_${tgUser.id}`,
+                        first_name: tgUser.first_name || '',
+                        last_name: tgUser.last_name || '',
+                        username: tgUser.username || null,
+                        photo_url: tgUser.photo_url || null
+                    };
+                    return telegramUser;
+                }
+            } catch (e) {
+                console.log('Telegram user not available');
+            }
+            return null;
+        }
+
+        // ========== دوال Supabase ==========
+        async function registerUser(telegramUser) {
+            const userData = {
+                id: telegramUser.id,
+                telegram_username: telegramUser.username || null,
+                first_name: telegramUser.first_name || 'User',
+                last_active: new Date()
+            };
+            
+            const { data, error } = await supabaseClient
+                .from('users')
+                .upsert(userData, { onConflict: 'id' })
+                .select();
+                
+            if (error) {
+                console.error('Error registering user:', error);
+                return null;
+            }
+            
+            return data?.[0];
+        }
+
+        async function getUserStats(userId) {
+            const { data, error } = await supabaseClient
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+                
+            if (error) {
+                console.error('Error fetching user data:', error);
+                return null;
+            }
+            
+            return data;
+        }
+
+        async function fetchReferrals(referrerId) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('referrals')
+                    .select(`
+                        referred_id,
+                        points_earned,
+                        is_new_user,
+                        created_at,
+                        users!referrals_referred_id_fkey (
+                            first_name,
+                            telegram_username,
+                            username
+                        )
+                    `)
+                    .eq('referrer_id', referrerId)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error fetching referrals:', error);
+                    return [];
+                }
+
+                return data || [];
+            } catch (e) {
+                console.error('Error:', e);
+                return [];
+            }
+        }
+
+        async function displayReferrals() {
+            if (!userData) return;
+
+            const referralsList = document.getElementById('referralsList');
+            if (!referralsList) return;
+
+            const referrals = await fetchReferrals(userData.id);
+            const t = translations[currentLang];
+
+            if (!referrals || referrals.length === 0) {
+                referralsList.innerHTML = `<p style="color: #a5b3d9; text-align: center; padding: 20px;">${t.noReferrals}</p>`;
+                return;
+            }
+
+            let html = '';
+            for (const ref of referrals) {
+                const referredUser = ref.users;
+                const name = referredUser?.first_name || 'User';
+                const username = referredUser?.telegram_username || referredUser?.username || ref.referred_id.slice(0, 8);
+                const badge = ref.is_new_user ? 
+                    `<span class="badge-new">${t.newUser}</span>` : 
+                    `<span class="badge-old">${t.oldUser}</span>`;
+                
+                html += `
+                    <div class="referral-item">
+                        <div class="referral-item-avatar">👤</div>
+                        <div class="referral-item-info">
+                            <div class="referral-item-name">${name} ${badge}</div>
+                            <div class="referral-item-username">@${username}</div>
+                        </div>
+                        <div class="referral-item-points">+${ref.points_earned}</div>
+                    </div>
+                `;
+            }
+
+            referralsList.innerHTML = html;
+        }
+
+        async function handleReferral(referrerId, newUserId, isNewUser) {
+            if (!isNewUser) return false;
+            
+            const points = REFERRAL_REWARD_NEW;
+            
+            try {
+                const { data: referrerData, error: fetchError } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('id', referrerId)
+                    .single();
+                    
+                if (fetchError) {
+                    console.error('Error fetching referrer data:', fetchError);
+                    return false;
+                }
+                
+                const newReferralBalance = (referrerData.referral_balance || 0) + points;
+                const newBalance = (referrerData.balance || 0) + points;
+                const newReferralsCount = (referrerData.referrals_count || 0) + 1;
+                
+                const { error: updateError } = await supabaseClient
+                    .from('users')
+                    .update({
+                        referral_balance: newReferralBalance,
+                        balance: newBalance,
+                        referrals_count: newReferralsCount
+                    })
+                    .eq('id', referrerId);
+                    
+                if (updateError) {
+                    console.error('Error updating referrer:', updateError);
+                    return false;
+                }
+                
+                const { error: referralError } = await supabaseClient
+                    .from('referrals')
+                    .insert({
+                        referrer_id: referrerId,
+                        referred_id: newUserId,
+                        points_earned: points,
+                        is_new_user: isNewUser
+                    });
+                    
+                if (referralError) {
+                    console.error('Error inserting referral:', referralError);
+                    return false;
+                }
+                
+                return true;
+                
+            } catch (e) {
+                console.error('Error processing referral:', e);
+                return false;
+            }
+        }
+
+        async function checkReferral() {
+            try {
+                let referrerId = null;
+                
+                if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
+                    referrerId = window.Telegram.WebApp.initDataUnsafe.start_param;
+                }
+                
+                if (!referrerId) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    referrerId = urlParams.get('startapp');
+                }
+
+                const tgUser = getTelegramUser();
+                if (!tgUser) {
+                    document.getElementById('splashMessage').innerText = 'Please open app from Telegram';
+                    return;
+                }
+
+                await registerUser(tgUser);
+                await refreshUserData();
+                const t = translations[currentLang];
+
+                if (!referrerId) {
+                    document.getElementById('splashMessage').innerText = t.welcomeBack;
+                    return;
+                }
+                
+                if (referrerId === tgUser.id) {
+                    document.getElementById('splashMessage').innerText = t.invalidSelfReferral;
+                    return;
+                }
+
+                const { data: existingUser } = await supabaseClient
+                    .from('users')
+                    .select('created_at')
+                    .eq('id', tgUser.id)
+                    .maybeSingle();
+
+                const { data: existingReferral } = await supabaseClient
+                    .from('referrals')
+                    .select('id, referrer_id, created_at')
+                    .eq('referred_id', tgUser.id)
+                    .maybeSingle();
+
+                if (existingReferral) {
+                    if (existingReferral.referrer_id === referrerId) {
+                        document.getElementById('splashMessage').innerText = t.referralUsed;
+                    } else {
+                        document.getElementById('splashMessage').innerText = t.referralOtherUsed;
+                    }
+                    return;
+                }
+
+                const isNewUser = !existingUser;
+                
+                if (isNewUser) {
+                    const success = await handleReferral(referrerId, tgUser.id, true);
+
+                    if (success) {
+                        await refreshUserData();
+                        
+                        document.getElementById('splashMessage').innerText = t.referralSuccess;
+                        showReferralNotification(t.referralSuccess);
+                        playSound();
+                    }
+                } else {
+                    document.getElementById('splashMessage').innerText = t.welcomeBack;
+                }
+                
+            } catch (e) {
+                console.error('Error in referral system:', e);
+                const t = translations[currentLang];
+                document.getElementById('splashMessage').innerText = t.welcomeBack;
+            }
+        }
+
+        function showReferralNotification(message) {
+            const notification = document.getElementById('referralNotification');
+            if (notification) {
+                notification.innerText = message;
+                notification.classList.remove('hidden');
+                setTimeout(() => notification.classList.add('hidden'), 6000);
+            }
+        }
+
+        function copyReferralLink() {
+            const linkInput = document.getElementById("referralLink");
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                const t = translations[currentLang];
+                showToast(t.copySuccess);
+            }).catch(() => {
+                const t = translations[currentLang];
+                showToast(t.copyError);
+            });
+        }
+
+        function connectWallet() {
+            const t = translations[currentLang];
+            showToast(t.comingSoon);
+        }
+
+        function withdraw() {
+            const t = translations[currentLang];
+            showToast(t.comingSoon);
+        }
+
+        // ========== نظام التصويت ==========
+        async function loadTodayVotes() {
+            if (!telegramUser) {
+                return;
+            }
+            
+            const today = new Date().toISOString().split('T')[0];
+            const storageKey = `votes_${telegramUser.id}_${today}`;
+            
+            try {
+                const savedVotes = localStorage.getItem(storageKey);
+                if (savedVotes) {
+                    const votesData = JSON.parse(savedVotes);
+                    todayVotes = votesData.votes || [];
+                    votesCount = votesData.count || 0;
+                    updateVotesDisplay();
+                }
+
+                const { data, error } = await supabaseClient
+                    .from('daily_votes')
+                    .select('*')
+                    .eq('user_id', telegramUser.id)
+                    .eq('vote_date', today)
+                    .maybeSingle();
+                
+                if (error && error.code !== 'PGRST116') { 
+                    console.error('Error fetching votes:', error);
+                }
+                
+                if (data) {
+                    todayVotes = data.coins_voted || [];
+                    votesCount = data.votes_count || 0;
+                    
+                    localStorage.setItem(storageKey, JSON.stringify({
+                        votes: todayVotes,
+                        count: votesCount
+                    }));
+                    
+                    updateVotesDisplay();
+                }
+                
+            } catch (e) {
+                console.error('Error loading votes:', e);
+            }
+        }
+
+        function updateVotesDisplay() {
+            const remaining = DAILY_LIMIT - votesCount;
+            const counterElement = document.getElementById('votesRemaining');
+            if (counterElement) {
+                counterElement.innerText = remaining;
+            }
+            
+            if (voteContainers.length > 0) {
+                voteContainers.forEach((container, index) => {
+                    const coinCard = container.querySelector('.coin-card');
+                    if (todayVotes.includes(index)) {
+                        coinCard.classList.add('voted');
+                    } else {
+                        coinCard.classList.remove('voted');
+                    }
+                });
+            }
+        }
+
+        async function addVote(coinIndex, voteType) {
+            const t = translations[currentLang];
+            
+            if (!telegramUser) {
+                showToast(t.selectCoinFirst);
+                return false;
+            }
+            
+            if (votesCount >= DAILY_LIMIT) {
+                showToast(t.dailyLimitReached);
+                return false;
+            }
+            
+            if (todayVotes.includes(coinIndex)) {
+                showToast(t.alreadyVoted);
+                return false;
+            }
+            
+            const today = new Date().toISOString().split('T')[0];
+            const storageKey = `votes_${telegramUser.id}_${today}`;
+            
+            try {
+                const newVotes = [...todayVotes, coinIndex];
+                const newCount = votesCount + 1;
+                
+                todayVotes = newVotes;
+                votesCount = newCount;
+                updateVotesDisplay();
+                
+                if (voteContainers[coinIndex]) {
+                    const coinCard = voteContainers[coinIndex].querySelector('.coin-card');
+                    coinCard.classList.add('voted');
+                }
+                
+                if (voteContainers[coinIndex]) {
+                    voteContainers[coinIndex].classList.remove("selected");
+                    const voteOpts = voteContainers[coinIndex].querySelector('.vote-options');
+                    if (voteOpts) voteOpts.classList.remove('show');
+                }
+                selectedIndex = -1;
+                
+                localStorage.setItem(storageKey, JSON.stringify({
+                    votes: newVotes,
+                    count: newCount
+                }));
+                
+                if (userData) {
+                    const newBalance = (userData.balance || 0) + VOTE_REWARD;
+                    userData.balance = newBalance;
+                    
+                    document.getElementById("profileBalance").innerText = newBalance;
+                }
+                
+                showToast(t.voteSuccess);
+                playSound();
+                
+                saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today);
+                
+                return true;
+                
+            } catch (e) {
+                console.error('Error voting:', e);
+                showToast(t.voteError);
+                return false;
+            }
+        }
+
+        async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today) {
+            try {
+                const { data: userExists, error: userError } = await supabaseClient
+                    .from('users')
+                    .select('id')
+                    .eq('id', telegramUser.id)
+                    .maybeSingle();
+                
+                if (userError) {
+                    console.error('Error checking user:', userError);
+                    return;
+                }
+                
+                if (!userExists) {
+                    await registerUser(telegramUser);
+                }
+                
+                const { error: upsertError } = await supabaseClient
+                    .from('daily_votes')
+                    .upsert({
+                        user_id: telegramUser.id,
+                        vote_date: today,
+                        votes_count: newCount,
+                        coins_voted: newVotes,
+                        vote_type: voteType
+                    }, {
+                        onConflict: 'user_id, vote_date'
+                    });
+                
+                if (upsertError) {
+                    console.error('Error saving vote:', upsertError);
+                    return;
+                }
+                
+                const { data: userBalance, error: fetchError } = await supabaseClient
+                    .from('users')
+                    .select('balance')
+                    .eq('id', telegramUser.id)
+                    .single();
+                
+                if (!fetchError && userBalance) {
+                    const newBalance = (userBalance.balance || 0) + VOTE_REWARD;
+                    
+                    await supabaseClient
+                        .from('users')
+                        .update({ balance: newBalance })
+                        .eq('id', telegramUser.id);
+                }
+                
+            } catch (e) {
+                console.error('Error saving vote to database:', e);
+            }
+        }
+
+        async function handleVote(index, type) {
+            if (selectedIndex !== index) {
+                const t = translations[currentLang];
+                showToast(t.selectCoinFirst);
+                return;
+            }
+            
+            const success = await addVote(index, type);
+            
+            if (success) {
+                if (voteContainers[index]) {
+                    voteContainers[index].classList.remove("selected");
+                    const voteOpts = voteContainers[index].querySelector('.vote-options');
+                    if (voteOpts) voteOpts.classList.remove('show');
+                }
+                selectedIndex = -1;
+            }
+        }
+
+        function selectCoin(index, container) {
+            const t = translations[currentLang];
+            
+            if (todayVotes.includes(index)) {
+                showToast(t.alreadyVoted);
+                return;
+            }
+            
+            if (votesCount >= DAILY_LIMIT) {
+                showToast(t.dailyLimitReached);
+                return;
+            }
+            
+            if (selectedIndex === index) {
+                voteContainers.forEach(c => {
+                    c.classList.remove("selected");
+                    const voteOpts = c.querySelector('.vote-options');
+                    if (voteOpts) voteOpts.classList.remove('show');
+                });
+                selectedIndex = -1;
+                return;
+            }
+
+            voteContainers.forEach(c => {
+                c.classList.remove("selected");
+                const voteOpts = c.querySelector('.vote-options');
+                if (voteOpts) voteOpts.classList.remove('show');
+            });
+
+            container.classList.add("selected");
+            const voteOptions = container.querySelector('.vote-options');
+            if (voteOptions) voteOptions.classList.add('show');
+
+            selectedIndex = index;
+        }
+
+        // ========== جلب العملات ==========
+        async function fetchAllCoins() {
+            try {
+                if (isFetchingCoins) return allCoins;
+                isFetchingCoins = true;
+                
+                const response1 = await fetch('https://api.dexscreener.com/token-profiles/latest/v1');
+                const profiles = await response1.json();
+                
+                const response2 = await fetch('https://api.dexscreener.com/latest/dex/search?q=solana');
+                const searchData = await response2.json();
+                
+                const now = Date.now();
+                const uniqueCoins = new Map();
+
+                if (profiles && profiles.length > 0) {
+                    for (const profile of profiles) {
+                        if (profile.chainId !== 'solana') continue;
+                        
+                        const tokenAddress = profile.tokenAddress;
+                        if (!tokenAddress) continue;
+
+                        try {
+                            const pairResponse = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${tokenAddress}`);
+                            const pairData = await pairResponse.json();
+                            const pair = pairData.pairs?.[0];
+                            
+                            if (!pair) continue;
+
+                            const marketCap = parseFloat(pair.marketCap || pair.fdv || 0);
+                            const volume24h = parseFloat(pair.volume?.h24 || 0);
+                            const liquidity = parseFloat(pair.liquidity?.usd || 0);
+                            
+                            const created = pair.pairCreatedAt ? new Date(pair.pairCreatedAt).getTime() : null;
+                            const ageHours = created ? Math.floor((now - created) / (1000 * 60 * 60)) : 9999;
+
+                            uniqueCoins.set(tokenAddress, {
+                                id: tokenAddress,
+                                name: pair.baseToken?.name || profile.name || "Unknown",
+                                symbol: pair.baseToken?.symbol || profile.symbol || "???",
+                                image: profile.icon || pair.info?.imageUrl || null,
+                                price: parseFloat(pair.priceUsd || 0),
+                                priceChange: parseFloat(pair.priceChange?.h24 || 0),
+                                marketCap: marketCap,
+                                volume24h: volume24h,
+                                liquidity: liquidity,
+                                dexId: pair.dexId || "unknown",
+                                createdAt: created,
+                                createdHours: ageHours,
+                                url: pair.url || profile.url || null
+                            });
+                        } catch (e) {
+                            continue;
+                        }
+                    }
+                }
+
+                if (searchData && searchData.pairs) {
+                    for (const pair of searchData.pairs) {
+                        if (pair.chainId !== 'solana') continue;
+                        
+                        const tokenAddress = pair.baseToken?.address;
+                        if (!tokenAddress || uniqueCoins.has(tokenAddress)) continue;
+
+                        const marketCap = parseFloat(pair.marketCap || pair.fdv || 0);
+                        const volume24h = parseFloat(pair.volume?.h24 || 0);
+                        const liquidity = parseFloat(pair.liquidity?.usd || 0);
+                        
+                        const created = pair.pairCreatedAt ? new Date(pair.pairCreatedAt).getTime() : null;
+                        const ageHours = created ? Math.floor((now - created) / (1000 * 60 * 60)) : 9999;
+
+                        uniqueCoins.set(tokenAddress, {
+                            id: tokenAddress,
+                            name: pair.baseToken?.name || "Unknown",
+                            symbol: pair.baseToken?.symbol || "???",
+                            image: pair.info?.imageUrl || null,
+                            price: parseFloat(pair.priceUsd || 0),
+                            priceChange: parseFloat(pair.priceChange?.h24 || 0),
+                            marketCap: marketCap,
+                            volume24h: volume24h,
+                            liquidity: liquidity,
+                            dexId: pair.dexId || "unknown",
+                            createdAt: created,
+                            createdHours: ageHours,
+                            url: pair.url || null
+                        });
+                    }
+                }
+
+                let coins = Array.from(uniqueCoins.values());
+                
+                coins.sort((a, b) => {
+                    if (!a.createdAt) return 1;
+                    if (!b.createdAt) return -1;
+                    return b.createdAt - a.createdAt;
+                });
+
+                coins = coins.slice(0, 200);
+                
+                return coins;
+
+            } catch (error) {
+                console.error("Error fetching coins:", error);
+                return [];
+            } finally {
+                isFetchingCoins = false;
+            }
+        }
+
         function displayCoins(coins) {
             const t = translations[currentLang];
             const coinsGrid = document.getElementById("coinsGrid");
@@ -1421,7 +2086,6 @@
 
                 const priceClass = coin.priceChange >= 0 ? 'price-up' : 'price-down';
                 
-                // DEX badge
                 let dexBadge = '';
                 if (coin.dexId === 'raydium') {
                     dexBadge = '<span class="dex-badge badge-raydium">Raydium</span>';
@@ -1431,7 +2095,6 @@
                     dexBadge = `<span class="dex-badge badge-other">${coin.dexId}</span>`;
                 }
                 
-                // Icon
                 let iconHtml = coin.symbol.charAt(0).toUpperCase();
                 if (coin.image) {
                     iconHtml = `<img src="${coin.image}" alt="${coin.name}" onerror="this.style.display='none'; this.parentElement.innerHTML='${coin.symbol.charAt(0).toUpperCase()}';">`;
@@ -1441,7 +2104,6 @@
                     ? coin.price.toFixed(8) 
                     : coin.price.toFixed(4);
 
-                // Format values
                 const marketCapFormatted = coin.marketCap > 1000000 
                     ? `${(coin.marketCap / 1000000).toFixed(2)}M` 
                     : coin.marketCap > 0 ? `${(coin.marketCap / 1000).toFixed(0)}K` : t.unknown;
@@ -1454,7 +2116,6 @@
                     ? `${(coin.liquidity / 1000000).toFixed(2)}M` 
                     : coin.liquidity > 0 ? `${(coin.liquidity / 1000).toFixed(0)}K` : t.unknown;
 
-                // Creation time
                 let createdText = t.unknown;
                 let ageBadge = '';
                 
@@ -1526,11 +2187,384 @@
             });
         }
 
-        // [Insert all your existing JavaScript functions here - init, fetchAllCoins, addVote, etc.]
-        // I'm not repeating them here to save space, but they stay exactly the same
-        
+        async function updateCoins() {
+            const newCoins = await fetchAllCoins();
+            if (newCoins.length > 0) {
+                allCoins = newCoins;
+                displayCoins(allCoins);
+            }
+        }
+
+        // ========== نتائج التصويت ==========
+        async function fetchVoteResults() {
+            try {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                const todayStr = new Date().toISOString().split('T')[0];
+                
+                const { data: votes, error } = await supabaseClient
+                    .from('daily_votes')
+                    .select('*')
+                    .gte('vote_date', yesterdayStr)
+                    .lte('vote_date', todayStr);
+                
+                if (error) {
+                    console.error('Error fetching vote results:', error);
+                    return [];
+                }
+                
+                if (!votes || votes.length === 0) {
+                    return [];
+                }
+                
+                const results = new Map();
+                let totalVotes = 0;
+                
+                votes.forEach(vote => {
+                    if (!vote.coins_voted || vote.coins_voted.length === 0) return;
+                    
+                    vote.coins_voted.forEach(coinIndex => {
+                        const coin = allCoins[coinIndex];
+                        if (!coin) return;
+                        
+                        totalVotes++;
+                        
+                        if (!results.has(coin.id)) {
+                            results.set(coin.id, {
+                                id: coin.id,
+                                name: coin.name,
+                                symbol: coin.symbol,
+                                image: coin.image,
+                                upVotes: 0,
+                                downVotes: 0,
+                                totalVotes: 0
+                            });
+                        }
+                        
+                        const result = results.get(coin.id);
+                        if (vote.vote_type === 'up') {
+                            result.upVotes++;
+                        } else if (vote.vote_type === 'down') {
+                            result.downVotes++;
+                        }
+                        result.totalVotes++;
+                    });
+                });
+                
+                const resultsArray = Array.from(results.values());
+                resultsArray.sort((a, b) => b.totalVotes - a.totalVotes);
+                
+                document.getElementById('totalVotesCount').innerText = totalVotes;
+                document.getElementById('uniqueCoinsCount').innerText = resultsArray.length;
+                
+                return resultsArray;
+                
+            } catch (e) {
+                console.error('Error processing results:', e);
+                return [];
+            }
+        }
+
+        async function displayResults() {
+            const resultsGrid = document.getElementById('resultsGrid');
+            const t = translations[currentLang];
+            
+            if (!allCoins || allCoins.length === 0) {
+                resultsGrid.innerHTML = `<div class="empty-results">${t.loadingCoins}</div>`;
+                return;
+            }
+            
+            const results = await fetchVoteResults();
+            
+            if (!results || results.length === 0) {
+                resultsGrid.innerHTML = `<div class="empty-results">${t.noResults}</div>`;
+                return;
+            }
+            
+            let html = '';
+            
+            results.forEach((result, index) => {
+                const isWinner = index === 0;
+                const winnerBadge = isWinner ? `<span class="result-badge-winner">🏆 ${t.up}</span>` : '';
+                
+                let iconHtml = result.symbol.charAt(0).toUpperCase();
+                if (result.image) {
+                    iconHtml = `<img src="${result.image}" alt="${result.name}" onerror="this.style.display='none'; this.parentElement.innerHTML='${result.symbol.charAt(0).toUpperCase()}';">`;
+                }
+                
+                html += `
+                    <div class="result-item">
+                        <div class="result-item-icon">${iconHtml}</div>
+                        <div class="result-item-info">
+                            <div class="result-item-name">
+                                ${result.name} ${winnerBadge}
+                            </div>
+                            <div class="result-item-symbol">${result.symbol.toUpperCase()}</div>
+                            <div class="result-item-votes">
+                                <span class="vote-up-count">⬆️ ${result.upVotes}</span>
+                                <span class="vote-down-count">⬇️ ${result.downVotes}</span>
+                            </div>
+                        </div>
+                        <div class="result-item-total">${result.totalVotes}</div>
+                    </div>
+                `;
+            });
+            
+            resultsGrid.innerHTML = html;
+        }
+
+        // ========== تحديث بيانات المستخدم ==========
+        async function refreshUserData() {
+            if (telegramUser) {
+                const newData = await getUserStats(telegramUser.id);
+                if (newData) {
+                    userData = newData;
+                    updateUI();
+                }
+            }
+        }
+
+        function updateUI() {
+            if (!userData) return;
+            
+            const linkInput = document.getElementById("referralLink");
+            if (linkInput) {
+                linkInput.value = `https://t.me/${BOT_USERNAME}/${MINI_APP_NAME}?startapp=${userData.id}`;
+            }
+            
+            const totalElement = document.getElementById("totalReferrals");
+            if (totalElement) {
+                totalElement.innerText = userData.referrals_count || 0;
+            }
+            
+            const balanceElement = document.getElementById("referralBalance");
+            if (balanceElement) {
+                balanceElement.innerText = userData.referral_balance || 0;
+            }
+            
+            const profileBalance = document.getElementById("profileBalance");
+            if (profileBalance) {
+                profileBalance.innerText = userData.balance || 0;
+            }
+            
+            if (telegramUser) {
+                const nameElement = document.getElementById("profileDisplayName");
+                if (nameElement) {
+                    const fullName = telegramUser.last_name 
+                        ? `${telegramUser.first_name} ${telegramUser.last_name}` 
+                        : telegramUser.first_name || 'User';
+                    nameElement.innerText = fullName;
+                }
+                
+                const usernameElement = document.getElementById("profileUsername");
+                if (usernameElement) {
+                    usernameElement.innerText = telegramUser.username 
+                        ? `@${telegramUser.username}` 
+                        : telegramUser.id;
+                }
+                
+                if (telegramUser.photo_url) {
+                    const avatarElement = document.getElementById("profileAvatar");
+                    if (avatarElement) {
+                        avatarElement.innerHTML = `<img src="${telegramUser.photo_url}" alt="Profile">`;
+                    }
+                }
+            }
+        }
+
+        // ========== المهام ==========
+        const socialLinks = [
+            {
+                platform: 'youtube',
+                name: 'YouTube',
+                username: '@oclin_official',
+                url: 'https://youtube.com/@oclin',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`
+            },
+            {
+                platform: 'telegram',
+                name: 'Telegram',
+                username: '@oclin_channel',
+                url: 'https://t.me/oclin_channel',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#26A5E4"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18 1.897-.962 6.502-1.359 8.627-.168.9-.5 1.201-.82 1.23-.697.064-1.226-.46-1.901-.902-1.056-.69-1.653-1.12-2.68-1.794-1.185-.777-.417-1.203.258-1.9.177-.183 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.79 1.138-5.055 3.345-.479.33-.913.49-1.302.481-.428-.01-1.252-.242-1.865-.442-.751-.245-1.349-.374-1.297-.789.028-.216.324-.437.893-.663 3.499-1.524 5.832-2.529 7-3.014 3.332-1.386 4.025-1.627 4.476-1.635.099-.002.322.023.466.14.121.099.154.232.17.33.016.099.036.324.02.5z"/></svg>`
+            },
+            {
+                platform: 'x',
+                name: 'X (Twitter)',
+                username: '@oclin',
+                url: 'https://x.com/oclin',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#1DA1F2"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`
+            },
+            {
+                platform: 'instagram',
+                name: 'Instagram',
+                username: '@oclin',
+                url: 'https://instagram.com/oclin',
+                reward: 5,
+                icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#E4405F"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm4.965-10.405a1.44 1.44 0 1 1 2.881.001 1.44 1.44 0 0 1-2.881-.001z"/></svg>`
+            }
+        ];
+
+        const samplePosts = [
+            { platform: 'YouTube', username: '@oclin', content: '🚀 New tutorial: How to earn from voting on coins!', time: '1 hour ago', avatar: '📺' },
+            { platform: 'Telegram', username: '@oclin', content: '🪙 5 new coins added for voting!', time: '3 hours ago', avatar: '📱' },
+            { platform: 'X', username: '@oclin', content: '🔥 Big contest! 1000 points for top 5 winners', time: '5 hours ago', avatar: '🐦' }
+        ];
+
+        function initTasksPage() {
+            const t = translations[currentLang];
+            const socialGrid = document.getElementById('socialLinksGrid');
+            socialGrid.innerHTML = '';
+
+            socialLinks.forEach(link => {
+                const name = currentLang === 'ar' ? 
+                    (link.platform === 'youtube' ? 'يوتيوب' :
+                     link.platform === 'telegram' ? 'تليكرام' :
+                     link.platform === 'x' ? 'X (تويتر)' :
+                     link.platform === 'instagram' ? 'انستغرام' : link.name) : link.name;
+                
+                const card = document.createElement('div');
+                card.className = `social-link-card`;
+                card.innerHTML = `
+                    <div class="social-icon">${link.icon}</div>
+                    <div class="social-name">${name}</div>
+                    <div class="social-username">${link.username}</div>
+                    <div class="social-reward">+${link.reward} ${t.pointsLabel}</div>
+                `;
+                card.onclick = () => completeSocialTask(link);
+                socialGrid.appendChild(card);
+            });
+
+            const postsGrid = document.getElementById('postsGrid');
+            postsGrid.innerHTML = '';
+
+            samplePosts.forEach((post, index) => {
+                const postDiv = document.createElement('div');
+                postDiv.className = 'post-card';
+                postDiv.innerHTML = `
+                    <div class="post-header">
+                        <div class="post-avatar">${post.avatar}</div>
+                        <div class="post-info">
+                            <div class="post-platform">${post.platform}</div>
+                            <div class="post-time">${post.time}</div>
+                        </div>
+                    </div>
+                    <div class="post-content">${post.content}</div>
+                    <div class="post-actions">
+                        <button class="post-action-btn" onclick="likePost(${index})">👍 ${t.up} +5</button>
+                    </div>
+                `;
+                postsGrid.appendChild(postDiv);
+            });
+        }
+
+        async function completeSocialTask(link) {
+            if (!userData) return;
+
+            window.open(link.url, '_blank');
+            
+            const success = await addSocialTaskReward(userData.id, link.reward);
+            
+            if (success) {
+                const t = translations[currentLang];
+                showToast(`✅ +${link.reward} ${t.pointsLabel}`);
+                await refreshUserData();
+            }
+        }
+
+        async function addSocialTaskReward(userId, points) {
+            try {
+                const { data: userData, error: fetchError } = await supabaseClient
+                    .from('users')
+                    .select('balance')
+                    .eq('id', userId)
+                    .single();
+                    
+                if (fetchError) {
+                    console.error('Error fetching user data:', fetchError);
+                    return false;
+                }
+                
+                const newBalance = (userData.balance || 0) + points;
+                
+                const { error } = await supabaseClient
+                    .from('users')
+                    .update({ balance: newBalance })
+                    .eq('id', userId);
+                    
+                if (error) {
+                    console.error('Error adding task reward:', error);
+                    return false;
+                }
+                
+                await refreshUserData();
+                return true;
+                
+            } catch (e) {
+                console.error('Error:', e);
+                return false;
+            }
+        }
+
+        async function likePost(index) {
+            if (!userData) return;
+
+            const success = await addSocialTaskReward(userData.id, 5);
+            
+            if (success) {
+                const t = translations[currentLang];
+                showToast(`✅ +5 ${t.pointsLabel}`);
+                await refreshUserData();
+            }
+        }
+
+        async function showPage(page, event) {
+            if (event) {
+                document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+                event.currentTarget.classList.add("active");
+            }
+
+            document.getElementById("homePage").classList.add("hidden");
+            document.getElementById("profilePage").classList.add("hidden");
+            document.getElementById("referralPage").classList.add("hidden");
+            document.getElementById("tasksPage").classList.add("hidden");
+            document.getElementById("resultsPage").classList.add("hidden");
+
+            document.getElementById(page + "Page").classList.remove("hidden");
+
+            if (page === 'referral') {
+                await refreshUserData();
+                await displayReferrals();
+            } else if (page === 'profile') {
+                await refreshUserData();
+            } else if (page === 'home') {
+                selectedIndex = -1;
+                if (allCoins.length > 0) {
+                    displayCoins(allCoins);
+                } else {
+                    await updateCoins();
+                }
+                await loadTodayVotes();
+            } else if (page === 'tasks') {
+                initTasksPage();
+            } else if (page === 'results') {
+                await displayResults();
+            }
+        }
+
+        // ========== التهيئة ==========
         async function init() {
             try {
+                if (window.Telegram?.WebApp) {
+                    Telegram.WebApp.ready();
+                    Telegram.WebApp.expand();
+                    Telegram.WebApp.disableVerticalSwipes();
+                }
+
                 await checkReferral();
                 await refreshUserData();
                 await updateCoins();
@@ -1540,10 +2574,8 @@
                     document.getElementById('splashScreen').classList.add('hidden');
                     document.getElementById('homePage').classList.remove('hidden');
                     
-                    // Update coins every 2 hours
                     setInterval(updateCoins, 2 * 60 * 60 * 1000);
                     
-                    // Update results every hour
                     setInterval(() => {
                         if (!document.getElementById('resultsPage').classList.contains('hidden')) {
                             displayResults();
