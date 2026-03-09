@@ -1178,6 +1178,7 @@
         let telegramUser = null;
         let todayVotes = [];
         let votesCount = 0;
+        let userVotes = []; // مصفوفة لحفظ تصويتات المستخدم للعرض في صفحة المهام
 
         // ========== نظام الترجمة ==========
         const translations = {
@@ -1234,7 +1235,9 @@
                 invalidSelfReferral: "You can't use your own link!",
                 referralUsed: "⚠️ You've already used this link!",
                 referralOtherUsed: "⚠️ You've already used another referral link",
-                referralSuccess: "🎉 Referral activated! +15 points for referrer"
+                referralSuccess: "🎉 Referral activated! +15 points for referrer",
+                yourVotes: "Your Votes Today",
+                noVotesYet: "No votes yet today"
             },
             ar: {
                 splashLoading: "جاري التحميل...",
@@ -1289,7 +1292,9 @@
                 invalidSelfReferral: "لا يمكنك استخدام رابطك الخاص!",
                 referralUsed: "⚠️ لقد استخدمت هذا الرابط من قبل!",
                 referralOtherUsed: "⚠️ لقد استخدمت رابط إحالة آخر من قبل",
-                referralSuccess: "🎉 تم تفعيل رابط الإحالة! +15 نقطة للمحيل"
+                referralSuccess: "🎉 تم تفعيل رابط الإحالة! +15 نقطة للمحيل",
+                yourVotes: "تصويتاتك اليوم",
+                noVotesYet: "لا توجد تصويتات بعد"
             }
         };
 
@@ -1446,7 +1451,10 @@
                 id: telegramUser.id,
                 telegram_username: telegramUser.username || null,
                 first_name: telegramUser.first_name || 'User',
-                last_active: new Date()
+                last_active: new Date(),
+                balance: 0,
+                referral_balance: 0,
+                referrals_count: 0
             };
             
             const { data, error } = await supabaseClient
@@ -1508,7 +1516,10 @@
         }
 
         async function displayReferrals() {
-            if (!userData) return;
+            if (!userData) {
+                document.getElementById('referralsList').innerHTML = '<p style="color: #a5b3d9; text-align: center; padding: 20px;">Please wait...</p>';
+                return;
+            }
 
             const referralsList = document.getElementById('referralsList');
             if (!referralsList) return;
@@ -1726,6 +1737,7 @@
                     const votesData = JSON.parse(savedVotes);
                     todayVotes = votesData.votes || [];
                     votesCount = votesData.count || 0;
+                    userVotes = votesData.voteDetails || [];
                     updateVotesDisplay();
                 }
 
@@ -1743,10 +1755,12 @@
                 if (data) {
                     todayVotes = data.coins_voted || [];
                     votesCount = data.votes_count || 0;
+                    userVotes = data.vote_details || [];
                     
                     localStorage.setItem(storageKey, JSON.stringify({
                         votes: todayVotes,
-                        count: votesCount
+                        count: votesCount,
+                        voteDetails: userVotes
                     }));
                     
                     updateVotesDisplay();
@@ -1798,11 +1812,20 @@
             const storageKey = `votes_${telegramUser.id}_${today}`;
             
             try {
+                const coin = allCoins[coinIndex];
                 const newVotes = [...todayVotes, coinIndex];
                 const newCount = votesCount + 1;
+                const newVoteDetails = [...userVotes, {
+                    coinIndex: coinIndex,
+                    coinName: coin.name,
+                    coinSymbol: coin.symbol,
+                    voteType: voteType,
+                    timestamp: new Date().toISOString()
+                }];
                 
                 todayVotes = newVotes;
                 votesCount = newCount;
+                userVotes = newVoteDetails;
                 updateVotesDisplay();
                 
                 if (voteContainers[coinIndex]) {
@@ -1819,7 +1842,8 @@
                 
                 localStorage.setItem(storageKey, JSON.stringify({
                     votes: newVotes,
-                    count: newCount
+                    count: newCount,
+                    voteDetails: newVoteDetails
                 }));
                 
                 if (userData) {
@@ -1827,12 +1851,18 @@
                     userData.balance = newBalance;
                     
                     document.getElementById("profileBalance").innerText = newBalance;
+                    
+                    // تحديث في قاعدة البيانات
+                    await supabaseClient
+                        .from('users')
+                        .update({ balance: newBalance })
+                        .eq('id', userData.id);
                 }
                 
                 showToast(t.voteSuccess);
                 playSound();
                 
-                saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today);
+                saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, newVoteDetails, today);
                 
                 return true;
                 
@@ -1843,23 +1873,8 @@
             }
         }
 
-        async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today) {
+        async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, voteDetails, today) {
             try {
-                const { data: userExists, error: userError } = await supabaseClient
-                    .from('users')
-                    .select('id')
-                    .eq('id', telegramUser.id)
-                    .maybeSingle();
-                
-                if (userError) {
-                    console.error('Error checking user:', userError);
-                    return;
-                }
-                
-                if (!userExists) {
-                    await registerUser(telegramUser);
-                }
-                
                 const { error: upsertError } = await supabaseClient
                     .from('daily_votes')
                     .upsert({
@@ -1867,6 +1882,7 @@
                         vote_date: today,
                         votes_count: newCount,
                         coins_voted: newVotes,
+                        vote_details: voteDetails,
                         vote_type: voteType
                     }, {
                         onConflict: 'user_id, vote_date'
@@ -1874,22 +1890,6 @@
                 
                 if (upsertError) {
                     console.error('Error saving vote:', upsertError);
-                    return;
-                }
-                
-                const { data: userBalance, error: fetchError } = await supabaseClient
-                    .from('users')
-                    .select('balance')
-                    .eq('id', telegramUser.id)
-                    .single();
-                
-                if (!fetchError && userBalance) {
-                    const newBalance = (userBalance.balance || 0) + VOTE_REWARD;
-                    
-                    await supabaseClient
-                        .from('users')
-                        .update({ balance: newBalance })
-                        .eq('id', telegramUser.id);
                 }
                 
             } catch (e) {
@@ -2285,9 +2285,11 @@
             
             let html = '';
             
-            results.forEach((result, index) => {
-                const isWinner = index === 0;
-                const winnerBadge = isWinner ? `<span class="result-badge-winner">🏆 ${t.up}</span>` : '';
+            results.slice(0, 10).forEach((result, index) => {
+                let winnerBadge = '';
+                if (index === 0) winnerBadge = '<span class="result-badge-winner">🥇 1st</span>';
+                else if (index === 1) winnerBadge = '<span class="result-badge-winner">🥈 2nd</span>';
+                else if (index === 2) winnerBadge = '<span class="result-badge-winner">🥉 3rd</span>';
                 
                 let iconHtml = result.symbol.charAt(0).toUpperCase();
                 if (result.image) {
@@ -2324,10 +2326,9 @@
                     updateUI();
                 } else {
                     // إذا لم يتم العثور على بيانات، حاول التسجيل مرة أخرى
-                    await registerUser(telegramUser);
-                    const retryData = await getUserStats(telegramUser.id);
-                    if (retryData) {
-                        userData = retryData;
+                    const registered = await registerUser(telegramUser);
+                    if (registered) {
+                        userData = registered;
                         updateUI();
                     }
                 }
@@ -2418,17 +2419,50 @@
             }
         ];
 
-        const samplePosts = [
-            { platform: 'YouTube', username: '@oclin', content: '🚀 New tutorial: How to earn from voting on coins!', time: '1 hour ago', avatar: '📺' },
-            { platform: 'Telegram', username: '@oclin', content: '🪙 5 new coins added for voting!', time: '3 hours ago', avatar: '📱' },
-            { platform: 'X', username: '@oclin', content: '🔥 Big contest! 1000 points for top 5 winners', time: '5 hours ago', avatar: '🐦' }
-        ];
-
         function initTasksPage() {
             const t = translations[currentLang];
+            const tasksContainer = document.querySelector('.tasks-container');
+            
+            // إضافة قسم تصويتات المستخدم
+            let votesHtml = '<div class="tasks-section-title">' + t.yourVotes + '</div>';
+            
+            if (userVotes && userVotes.length > 0) {
+                votesHtml += '<div class="posts-grid">';
+                userVotes.forEach(vote => {
+                    const voteTypeEmoji = vote.voteType === 'up' ? '⬆️' : '⬇️';
+                    const voteTypeText = vote.voteType === 'up' ? t.up : t.down;
+                    votesHtml += `
+                        <div class="post-card">
+                            <div class="post-header">
+                                <div class="post-avatar">🪙</div>
+                                <div class="post-info">
+                                    <div class="post-platform">${vote.coinName}</div>
+                                    <div class="post-time">${vote.coinSymbol.toUpperCase()}</div>
+                                </div>
+                            </div>
+                            <div class="post-content">
+                                ${voteTypeEmoji} ${voteTypeText}
+                            </div>
+                        </div>
+                    `;
+                });
+                votesHtml += '</div>';
+            } else {
+                votesHtml += '<p style="color: #a5b3d9; text-align: center; padding: 20px;">' + t.noVotesYet + '</p>';
+            }
+            
+            // إضافة روابط التواصل الاجتماعي
+            votesHtml += '<div class="tasks-section-title">' + t.followUsTitle + '</div>';
+            votesHtml += '<div class="social-links-grid" id="socialLinksGrid"></div>';
+            
+            // إضافة المنشورات
+            votesHtml += '<div class="tasks-section-title">' + t.latestPostsTitle + '</div>';
+            votesHtml += '<div class="posts-grid" id="postsGrid"></div>';
+            
+            tasksContainer.innerHTML = votesHtml;
+            
+            // إضافة روابط التواصل الاجتماعي
             const socialGrid = document.getElementById('socialLinksGrid');
-            socialGrid.innerHTML = '';
-
             socialLinks.forEach(link => {
                 const name = currentLang === 'ar' ? 
                     (link.platform === 'youtube' ? 'يوتيوب' :
@@ -2448,9 +2482,8 @@
                 socialGrid.appendChild(card);
             });
 
+            // إضافة المنشورات
             const postsGrid = document.getElementById('postsGrid');
-            postsGrid.innerHTML = '';
-
             samplePosts.forEach((post, index) => {
                 const postDiv = document.createElement('div');
                 postDiv.className = 'post-card';
@@ -2471,6 +2504,12 @@
             });
         }
 
+        const samplePosts = [
+            { platform: 'YouTube', username: '@oclin', content: '🚀 New tutorial: How to earn from voting on coins!', time: '1 hour ago', avatar: '📺' },
+            { platform: 'Telegram', username: '@oclin', content: '🪙 5 new coins added for voting!', time: '3 hours ago', avatar: '📱' },
+            { platform: 'X', username: '@oclin', content: '🔥 Big contest! 1000 points for top 5 winners', time: '5 hours ago', avatar: '🐦' }
+        ];
+
         async function completeSocialTask(link) {
             if (!userData) return;
 
@@ -2487,18 +2526,8 @@
 
         async function addSocialTaskReward(userId, points) {
             try {
-                const { data: userData, error: fetchError } = await supabaseClient
-                    .from('users')
-                    .select('balance')
-                    .eq('id', userId)
-                    .single();
-                    
-                if (fetchError) {
-                    console.error('Error fetching user data:', fetchError);
-                    return false;
-                }
-                
                 const newBalance = (userData.balance || 0) + points;
+                userData.balance = newBalance;
                 
                 const { error } = await supabaseClient
                     .from('users')
@@ -2510,7 +2539,7 @@
                     return false;
                 }
                 
-                await refreshUserData();
+                document.getElementById("profileBalance").innerText = newBalance;
                 return true;
                 
             } catch (e) {
