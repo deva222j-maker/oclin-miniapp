@@ -142,37 +142,6 @@
             margin: 0 5px;
         }
 
-        .market-cap-filter {
-            background: rgba(46, 204, 113, 0.1);
-            padding: 5px 12px;
-            border-radius: 30px;
-            color: #2ecc71;
-            font-size: 12px;
-            display: inline-block;
-            margin-bottom: 10px;
-            border: 1px solid rgba(46, 204, 113, 0.3);
-        }
-
-        .market-cap-filter span {
-            font-weight: 700;
-            color: #2ecc71;
-        }
-
-        .coins-title {
-            color: #fff;
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .last-update {
-            font-size: 12px;
-            color: #a5b3d9;
-        }
-
         .coins-grid {
             display: flex;
             flex-direction: column;
@@ -914,6 +883,154 @@
             margin-left: 5px;
             display: inline-block;
         }
+
+        /* نتائج التصويت */
+        .results-container {
+            padding: 15px;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-title {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .results-date {
+            color: #8B5CF6;
+            font-size: 14px;
+            background: rgba(139, 92, 246, 0.2);
+            padding: 5px 12px;
+            border-radius: 30px;
+        }
+
+        .results-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .result-stat-card {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .result-stat-number {
+            color: white;
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 5px;
+        }
+
+        .result-stat-label {
+            color: #a5b3d9;
+            font-size: 12px;
+        }
+
+        .results-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .result-item {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .result-item-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            font-weight: bold;
+            overflow: hidden;
+        }
+
+        .result-item-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .result-item-info {
+            flex: 1;
+        }
+
+        .result-item-name {
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .result-item-symbol {
+            color: #8B5CF6;
+            font-size: 12px;
+        }
+
+        .result-item-votes {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+
+        .vote-up-count {
+            color: #2ecc71;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .vote-down-count {
+            color: #e74c3c;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .result-item-total {
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .empty-results {
+            text-align: center;
+            color: #a5b3d9;
+            padding: 40px;
+        }
+
+        .result-badge-winner {
+            background: linear-gradient(135deg, #f1c40f, #f39c12);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
     </style>
 </head>
 
@@ -932,6 +1049,7 @@
         </div>
 
         <div class="main-content">
+            <!-- الصفحة الرئيسية -->
             <div id="homePage" class="hidden">
                 <div class="welcome-message">
                     🔥 اختر عملة جديدة للتصويت
@@ -955,6 +1073,7 @@
                 <div class="coins-grid" id="coinsGrid"></div>
             </div>
 
+            <!-- صفحة الملف الشخصي -->
             <div id="profilePage" class="hidden">
                 <div class="profile-card">
                     <div class="profile-avatar" id="profileAvatar">👤</div>
@@ -973,6 +1092,7 @@
                 </div>
             </div>
 
+            <!-- صفحة الدعوة -->
             <div id="referralPage" class="hidden">
                 <div class="referral-container">
                     <h2 class="referral-title">🎁 دعوة الأصدقاء</h2>
@@ -1002,6 +1122,7 @@
                 </div>
             </div>
 
+            <!-- صفحة المهام -->
             <div id="tasksPage" class="hidden">
                 <div class="tasks-container">
                     <div class="tasks-section-title">📱 تابعنا على</div>
@@ -1010,11 +1131,38 @@
                     <div class="posts-grid" id="postsGrid"></div>
                 </div>
             </div>
+
+            <!-- صفحة النتائج الجديدة -->
+            <div id="resultsPage" class="hidden">
+                <div class="results-container">
+                    <div class="results-header">
+                        <div class="results-title">📊 نتائج التصويتات</div>
+                        <div class="results-date" id="resultsDate">آخر 24 ساعة</div>
+                    </div>
+
+                    <div class="results-stats">
+                        <div class="result-stat-card">
+                            <div class="result-stat-number" id="totalVotesCount">0</div>
+                            <div class="result-stat-label">إجمالي التصويتات</div>
+                        </div>
+                        <div class="result-stat-card">
+                            <div class="result-stat-number" id="uniqueCoinsCount">0</div>
+                            <div class="result-stat-label">عملات مصوت عليها</div>
+                        </div>
+                    </div>
+
+                    <div class="results-grid" id="resultsGrid"></div>
+                </div>
+            </div>
         </div>
 
+        <!-- القائمة السفلية (محدثة) -->
         <div class="bottom-nav">
             <div class="nav-item active" onclick="showPage('home', event)">
                 🏠 <span>الرئيسية</span>
+            </div>
+            <div class="nav-item" onclick="showPage('results', event)">
+                📊 <span>النتائج</span>
             </div>
             <div class="nav-item" onclick="showPage('tasks', event)">
                 📋 <span>المهام</span>
@@ -1049,7 +1197,7 @@
         const DAILY_LIMIT = 5;
         const VOTE_REWARD = 10;
         const REFERRAL_REWARD_NEW = 15;
-        const REFERRAL_REWARD_EXISTING = 0;
+        const REFERRAL_REWARD_EXISTING = 1; // تم التعديل: المستخدم القديم يحصل على نقطة واحدة
         const BOT_USERNAME = "oclin_vote_bot";
         const MINI_APP_NAME = "oclinapp";
 
@@ -1113,14 +1261,38 @@
             return null;
         }
 
-        // ========== دوال Supabase ==========
+        // ========== دوال Supabase الأساسية (محدثة للتحقق من الاتصال) ==========
+        async function testConnection() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('users')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    console.error('❌ فشل الاتصال بقاعدة البيانات:', error);
+                    return false;
+                }
+                console.log('✅ الاتصال بقاعدة البيانات ناجح');
+                return true;
+            } catch (e) {
+                console.error('❌ استثناء في الاتصال:', e);
+                return false;
+            }
+        }
+
         async function registerUser(telegramUser) {
             const userData = {
                 id: telegramUser.id,
                 telegram_username: telegramUser.username || null,
                 first_name: telegramUser.first_name || 'User',
-                last_active: new Date()
+                last_active: new Date(),
+                balance: 0,
+                referral_balance: 0,
+                referrals_count: 0
             };
+            
+            console.log('📝 محاولة تسجيل المستخدم:', userData);
             
             const { data, error } = await supabaseClient
                 .from('users')
@@ -1128,14 +1300,17 @@
                 .select();
                 
             if (error) {
-                console.error('خطأ في تسجيل المستخدم:', error);
+                console.error('❌ خطأ في تسجيل المستخدم:', error);
                 return null;
             }
             
+            console.log('✅ تم تسجيل المستخدم بنجاح:', data);
             return data?.[0];
         }
 
         async function getUserStats(userId) {
+            console.log('🔍 جلب بيانات المستخدم:', userId);
+            
             const { data, error } = await supabaseClient
                 .from('users')
                 .select('*')
@@ -1143,10 +1318,11 @@
                 .maybeSingle();
                 
             if (error) {
-                console.error('خطأ في جلب بيانات المستخدم:', error);
+                console.error('❌ خطأ في جلب بيانات المستخدم:', error);
                 return null;
             }
             
+            console.log('✅ بيانات المستخدم:', data);
             return data;
         }
 
@@ -1217,10 +1393,9 @@
             referralsList.innerHTML = html;
         }
 
+        // ========== نظام الإحالة المحدث (يدعم 1 نقطة للمستخدم القديم) ==========
         async function handleReferral(referrerId, newUserId, isNewUser) {
-            if (!isNewUser) return false;
-            
-            const points = REFERRAL_REWARD_NEW;
+            const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
             
             try {
                 const { data: referrerData, error: fetchError } = await supabaseClient
@@ -1266,6 +1441,7 @@
                     return false;
                 }
                 
+                console.log(`✅ تمت الإحالة: +${points} نقطة للمحيل (مستخدم ${isNewUser ? 'جديد' : 'قديم'})`);
                 return true;
                 
             } catch (e) {
@@ -1274,209 +1450,339 @@
             }
         }
 
-// ========== نظام التصويت المحسن (معدل بالكامل) ==========
-async function loadTodayVotes() {
-    if (!telegramUser) {
-        console.log('ماكو مستخدم تيليجرام');
-        return;
-    }
-    
-    const today = new Date().toISOString().split('T')[0];
-    const storageKey = `votes_${telegramUser.id}_${today}`;
-    
-    try {
-        // محاولة جلب من localStorage أولاً (للسرعة)
-        const savedVotes = localStorage.getItem(storageKey);
-        if (savedVotes) {
-            const votesData = JSON.parse(savedVotes);
-            todayVotes = votesData.votes || [];
-            votesCount = votesData.count || 0;
-            updateVotesDisplay();
-        }
-
-        // محاولة جلب من قاعدة البيانات
-        const { data, error } = await supabaseClient
-            .from('daily_votes')
-            .select('*')
-            .eq('user_id', telegramUser.id)
-            .eq('vote_date', today)
-            .maybeSingle();
-        
-        // تجاهل خطأ "لا يوجد بيانات"
-        if (error && error.code !== 'PGRST116') { 
-            console.error('خطأ في جلب التصويتات:', error);
-        }
-        
-        if (data) {
-            todayVotes = data.coins_voted || [];
-            votesCount = data.votes_count || 0;
-            
-            // تحديث localStorage
-            localStorage.setItem(storageKey, JSON.stringify({
-                votes: todayVotes,
-                count: votesCount
-            }));
-            
-            updateVotesDisplay();
-        }
-        
-    } catch (e) {
-        console.error('خطأ في تحميل التصويتات:', e);
-    }
-}
-
-function updateVotesDisplay() {
-    const remaining = DAILY_LIMIT - votesCount;
-    const counterElement = document.getElementById('votesRemaining');
-    if (counterElement) {
-        counterElement.innerText = remaining;
-    }
-    
-    if (voteContainers.length > 0) {
-        voteContainers.forEach((container, index) => {
-            const coinCard = container.querySelector('.coin-card');
-            if (todayVotes.includes(index)) {
-                coinCard.classList.add('voted');
-            } else {
-                coinCard.classList.remove('voted');
+        // ========== نظام التصويت المحسن ==========
+        async function loadTodayVotes() {
+            if (!telegramUser) {
+                console.log('ماكو مستخدم تيليجرام');
+                return;
             }
-        });
-    }
-}
-
-async function addVote(coinIndex, voteType) {
-    if (!telegramUser) {
-        showToast("الرجاء تسجيل الدخول أولاً");
-        return false;
-    }
-    
-    if (votesCount >= DAILY_LIMIT) {
-        showToast("⚠️ لقد استنفذت حد التصويت اليومي (5/5)");
-        return false;
-    }
-    
-    if (todayVotes.includes(coinIndex)) {
-        showToast("⚠️ لقد صوتت لهذه العملة مسبقاً");
-        return false;
-    }
-    
-    const today = new Date().toISOString().split('T')[0];
-    const storageKey = `votes_${telegramUser.id}_${today}`;
-    
-    try {
-        // تحديث المتغيرات المحلية أولاً
-        const newVotes = [...todayVotes, coinIndex];
-        const newCount = votesCount + 1;
-        
-        // تحديث واجهة المستخدم فوراً
-        todayVotes = newVotes;
-        votesCount = newCount;
-        updateVotesDisplay();
-        
-        // تحديث مظهر العملة
-        if (voteContainers[coinIndex]) {
-            const coinCard = voteContainers[coinIndex].querySelector('.coin-card');
-            coinCard.classList.add('voted');
-        }
-        
-        // إغلاق قائمة التصويت
-        if (voteContainers[coinIndex]) {
-            voteContainers[coinIndex].classList.remove("selected");
-            const voteOpts = voteContainers[coinIndex].querySelector('.vote-options');
-            if (voteOpts) voteOpts.classList.remove('show');
-        }
-        selectedIndex = -1;
-        
-        // حفظ في localStorage
-        localStorage.setItem(storageKey, JSON.stringify({
-            votes: newVotes,
-            count: newCount
-        }));
-        
-        // تحديث رصيد المستخدم محلياً
-        if (userData) {
-            const newBalance = (userData.balance || 0) + VOTE_REWARD;
-            userData.balance = newBalance;
             
-            // تحديث واجهة الملف الشخصي
-            document.getElementById("profileBalance").innerText = newBalance;
-        }
-        
-        showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
-        playSound();
-        
-        // محاولة الحفظ في قاعدة البيانات (في الخلفية)
-        saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today);
-        
-        return true;
-        
-    } catch (e) {
-        console.error('خطأ في التصويت:', e);
-        showToast("❌ حدث خطأ في التصويت");
-        return false;
-    }
-}
+            const today = new Date().toISOString().split('T')[0];
+            const storageKey = `votes_${telegramUser.id}_${today}`;
+            
+            try {
+                // محاولة جلب من localStorage أولاً (للسرعة)
+                const savedVotes = localStorage.getItem(storageKey);
+                if (savedVotes) {
+                    const votesData = JSON.parse(savedVotes);
+                    todayVotes = votesData.votes || [];
+                    votesCount = votesData.count || 0;
+                    updateVotesDisplay();
+                }
 
-// دالة حفظ التصويت في قاعدة البيانات (تعمل في الخلفية)
-async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today) {
-    try {
-        // التحقق من وجود المستخدم في جدول users
-        const { data: userExists, error: userError } = await supabaseClient
-            .from('users')
-            .select('id')
-            .eq('id', telegramUser.id)
-            .maybeSingle();
-        
-        if (userError) {
-            console.error('خطأ في التحقق من المستخدم:', userError);
-            return;
+                // محاولة جلب من قاعدة البيانات
+                const { data, error } = await supabaseClient
+                    .from('daily_votes')
+                    .select('*')
+                    .eq('user_id', telegramUser.id)
+                    .eq('vote_date', today)
+                    .maybeSingle();
+                
+                // تجاهل خطأ "لا يوجد بيانات"
+                if (error && error.code !== 'PGRST116') { 
+                    console.error('خطأ في جلب التصويتات:', error);
+                }
+                
+                if (data) {
+                    todayVotes = data.coins_voted || [];
+                    votesCount = data.votes_count || 0;
+                    
+                    // تحديث localStorage
+                    localStorage.setItem(storageKey, JSON.stringify({
+                        votes: todayVotes,
+                        count: votesCount
+                    }));
+                    
+                    updateVotesDisplay();
+                }
+                
+            } catch (e) {
+                console.error('خطأ في تحميل التصويتات:', e);
+            }
         }
-        
-        if (!userExists) {
-            console.log('المستخدم غير موجود، يتم إنشاؤه...');
-            await registerUser(telegramUser);
+
+        function updateVotesDisplay() {
+            const remaining = DAILY_LIMIT - votesCount;
+            const counterElement = document.getElementById('votesRemaining');
+            if (counterElement) {
+                counterElement.innerText = remaining;
+            }
+            
+            if (voteContainers.length > 0) {
+                voteContainers.forEach((container, index) => {
+                    const coinCard = container.querySelector('.coin-card');
+                    if (todayVotes.includes(index)) {
+                        coinCard.classList.add('voted');
+                    } else {
+                        coinCard.classList.remove('voted');
+                    }
+                });
+            }
         }
-        
-        // محاولة إدراج التصويت
-        const { error: upsertError } = await supabaseClient
-            .from('daily_votes')
-            .upsert({
-                user_id: telegramUser.id,
-                vote_date: today,
-                votes_count: newCount,
-                coins_voted: newVotes,
-                vote_type: voteType
-            }, {
-                onConflict: 'user_id, vote_date'
+
+        async function addVote(coinIndex, voteType) {
+            if (!telegramUser) {
+                showToast("الرجاء تسجيل الدخول أولاً");
+                return false;
+            }
+            
+            if (votesCount >= DAILY_LIMIT) {
+                showToast("⚠️ لقد استنفذت حد التصويت اليومي (5/5)");
+                return false;
+            }
+            
+            if (todayVotes.includes(coinIndex)) {
+                showToast("⚠️ لقد صوتت لهذه العملة مسبقاً");
+                return false;
+            }
+            
+            const today = new Date().toISOString().split('T')[0];
+            const storageKey = `votes_${telegramUser.id}_${today}`;
+            
+            try {
+                // تحديث المتغيرات المحلية أولاً
+                const newVotes = [...todayVotes, coinIndex];
+                const newCount = votesCount + 1;
+                
+                // تحديث واجهة المستخدم فوراً
+                todayVotes = newVotes;
+                votesCount = newCount;
+                updateVotesDisplay();
+                
+                // تحديث مظهر العملة
+                if (voteContainers[coinIndex]) {
+                    const coinCard = voteContainers[coinIndex].querySelector('.coin-card');
+                    coinCard.classList.add('voted');
+                }
+                
+                // إغلاق قائمة التصويت
+                if (voteContainers[coinIndex]) {
+                    voteContainers[coinIndex].classList.remove("selected");
+                    const voteOpts = voteContainers[coinIndex].querySelector('.vote-options');
+                    if (voteOpts) voteOpts.classList.remove('show');
+                }
+                selectedIndex = -1;
+                
+                // حفظ في localStorage
+                localStorage.setItem(storageKey, JSON.stringify({
+                    votes: newVotes,
+                    count: newCount
+                }));
+                
+                // تحديث رصيد المستخدم محلياً
+                if (userData) {
+                    const newBalance = (userData.balance || 0) + VOTE_REWARD;
+                    userData.balance = newBalance;
+                    
+                    // تحديث واجهة الملف الشخصي
+                    document.getElementById("profileBalance").innerText = newBalance;
+                }
+                
+                showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
+                playSound();
+                
+                // محاولة الحفظ في قاعدة البيانات (في الخلفية)
+                saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today);
+                
+                return true;
+                
+            } catch (e) {
+                console.error('خطأ في التصويت:', e);
+                showToast("❌ حدث خطأ في التصويت");
+                return false;
+            }
+        }
+
+        // دالة حفظ التصويت في قاعدة البيانات (تعمل في الخلفية)
+        async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today) {
+            try {
+                // التحقق من وجود المستخدم في جدول users
+                const { data: userExists, error: userError } = await supabaseClient
+                    .from('users')
+                    .select('id')
+                    .eq('id', telegramUser.id)
+                    .maybeSingle();
+                
+                if (userError) {
+                    console.error('خطأ في التحقق من المستخدم:', userError);
+                    return;
+                }
+                
+                if (!userExists) {
+                    console.log('المستخدم غير موجود، يتم إنشاؤه...');
+                    await registerUser(telegramUser);
+                }
+                
+                // محاولة إدراج التصويت
+                const { error: upsertError } = await supabaseClient
+                    .from('daily_votes')
+                    .upsert({
+                        user_id: telegramUser.id,
+                        vote_date: today,
+                        votes_count: newCount,
+                        coins_voted: newVotes,
+                        vote_type: voteType
+                    }, {
+                        onConflict: 'user_id, vote_date'
+                    });
+                
+                if (upsertError) {
+                    console.error('خطأ في حفظ التصويت:', upsertError);
+                    return;
+                }
+                
+                // تحديث رصيد المستخدم في قاعدة البيانات
+                const { data: userBalance, error: fetchError } = await supabaseClient
+                    .from('users')
+                    .select('balance')
+                    .eq('id', telegramUser.id)
+                    .single();
+                
+                if (!fetchError && userBalance) {
+                    const newBalance = (userBalance.balance || 0) + VOTE_REWARD;
+                    
+                    await supabaseClient
+                        .from('users')
+                        .update({ balance: newBalance })
+                        .eq('id', telegramUser.id);
+                }
+                
+                console.log('✅ تم حفظ التصويت في قاعدة البيانات');
+                
+            } catch (e) {
+                console.error('خطأ في حفظ التصويت:', e);
+            }
+        }
+
+        // ========== نظام النتائج الجديد ==========
+        async function fetchVoteResults() {
+            try {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                const todayStr = new Date().toISOString().split('T')[0];
+                
+                // جلب جميع التصويتات من آخر 24 ساعة
+                const { data: votes, error } = await supabaseClient
+                    .from('daily_votes')
+                    .select('*')
+                    .gte('vote_date', yesterdayStr)
+                    .lte('vote_date', todayStr);
+                
+                if (error) {
+                    console.error('خطأ في جلب نتائج التصويت:', error);
+                    return [];
+                }
+                
+                if (!votes || votes.length === 0) {
+                    return [];
+                }
+                
+                // تجميع النتائج حسب العملة
+                const results = new Map();
+                let totalVotes = 0;
+                
+                votes.forEach(vote => {
+                    if (!vote.coins_voted || vote.coins_voted.length === 0) return;
+                    
+                    vote.coins_voted.forEach(coinIndex => {
+                        const coin = allCoins[coinIndex];
+                        if (!coin) return;
+                        
+                        totalVotes++;
+                        
+                        if (!results.has(coin.id)) {
+                            results.set(coin.id, {
+                                id: coin.id,
+                                name: coin.name,
+                                symbol: coin.symbol,
+                                image: coin.image,
+                                upVotes: 0,
+                                downVotes: 0,
+                                totalVotes: 0
+                            });
+                        }
+                        
+                        const result = results.get(coin.id);
+                        if (vote.vote_type === 'up') {
+                            result.upVotes++;
+                        } else if (vote.vote_type === 'down') {
+                            result.downVotes++;
+                        }
+                        result.totalVotes++;
+                    });
+                });
+                
+                // تحويل النتائج إلى مصفوفة وترتيبها حسب عدد التصويتات
+                const resultsArray = Array.from(results.values());
+                resultsArray.sort((a, b) => b.totalVotes - a.totalVotes);
+                
+                // تحديث إحصائيات الصفحة
+                document.getElementById('totalVotesCount').innerText = totalVotes;
+                document.getElementById('uniqueCoinsCount').innerText = resultsArray.length;
+                
+                // تحديث التاريخ
+                const today = new Date();
+                document.getElementById('resultsDate').innerText = 
+                    `${today.toLocaleDateString('ar-IQ')}`;
+                
+                return resultsArray;
+                
+            } catch (e) {
+                console.error('خطأ في معالجة النتائج:', e);
+                return [];
+            }
+        }
+
+        // دالة عرض النتائج
+        async function displayResults() {
+            const resultsGrid = document.getElementById('resultsGrid');
+            
+            if (!allCoins || allCoins.length === 0) {
+                resultsGrid.innerHTML = '<div class="empty-results">جاري تحميل العملات...</div>';
+                return;
+            }
+            
+            const results = await fetchVoteResults();
+            
+            if (!results || results.length === 0) {
+                resultsGrid.innerHTML = '<div class="empty-results">لا توجد نتائج للتصويتات بعد</div>';
+                return;
+            }
+            
+            let html = '';
+            
+            results.forEach((result, index) => {
+                const isWinner = index === 0;
+                const winnerBadge = isWinner ? '<span class="result-badge-winner">🏆 الأكثر تصويتاً</span>' : '';
+                
+                // أيقونة العملة
+                let iconHtml = result.symbol.charAt(0).toUpperCase();
+                if (result.image) {
+                    iconHtml = `<img src="${result.image}" alt="${result.name}" onerror="this.style.display='none'; this.parentElement.innerHTML='${result.symbol.charAt(0).toUpperCase()}';">`;
+                }
+                
+                html += `
+                    <div class="result-item">
+                        <div class="result-item-icon">${iconHtml}</div>
+                        <div class="result-item-info">
+                            <div class="result-item-name">
+                                ${result.name} ${winnerBadge}
+                            </div>
+                            <div class="result-item-symbol">${result.symbol.toUpperCase()}</div>
+                            <div class="result-item-votes">
+                                <span class="vote-up-count">⬆️ ${result.upVotes}</span>
+                                <span class="vote-down-count">⬇️ ${result.downVotes}</span>
+                            </div>
+                        </div>
+                        <div class="result-item-total">${result.totalVotes}</div>
+                    </div>
+                `;
             });
-        
-        if (upsertError) {
-            console.error('خطأ في حفظ التصويت:', upsertError);
-            return;
-        }
-        
-        // تحديث رصيد المستخدم في قاعدة البيانات
-        const { data: userBalance, error: fetchError } = await supabaseClient
-            .from('users')
-            .select('balance')
-            .eq('id', telegramUser.id)
-            .single();
-        
-        if (!fetchError && userBalance) {
-            const newBalance = (userBalance.balance || 0) + VOTE_REWARD;
             
-            await supabaseClient
-                .from('users')
-                .update({ balance: newBalance })
-                .eq('id', telegramUser.id);
+            resultsGrid.innerHTML = html;
         }
-        
-        console.log('✅ تم حفظ التصويت في قاعدة البيانات');
-        
-    } catch (e) {
-        console.error('خطأ في حفظ التصويت:', e);
-    }
-}
+
         // ========== تحديث بيانات المستخدم ==========
         async function refreshUserData() {
             if (telegramUser) {
@@ -1537,7 +1843,7 @@ async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today
             }
         }
 
-        // ========== نظام الإحالة ==========
+        // ========== نظام الإحالة المحدث (يدعم 1 نقطة للمستخدم القديم) ==========
         async function checkReferral() {
             try {
                 let referrerId = null;
@@ -1593,19 +1899,16 @@ async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today
 
                 const isNewUser = !existingUser;
                 
-                if (isNewUser) {
-                    const success = await handleReferral(referrerId, tgUser.id, true);
+                const success = await handleReferral(referrerId, tgUser.id, isNewUser);
 
-                    if (success) {
-                        await refreshUserData();
-                        
-                        const message = `🎉 تم تفعيل رابط الإحالة! +${REFERRAL_REWARD_NEW} نقطة للمحيل`;
-                        document.getElementById('splashMessage').innerText = message;
-                        showReferralNotification(message);
-                        playSound();
-                    }
-                } else {
-                    document.getElementById('splashMessage').innerText = 'مرحباً بعودتك!';
+                if (success) {
+                    await refreshUserData();
+                    
+                    const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
+                    const message = `🎉 تم تفعيل رابط الإحالة! +${points} نقطة للمحيل (مستخدم ${isNewUser ? 'جديد' : 'قديم'})`;
+                    document.getElementById('splashMessage').innerText = message;
+                    showReferralNotification(message);
+                    playSound();
                 }
                 
             } catch (e) {
@@ -1995,7 +2298,7 @@ async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today
 
         // ========== تحديث العملات كل ساعتين ==========
         async function updateCoins() {
-            const newCoins = await fetchAllCoins(); // تم التعديل هنا
+            const newCoins = await fetchAllCoins();
             if (newCoins.length > 0) {
                 allCoins = newCoins;
                 applyFilter();
@@ -2152,6 +2455,7 @@ async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today
             document.getElementById("profilePage").classList.add("hidden");
             document.getElementById("referralPage").classList.add("hidden");
             document.getElementById("tasksPage").classList.add("hidden");
+            document.getElementById("resultsPage").classList.add("hidden");
 
             document.getElementById(page + "Page").classList.remove("hidden");
 
@@ -2170,12 +2474,20 @@ async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today
                 await loadTodayVotes();
             } else if (page === 'tasks') {
                 initTasksPage();
+            } else if (page === 'results') {
+                await displayResults();
             }
         }
 
         // ========== دالة البدء ==========
         async function init() {
             try {
+                // اختبار الاتصال بقاعدة البيانات أولاً
+                const connected = await testConnection();
+                if (!connected) {
+                    document.getElementById('splashMessage').innerText = '⚠️ مشكلة في الاتصال بقاعدة البيانات، جاري المحاولة...';
+                }
+
                 await checkReferral();
                 await refreshUserData();
                 await updateCoins();
@@ -2187,6 +2499,14 @@ async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today
                     
                     // تحديث العملات كل ساعتين
                     setInterval(updateCoins, 2 * 60 * 60 * 1000);
+                    
+                    // تحديث النتائج كل ساعة
+                    setInterval(() => {
+                        if (!document.getElementById('resultsPage').classList.contains('hidden')) {
+                            displayResults();
+                        }
+                    }, 60 * 60 * 1000);
+                    
                 }, 2000);
             } catch (e) {
                 console.error('خطأ في بدء التطبيق:', e);
