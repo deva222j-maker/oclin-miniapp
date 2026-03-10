@@ -1197,7 +1197,7 @@
         const DAILY_LIMIT = 5;
         const VOTE_REWARD = 10;
         const REFERRAL_REWARD_NEW = 15;
-        const REFERRAL_REWARD_EXISTING = 1; // تم التعديل: المستخدم القديم يحصل على نقطة واحدة
+        const REFERRAL_REWARD_EXISTING = 1;
         const BOT_USERNAME = "oclin_vote_bot";
         const MINI_APP_NAME = "oclinapp";
 
@@ -1215,6 +1215,36 @@
         // متغيرات للتحكم بالتصويت
         let todayVotes = [];
         let votesCount = 0;
+
+        // ========== دالة لتحديث واجهة المستخدم بشكل فوري ==========
+        function updateAllUI() {
+            if (!userData) return;
+            
+            // تحديث الملف الشخصي
+            document.getElementById("profileBalance").innerText = userData.balance || 0;
+            
+            // تحديث صفحة الدعوة
+            document.getElementById("totalReferrals").innerText = userData.referrals_count || 0;
+            document.getElementById("referralBalance").innerText = userData.referral_balance || 0;
+            
+            // تحديث اسم المستخدم في الملف الشخصي
+            if (telegramUser) {
+                const nameElement = document.getElementById("profileDisplayName");
+                if (nameElement) {
+                    const fullName = telegramUser.last_name 
+                        ? `${telegramUser.first_name} ${telegramUser.last_name}` 
+                        : telegramUser.first_name || 'مستخدم';
+                    nameElement.innerText = fullName;
+                }
+                
+                const usernameElement = document.getElementById("profileUsername");
+                if (usernameElement) {
+                    usernameElement.innerText = telegramUser.username 
+                        ? `@${telegramUser.username}` 
+                        : telegramUser.id;
+                }
+            }
+        }
 
         // ========== دوال مساعدة ==========
         function showToast(msg) {
@@ -1261,7 +1291,7 @@
             return null;
         }
 
-        // ========== دوال Supabase الأساسية (محدثة للتحقق من الاتصال) ==========
+        // ========== دوال Supabase الأساسية ==========
         async function testConnection() {
             try {
                 const { data, error } = await supabaseClient
@@ -1393,7 +1423,7 @@
             referralsList.innerHTML = html;
         }
 
-        // ========== نظام الإحالة المحدث (يدعم 1 نقطة للمستخدم القديم) ==========
+        // ========== نظام الإحالة المحدث ==========
         async function handleReferral(referrerId, newUserId, isNewUser) {
             const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
             
@@ -1450,7 +1480,7 @@
             }
         }
 
-        // ========== نظام التصويت المحسن ==========
+        // ========== نظام التصويت المحسن مع تحديث فوري ==========
         async function loadTodayVotes() {
             if (!telegramUser) {
                 console.log('ماكو مستخدم تيليجرام');
@@ -1569,12 +1599,12 @@
                     count: newCount
                 }));
                 
-                // تحديث رصيد المستخدم محلياً
+                // تحديث رصيد المستخدم محلياً فوراً
                 if (userData) {
                     const newBalance = (userData.balance || 0) + VOTE_REWARD;
                     userData.balance = newBalance;
                     
-                    // تحديث واجهة الملف الشخصي
+                    // تحديث واجهة الملف الشخصي فوراً
                     document.getElementById("profileBalance").innerText = newBalance;
                 }
                 
@@ -1593,26 +1623,9 @@
             }
         }
 
-        // دالة حفظ التصويت في قاعدة البيانات (تعمل في الخلفية)
+        // دالة حفظ التصويت في قاعدة البيانات
         async function saveVoteToDatabase(coinIndex, voteType, newVotes, newCount, today) {
             try {
-                // التحقق من وجود المستخدم في جدول users
-                const { data: userExists, error: userError } = await supabaseClient
-                    .from('users')
-                    .select('id')
-                    .eq('id', telegramUser.id)
-                    .maybeSingle();
-                
-                if (userError) {
-                    console.error('خطأ في التحقق من المستخدم:', userError);
-                    return;
-                }
-                
-                if (!userExists) {
-                    console.log('المستخدم غير موجود، يتم إنشاؤه...');
-                    await registerUser(telegramUser);
-                }
-                
                 // محاولة إدراج التصويت
                 const { error: upsertError } = await supabaseClient
                     .from('daily_votes')
@@ -1645,6 +1658,11 @@
                         .from('users')
                         .update({ balance: newBalance })
                         .eq('id', telegramUser.id);
+                        
+                    // تحديث userData بعد الحفظ في قاعدة البيانات
+                    if (userData) {
+                        userData.balance = newBalance;
+                    }
                 }
                 
                 console.log('✅ تم حفظ التصويت في قاعدة البيانات');
@@ -1843,7 +1861,7 @@
             }
         }
 
-        // ========== نظام الإحالة المحدث (يدعم 1 نقطة للمستخدم القديم) ==========
+        // ========== نظام الإحالة المحدث ==========
         async function checkReferral() {
             try {
                 let referrerId = null;
@@ -1909,6 +1927,9 @@
                     document.getElementById('splashMessage').innerText = message;
                     showReferralNotification(message);
                     playSound();
+                    
+                    // تحديث واجهة المستخدم فوراً
+                    updateAllUI();
                 }
                 
             } catch (e) {
@@ -1946,7 +1967,7 @@
             showToast("🔜 قريباً: السحب متاح");
         }
 
-        // ========== نظام جلب العملات المتطور (الرئيسي) ==========
+        // ========== نظام جلب العملات المتطور ==========
         async function fetchAllCoins() {
             try {
                 if (isFetchingCoins) return allCoins;
