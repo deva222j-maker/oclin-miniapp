@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* جميع الأنماط كما هي */
         * {
             margin: 0;
             padding: 0;
@@ -1216,9 +1217,57 @@
         let todayVotes = [];
         let votesCount = 0;
 
+        // ========== دالة لجلب مستخدم تليجرام أو إنشاء مستخدم تجريبي ==========
+        function getTelegramUser() {
+            try {
+                // محاولة جلب المستخدم من تليجرام
+                if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+                    const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+                    telegramUser = {
+                        id: `tg_${tgUser.id}`,
+                        first_name: tgUser.first_name || '',
+                        last_name: tgUser.last_name || '',
+                        username: tgUser.username || null,
+                        photo_url: tgUser.photo_url || null
+                    };
+                    console.log('✅ مستخدم تليجرام:', telegramUser);
+                    return telegramUser;
+                }
+            } catch (e) {
+                console.log('خطأ في جلب مستخدم تليجرام:', e);
+            }
+            
+            // إذا كان في وضع الاختبار المحلي، ننشئ مستخدم تجريبي
+            console.log('🧪 استخدام مستخدم تجريبي للاختبار');
+            
+            // محاولة جلب مستخدم تجريبي من localStorage
+            let testUser = localStorage.getItem('test_user');
+            if (testUser) {
+                telegramUser = JSON.parse(testUser);
+            } else {
+                // إنشاء مستخدم تجريبي جديد
+                telegramUser = {
+                    id: `test_${Math.floor(Math.random() * 10000)}`,
+                    first_name: 'مستخدم',
+                    last_name: 'تجريبي',
+                    username: 'test_user',
+                    photo_url: null
+                };
+                localStorage.setItem('test_user', JSON.stringify(telegramUser));
+            }
+            
+            console.log('🧪 مستخدم تجريبي:', telegramUser);
+            return telegramUser;
+        }
+
         // ========== دالة لتحديث واجهة المستخدم بشكل فوري ==========
         function updateAllUI() {
-            if (!userData) return;
+            if (!userData) {
+                console.log('⚠️ لا توجد بيانات مستخدم لتحديث الواجهة');
+                return;
+            }
+            
+            console.log('🔄 تحديث الواجهة بالبيانات:', userData);
             
             // تحديث الملف الشخصي
             const profileBalance = document.getElementById("profileBalance");
@@ -1253,6 +1302,19 @@
                         ? `@${telegramUser.username}` 
                         : telegramUser.id;
                 }
+                
+                if (telegramUser.photo_url) {
+                    const avatarElement = document.getElementById("profileAvatar");
+                    if (avatarElement) {
+                        avatarElement.innerHTML = `<img src="${telegramUser.photo_url}" alt="Profile">`;
+                    }
+                }
+            }
+            
+            // تحديث رابط الإحالة
+            const linkInput = document.getElementById("referralLink");
+            if (linkInput && userData.id) {
+                linkInput.value = `https://t.me/${BOT_USERNAME}/${MINI_APP_NAME}?startapp=${userData.id}`;
             }
             
             console.log('✅ تم تحديث الواجهة:', {
@@ -1286,25 +1348,6 @@
             } catch (e) {
                 console.log("Audio not supported");
             }
-        }
-
-        function getTelegramUser() {
-            try {
-                if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-                    const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
-                    telegramUser = {
-                        id: `tg_${tgUser.id}`,
-                        first_name: tgUser.first_name || '',
-                        last_name: tgUser.last_name || '',
-                        username: tgUser.username || null,
-                        photo_url: tgUser.photo_url || null
-                    };
-                    return telegramUser;
-                }
-            } catch (e) {
-                console.log('Telegram user not available');
-            }
-            return null;
         }
 
         // ========== دوال Supabase الأساسية ==========
@@ -1622,6 +1665,9 @@
                     
                     // تحديث واجهة الملف الشخصي فوراً
                     document.getElementById("profileBalance").innerText = newBalance;
+                    
+                    // تحديث الواجهة بالكامل
+                    updateAllUI();
                 }
                 
                 showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
@@ -1823,45 +1869,7 @@
                 const newData = await getUserStats(telegramUser.id);
                 if (newData) {
                     userData = newData;
-                    updateUI();
                     updateAllUI(); // تحديث فوري للواجهة
-                }
-            }
-        }
-
-        // ========== تحديث واجهة المستخدم ==========
-        function updateUI() {
-            if (!userData) return;
-            
-            const linkInput = document.getElementById("referralLink");
-            if (linkInput) {
-                linkInput.value = `https://t.me/${BOT_USERNAME}/${MINI_APP_NAME}?startapp=${userData.id}`;
-            }
-            
-            // تحديث مباشر للواجهة
-            updateAllUI();
-            
-            if (telegramUser) {
-                const nameElement = document.getElementById("profileDisplayName");
-                if (nameElement) {
-                    const fullName = telegramUser.last_name 
-                        ? `${telegramUser.first_name} ${telegramUser.last_name}` 
-                        : telegramUser.first_name || 'مستخدم';
-                    nameElement.innerText = fullName;
-                }
-                
-                const usernameElement = document.getElementById("profileUsername");
-                if (usernameElement) {
-                    usernameElement.innerText = telegramUser.username 
-                        ? `@${telegramUser.username}` 
-                        : telegramUser.id;
-                }
-                
-                if (telegramUser.photo_url) {
-                    const avatarElement = document.getElementById("profileAvatar");
-                    if (avatarElement) {
-                        avatarElement.innerHTML = `<img src="${telegramUser.photo_url}" alt="Profile">`;
-                    }
                 }
             }
         }
