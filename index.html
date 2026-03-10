@@ -1221,11 +1221,21 @@
             if (!userData) return;
             
             // تحديث الملف الشخصي
-            document.getElementById("profileBalance").innerText = userData.balance || 0;
+            const profileBalance = document.getElementById("profileBalance");
+            if (profileBalance) {
+                profileBalance.innerText = userData.balance || 0;
+            }
             
             // تحديث صفحة الدعوة
-            document.getElementById("totalReferrals").innerText = userData.referrals_count || 0;
-            document.getElementById("referralBalance").innerText = userData.referral_balance || 0;
+            const totalReferrals = document.getElementById("totalReferrals");
+            if (totalReferrals) {
+                totalReferrals.innerText = userData.referrals_count || 0;
+            }
+            
+            const referralBalance = document.getElementById("referralBalance");
+            if (referralBalance) {
+                referralBalance.innerText = userData.referral_balance || 0;
+            }
             
             // تحديث اسم المستخدم في الملف الشخصي
             if (telegramUser) {
@@ -1244,6 +1254,12 @@
                         : telegramUser.id;
                 }
             }
+            
+            console.log('✅ تم تحديث الواجهة:', {
+                balance: userData.balance,
+                referrals: userData.referrals_count,
+                referralBalance: userData.referral_balance
+            });
         }
 
         // ========== دوال مساعدة ==========
@@ -1423,7 +1439,7 @@
             referralsList.innerHTML = html;
         }
 
-        // ========== نظام الإحالة المحدث ==========
+        // ========== نظام الإحالة المحدث مع تحديث فوري ==========
         async function handleReferral(referrerId, newUserId, isNewUser) {
             const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
             
@@ -1808,6 +1824,7 @@
                 if (newData) {
                     userData = newData;
                     updateUI();
+                    updateAllUI(); // تحديث فوري للواجهة
                 }
             }
         }
@@ -1821,20 +1838,8 @@
                 linkInput.value = `https://t.me/${BOT_USERNAME}/${MINI_APP_NAME}?startapp=${userData.id}`;
             }
             
-            const totalElement = document.getElementById("totalReferrals");
-            if (totalElement) {
-                totalElement.innerText = userData.referrals_count || 0;
-            }
-            
-            const balanceElement = document.getElementById("referralBalance");
-            if (balanceElement) {
-                balanceElement.innerText = userData.referral_balance || 0;
-            }
-            
-            const profileBalance = document.getElementById("profileBalance");
-            if (profileBalance) {
-                profileBalance.innerText = userData.balance || 0;
-            }
+            // تحديث مباشر للواجهة
+            updateAllUI();
             
             if (telegramUser) {
                 const nameElement = document.getElementById("profileDisplayName");
@@ -1928,8 +1933,11 @@
                     showReferralNotification(message);
                     playSound();
                     
-                    // تحديث واجهة المستخدم فوراً
-                    updateAllUI();
+                    // تحديث واجهة المستخدم فوراً بعد الإحالة
+                    setTimeout(async () => {
+                        await refreshUserData();
+                        updateAllUI();
+                    }, 500);
                 }
                 
             } catch (e) {
@@ -2483,8 +2491,10 @@
             if (page === 'referral') {
                 await refreshUserData();
                 await displayReferrals();
+                updateAllUI(); // تحديث فوري عند فتح صفحة الدعوة
             } else if (page === 'profile') {
                 await refreshUserData();
+                updateAllUI(); // تحديث فوري عند فتح الملف الشخصي
             } else if (page === 'home') {
                 selectedIndex = -1;
                 if (allCoins.length > 0) {
@@ -2527,6 +2537,14 @@
                             displayResults();
                         }
                     }, 60 * 60 * 1000);
+                    
+                    // تحديث بيانات المستخدم كل 30 ثانية
+                    setInterval(async () => {
+                        if (telegramUser) {
+                            await refreshUserData();
+                            updateAllUI();
+                        }
+                    }, 30000);
                     
                 }, 2000);
             } catch (e) {
