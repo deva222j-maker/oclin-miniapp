@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* جميع الأنماط كما هي من الكود السابق */
         * {
             margin: 0;
             padding: 0;
@@ -22,6 +21,31 @@
             background: #0a0e17;
         }
 
+        .lang-switch {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            padding: 8px 16px;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .lang-switch:hover {
+            background: rgba(139, 92, 246, 0.3);
+        }
+
         .app {
             width: 100%;
             height: 100vh;
@@ -32,6 +56,15 @@
             background: linear-gradient(180deg, #12182b 0%, #1a2340 100%);
             position: relative;
             overflow: hidden;
+        }
+
+        .app.rtl {
+            direction: rtl;
+        }
+
+        .app.ltr {
+            direction: ltr;
+            font-family: 'Inter', 'Tajawal', sans-serif;
         }
 
         .splash-screen {
@@ -970,7 +1003,12 @@
 </head>
 
 <body>
-    <div class="app">
+    <div class="app" id="app">
+        <div class="lang-switch" id="langSwitch" onclick="toggleLanguage()">
+            <span>🌐</span>
+            <span id="langText">English</span>
+        </div>
+
         <div id="splashScreen" class="splash-screen">
             <div class="splash-content">
                 <div class="splash-logo">🎯</div>
@@ -986,23 +1024,23 @@
         <div class="main-content">
             <!-- الصفحة الرئيسية -->
             <div id="homePage" class="hidden">
-                <div class="welcome-message">
-                    🔥 اختر عملة جديدة للتصويت
+                <div class="welcome-message" id="welcomeMessage">
+                    🔥 اختر عملة للتصويت
                     <div class="votes-remaining">
-                        التصويتات المتبقية: <span id="votesRemaining">5</span>/5
+                        <span id="votesRemainingLabel">التصويتات المتبقية</span>: <span id="votesRemaining">5</span>/5
                     </div>
                 </div>
                 
                 <div class="coins-title">
-                    <span>🔥 العملات الرائجة على Solana</span>
+                    <span id="trendingTitle">🔥 العملات الرائجة على Solana</span>
                     <span class="last-update" id="lastUpdate"></span>
                 </div>
                 
                 <div class="filter-bar" id="filterBar">
-                    <button class="filter-btn active" onclick="setFilter('all', event)">الكل</button>
-                    <button class="filter-btn" onclick="setFilter('today', event)">آخر 24 ساعة</button>
-                    <button class="filter-btn" onclick="setFilter('3days', event)">آخر 3 أيام</button>
-                    <button class="filter-btn" onclick="setFilter('7days', event)">آخر 7 أيام</button>
+                    <button class="filter-btn active" onclick="setFilter('all', event)" id="filterAll">الكل</button>
+                    <button class="filter-btn" onclick="setFilter('today', event)" id="filterToday">آخر 24 ساعة</button>
+                    <button class="filter-btn" onclick="setFilter('3days', event)" id="filter3Days">آخر 3 أيام</button>
+                    <button class="filter-btn" onclick="setFilter('7days', event)" id="filter7Days">آخر 7 أيام</button>
                 </div>
                 
                 <div class="coins-grid" id="coinsGrid"></div>
@@ -1015,14 +1053,14 @@
                     <div class="profile-name" id="profileDisplayName">جاري التحميل...</div>
                     <div class="profile-username" id="profileUsername">@...</div>
                     <div class="profile-balance">
-                        <div class="balance-label">الرصيد</div>
+                        <div class="balance-label" id="balanceLabel">الرصيد</div>
                         <div class="balance-amount">
-                            <span id="profileBalance">0</span> <span>نقطة</span>
+                            <span id="profileBalance">0</span> <span id="pointsLabel">نقطة</span>
                         </div>
                     </div>
                     <div class="profile-actions">
-                        <button class="profile-action-btn" onclick="connectWallet()">ربط المحفظة</button>
-                        <button class="profile-action-btn primary" onclick="withdraw()">سحب</button>
+                        <button class="profile-action-btn" onclick="connectWallet()" id="connectWalletBtn">ربط المحفظة</button>
+                        <button class="profile-action-btn primary" onclick="withdraw()" id="withdrawBtn">سحب</button>
                     </div>
                 </div>
             </div>
@@ -1030,29 +1068,29 @@
             <!-- صفحة الدعوة -->
             <div id="referralPage" class="hidden">
                 <div class="referral-container">
-                    <h2 class="referral-title">🎁 دعوة الأصدقاء</h2>
+                    <h2 class="referral-title" id="referralTitle">🎁 دعوة الأصدقاء</h2>
                  
                     <div id="referralNotification" class="referral-notification hidden"></div>
                     
                     <div class="referral-link-box">
                         <input type="text" id="referralLink" readonly placeholder="جاري تحميل الرابط...">
-                        <button onclick="copyReferralLink()">نسخ</button>
+                        <button onclick="copyReferralLink()" id="copyBtn">نسخ</button>
                     </div>
 
                     <div class="referral-stats-grid">
                         <div class="referral-stat-item">
                             <div class="referral-stat-number" id="totalReferrals">0</div>
-                            <div class="referral-stat-label">الأصدقاء المدعوين</div>
+                            <div class="referral-stat-label" id="friendsLabel">الأصدقاء المدعوين</div>
                         </div>
                         <div class="referral-stat-item">
                             <div class="referral-stat-number" id="referralBalance">0</div>
-                            <div class="referral-stat-label">نقاط الدعوة</div>
+                            <div class="referral-stat-label" id="pointsEarnedLabel">نقاط الدعوة</div>
                         </div>
                     </div>
                     
-                    <h3 style="color: white; font-size: 18px; margin: 20px 0 10px;">👥 قائمة المدعوين</h3>
+                    <h3 style="color: white; font-size: 18px; margin: 20px 0 10px;" id="referralsListTitle">👥 قائمة المدعوين</h3>
                     <div id="referralsList" class="referrals-list">
-                        <p style="color: #a5b3d9; text-align: center; padding: 20px;">جاري تحميل القائمة...</p>
+                        <p style="color: #a5b3d9; text-align: center; padding: 20px;" id="loadingReferrals">جاري تحميل القائمة...</p>
                     </div>
                 </div>
             </div>
@@ -1060,9 +1098,9 @@
             <!-- صفحة المهام -->
             <div id="tasksPage" class="hidden">
                 <div class="tasks-container">
-                    <div class="tasks-section-title">📱 تابعنا على</div>
+                    <div class="tasks-section-title" id="followUsTitle">📱 تابعنا على</div>
                     <div class="social-links-grid" id="socialLinksGrid"></div>
-                    <div class="tasks-section-title">📄 أحدث المنشورات</div>
+                    <div class="tasks-section-title" id="latestPostsTitle">📄 أحدث المنشورات</div>
                     <div class="posts-grid" id="postsGrid"></div>
                 </div>
             </div>
@@ -1071,18 +1109,18 @@
             <div id="resultsPage" class="hidden">
                 <div class="results-container">
                     <div class="results-header">
-                        <div class="results-title">📊 نتائج التصويتات</div>
+                        <div class="results-title" id="resultsTitle">📊 نتائج التصويتات</div>
                         <div class="results-date" id="resultsDate">آخر 24 ساعة</div>
                     </div>
 
                     <div class="results-stats">
                         <div class="result-stat-card">
                             <div class="result-stat-number" id="totalVotesCount">0</div>
-                            <div class="result-stat-label">إجمالي التصويتات</div>
+                            <div class="result-stat-label" id="totalVotesLabel">إجمالي التصويتات</div>
                         </div>
                         <div class="result-stat-card">
                             <div class="result-stat-number" id="uniqueCoinsCount">0</div>
-                            <div class="result-stat-label">عملات مصوت عليها</div>
+                            <div class="result-stat-label" id="votedCoinsLabel">عملات مصوت عليها</div>
                         </div>
                     </div>
 
@@ -1094,19 +1132,19 @@
         <!-- القائمة السفلية -->
         <div class="bottom-nav">
             <div class="nav-item active" onclick="showPage('home', event)">
-                🏠 <span>الرئيسية</span>
+                🏠 <span id="navHome">الرئيسية</span>
             </div>
             <div class="nav-item" onclick="showPage('results', event)">
-                📊 <span>النتائج</span>
+                📊 <span id="navResults">النتائج</span>
             </div>
             <div class="nav-item" onclick="showPage('tasks', event)">
-                📋 <span>المهام</span>
+                📋 <span id="navTasks">المهام</span>
             </div>
             <div class="nav-item" onclick="showPage('profile', event)">
-                👤 <span>الملف</span>
+                👤 <span id="navProfile">الملف</span>
             </div>
             <div class="nav-item" onclick="showPage('referral', event)">
-                ↗️ <span>الدعوة</span>
+                ↗️ <span id="navReferral">الدعوة</span>
             </div>
         </div>
 
@@ -1119,6 +1157,199 @@
             Telegram.WebApp.ready();
             Telegram.WebApp.expand();
             Telegram.WebApp.disableVerticalSwipes();
+        }
+
+        // ========== نظام الترجمة ==========
+        const translations = {
+            ar: {
+                splashLoading: "جاري التحميل...",
+                welcomeMessage: "🔥 اختر عملة للتصويت",
+                votesRemainingLabel: "التصويتات المتبقية",
+                trendingTitle: "🔥 العملات الرائجة على Solana",
+                filterAll: "الكل",
+                filterToday: "آخر 24 ساعة",
+                filter3Days: "آخر 3 أيام",
+                filter7Days: "آخر 7 أيام",
+                balanceLabel: "الرصيد",
+                pointsLabel: "نقطة",
+                connectWalletBtn: "ربط المحفظة",
+                withdrawBtn: "سحب",
+                referralTitle: "🎁 دعوة الأصدقاء",
+                copyBtn: "نسخ",
+                friendsLabel: "الأصدقاء المدعوين",
+                pointsEarnedLabel: "نقاط الدعوة",
+                referralsListTitle: "👥 قائمة المدعوين",
+                loadingReferrals: "جاري تحميل القائمة...",
+                noReferrals: "لا يوجد مدعوين بعد",
+                followUsTitle: "📱 تابعنا على",
+                latestPostsTitle: "📄 أحدث المنشورات",
+                resultsTitle: "📊 نتائج التصويتات",
+                totalVotesLabel: "إجمالي التصويتات",
+                votedCoinsLabel: "عملات مصوت عليها",
+                navHome: "الرئيسية",
+                navResults: "النتائج",
+                navTasks: "المهام",
+                navProfile: "الملف",
+                navReferral: "الدعوة",
+                noCoins: "لا توجد عملات متاحة",
+                selectCoinFirst: "اختر العملة أولاً",
+                dailyLimitReached: "⚠️ لقد استنفذت حد التصويت اليومي (5/5)",
+                alreadyVoted: "⚠️ لقد صوتت لهذه العملة مسبقاً",
+                voteSuccess: "✅ تم التصويت! +10 نقاط",
+                voteError: "❌ حدث خطأ في التصويت",
+                copySuccess: "✅ تم نسخ الرابط!",
+                copyError: "❌ فشل النسخ",
+                comingSoon: "🔜 قريباً",
+                newUser: "جديد",
+                oldUser: "قديم",
+                unknown: "غير معروف",
+                ageLessThanHour: "منذ أقل من ساعة",
+                hoursAgo: "ساعة",
+                daysAgo: "يوم",
+                marketCap: "قيمة سوقية",
+                volume: "حجم تداول",
+                liquidity: "سيولة",
+                up: "صعود",
+                down: "هبوط",
+                created: "تم الإنشاء",
+                noResults: "لا توجد نتائج للتصويتات بعد",
+                loadingCoins: "جاري تحميل العملات...",
+                welcomeBack: "مرحباً بعودتك!",
+                invalidSelfReferral: "لا يمكنك استخدام رابطك الخاص!",
+                referralUsed: "⚠️ لقد استخدمت هذا الرابط من قبل!",
+                referralOtherUsed: "⚠️ لقد استخدمت رابط إحالة آخر من قبل",
+                referralSuccess: "🎉 تم تفعيل رابط الإحالة! +{points} نقطة للمحيل"
+            },
+            en: {
+                splashLoading: "Loading...",
+                welcomeMessage: "🔥 Choose a coin to vote",
+                votesRemainingLabel: "Votes remaining",
+                trendingTitle: "🔥 Trending on Solana",
+                filterAll: "All",
+                filterToday: "Last 24h",
+                filter3Days: "Last 3 days",
+                filter7Days: "Last 7 days",
+                balanceLabel: "Balance",
+                pointsLabel: "points",
+                connectWalletBtn: "Connect Wallet",
+                withdrawBtn: "Withdraw",
+                referralTitle: "🎁 Invite Friends",
+                copyBtn: "Copy",
+                friendsLabel: "Invited Friends",
+                pointsEarnedLabel: "Referral Points",
+                referralsListTitle: "👥 Referrals List",
+                loadingReferrals: "Loading list...",
+                noReferrals: "No referrals yet",
+                followUsTitle: "📱 Follow Us On",
+                latestPostsTitle: "📄 Latest Posts",
+                resultsTitle: "📊 Voting Results",
+                totalVotesLabel: "Total Votes",
+                votedCoinsLabel: "Voted Coins",
+                navHome: "Home",
+                navResults: "Results",
+                navTasks: "Tasks",
+                navProfile: "Profile",
+                navReferral: "Referral",
+                noCoins: "No coins available",
+                selectCoinFirst: "Select a coin first",
+                dailyLimitReached: "⚠️ You've reached your daily voting limit (5/5)",
+                alreadyVoted: "⚠️ You've already voted for this coin",
+                voteSuccess: "✅ Vote cast! +10 points",
+                voteError: "❌ Error voting",
+                copySuccess: "✅ Link copied!",
+                copyError: "❌ Copy failed",
+                comingSoon: "🔜 Coming soon",
+                newUser: "New",
+                oldUser: "Old",
+                unknown: "Unknown",
+                ageLessThanHour: "Less than hour ago",
+                hoursAgo: "hours ago",
+                daysAgo: "days ago",
+                marketCap: "Market Cap",
+                volume: "Volume",
+                liquidity: "Liquidity",
+                up: "Up",
+                down: "Down",
+                created: "Created",
+                noResults: "No voting results yet",
+                loadingCoins: "Loading coins...",
+                welcomeBack: "Welcome back!",
+                invalidSelfReferral: "You can't use your own link!",
+                referralUsed: "⚠️ You've already used this link!",
+                referralOtherUsed: "⚠️ You've already used another referral link",
+                referralSuccess: "🎉 Referral activated! +{points} points for referrer"
+            }
+        };
+
+        let currentLang = localStorage.getItem('oclin_lang') || 'ar';
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'ar' ? 'en' : 'ar';
+            localStorage.setItem('oclin_lang', currentLang);
+            updateLanguage();
+        }
+
+        function updateLanguage() {
+            const t = translations[currentLang];
+            const app = document.getElementById('app');
+            
+            if (currentLang === 'ar') {
+                app.classList.add('rtl');
+                app.classList.remove('ltr');
+                document.getElementById('langText').innerText = 'English';
+                document.documentElement.lang = 'ar';
+                document.documentElement.dir = 'rtl';
+            } else {
+                app.classList.add('ltr');
+                app.classList.remove('rtl');
+                document.getElementById('langText').innerText = 'عربي';
+                document.documentElement.lang = 'en';
+                document.documentElement.dir = 'ltr';
+            }
+
+            // تحديث النصوص الثابتة
+            document.getElementById('splashMessage').innerText = t.splashLoading;
+            document.getElementById('welcomeMessage').childNodes[0].textContent = t.welcomeMessage + ' ';
+            document.getElementById('votesRemainingLabel').innerText = t.votesRemainingLabel;
+            document.getElementById('trendingTitle').innerText = t.trendingTitle;
+            document.getElementById('filterAll').innerText = t.filterAll;
+            document.getElementById('filterToday').innerText = t.filterToday;
+            document.getElementById('filter3Days').innerText = t.filter3Days;
+            document.getElementById('filter7Days').innerText = t.filter7Days;
+            document.getElementById('balanceLabel').innerText = t.balanceLabel;
+            document.getElementById('pointsLabel').innerText = t.pointsLabel;
+            document.getElementById('connectWalletBtn').innerText = t.connectWalletBtn;
+            document.getElementById('withdrawBtn').innerText = t.withdrawBtn;
+            document.getElementById('referralTitle').innerText = t.referralTitle;
+            document.getElementById('copyBtn').innerText = t.copyBtn;
+            document.getElementById('friendsLabel').innerText = t.friendsLabel;
+            document.getElementById('pointsEarnedLabel').innerText = t.pointsEarnedLabel;
+            document.getElementById('referralsListTitle').innerText = t.referralsListTitle;
+            document.getElementById('loadingReferrals').innerText = t.loadingReferrals;
+            document.getElementById('followUsTitle').innerText = t.followUsTitle;
+            document.getElementById('latestPostsTitle').innerText = t.latestPostsTitle;
+            document.getElementById('resultsTitle').innerText = t.resultsTitle;
+            document.getElementById('totalVotesLabel').innerText = t.totalVotesLabel;
+            document.getElementById('votedCoinsLabel').innerText = t.votedCoinsLabel;
+            document.getElementById('navHome').innerText = t.navHome;
+            document.getElementById('navResults').innerText = t.navResults;
+            document.getElementById('navTasks').innerText = t.navTasks;
+            document.getElementById('navProfile').innerText = t.navProfile;
+            document.getElementById('navReferral').innerText = t.navReferral;
+
+            // تحديث المحتوى الديناميكي
+            if (!document.getElementById('homePage').classList.contains('hidden')) {
+                displayCoins(allCoins);
+            }
+            if (!document.getElementById('resultsPage').classList.contains('hidden')) {
+                displayResults();
+            }
+            if (!document.getElementById('tasksPage').classList.contains('hidden')) {
+                initTasksPage();
+            }
+            if (!document.getElementById('referralPage').classList.contains('hidden')) {
+                displayReferrals();
+            }
         }
 
         // ========== إعدادات Supabase ==========
@@ -1153,10 +1384,31 @@
 
         // ========== دوال مساعدة ==========
         function showToast(msg) {
-            const t = document.getElementById("toast");
-            t.innerText = msg;
-            t.classList.add("show");
-            setTimeout(() => t.classList.remove("show"), 2000);
+            const t = translations[currentLang];
+            const toast = document.getElementById("toast");
+            
+            if (msg.includes("اختر العملة أولاً") || msg.includes("Select a coin first")) {
+                toast.innerText = t.selectCoinFirst;
+            } else if (msg.includes("استنفذت") || msg.includes("reached your daily")) {
+                toast.innerText = t.dailyLimitReached;
+            } else if (msg.includes("صوتت لهذه العملة") || msg.includes("already voted")) {
+                toast.innerText = t.alreadyVoted;
+            } else if (msg.includes("تم التصويت") || msg.includes("Vote cast")) {
+                toast.innerText = t.voteSuccess;
+            } else if (msg.includes("حدث خطأ") || msg.includes("Error voting")) {
+                toast.innerText = t.voteError;
+            } else if (msg.includes("تم نسخ") || msg.includes("Link copied")) {
+                toast.innerText = t.copySuccess;
+            } else if (msg.includes("فشل النسخ") || msg.includes("Copy failed")) {
+                toast.innerText = t.copyError;
+            } else if (msg.includes("قريباً") || msg.includes("Coming soon")) {
+                toast.innerText = t.comingSoon;
+            } else {
+                toast.innerText = msg;
+            }
+            
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 2000);
         }
 
         function playSound() {
@@ -1239,29 +1491,8 @@
             }
         }
 
-        // دالة للبحث عن مستخدم بواسطة اسم المستخدم
-        async function findUserByUsername(username) {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('telegram_username', username)
-                    .maybeSingle();
-                
-                if (error) {
-                    console.error('خطأ في البحث عن المستخدم:', error);
-                    return null;
-                }
-                
-                return data;
-            } catch (e) {
-                console.error('استثناء في البحث:', e);
-                return null;
-            }
-        }
-
         // دالة إنشاء مستخدم جديد
-        async function createNewUser(telegramUser) {
+        async function createNewUser(telegramUser, referrerId = null) {
             const userData = {
                 id: telegramUser.id,
                 telegram_username: telegramUser.username,
@@ -1269,7 +1500,9 @@
                 last_active: new Date(),
                 balance: 0,
                 referral_balance: 0,
-                referrals_count: 0
+                referrals_count: 0,
+                referred_by: referrerId,
+                completed_tasks: {}
             };
             
             console.log('📝 إنشاء مستخدم جديد:', userData);
@@ -1290,12 +1523,10 @@
         }
 
         // دالة تحديث أو إنشاء مستخدم
-        async function upsertUser(telegramUser) {
-            // أولاً: البحث عن المستخدم بواسطة ID
+        async function upsertUser(telegramUser, referrerId = null) {
             let user = await findUserById(telegramUser.id);
             
             if (user) {
-                // المستخدم موجود - تحديث آخر نشاط
                 console.log('📝 تحديث مستخدم موجود:', user.id);
                 
                 const { data, error } = await supabaseClient
@@ -1307,20 +1538,16 @@
                 
                 if (error) {
                     console.error('❌ خطأ في تحديث المستخدم:', error);
-                    return user; // نرجع البيانات القديمة
+                    return user;
                 }
                 
-                // دمج البيانات القديمة مع الجديدة
-                user = { ...user, ...data };
+                return { ...user, ...data };
             } else {
-                // مستخدم جديد - إنشاء حساب
-                user = await createNewUser(telegramUser);
+                return await createNewUser(telegramUser, referrerId);
             }
-            
-            return user;
         }
 
-        // ========== دالة جلب المدعوين (معدلة) ==========
+        // ========== دالة جلب المدعوين ==========
         async function fetchReferrals(referrerId) {
             try {
                 const { data, error } = await supabaseClient
@@ -1350,17 +1577,18 @@
             }
         }
 
-        // ========== دالة عرض المدعوين (معدلة) ==========
+        // ========== دالة عرض المدعوين ==========
         async function displayReferrals() {
             if (!userData) return;
 
             const referralsList = document.getElementById('referralsList');
             if (!referralsList) return;
-
+            
+            const t = translations[currentLang];
             const referrals = await fetchReferrals(userData.id);
 
             if (!referrals || referrals.length === 0) {
-                referralsList.innerHTML = '<p style="color: #a5b3d9; text-align: center; padding: 20px;">لا يوجد مدعوين بعد</p>';
+                referralsList.innerHTML = `<p style="color: #a5b3d9; text-align: center; padding: 20px;">${t.noReferrals}</p>`;
                 return;
             }
 
@@ -1369,7 +1597,9 @@
                 const referredUser = ref.users;
                 const name = referredUser?.first_name || 'مستخدم';
                 const username = referredUser?.telegram_username || ref.referred_id.slice(0, 8);
-                const badge = ref.is_new_user ? '<span class="badge-new">جديد</span>' : '<span class="badge-old">قديم</span>';
+                const badge = ref.is_new_user ? 
+                    `<span class="badge-new">${t.newUser}</span>` : 
+                    `<span class="badge-old">${t.oldUser}</span>`;
                 
                 html += `
                     <div class="referral-item">
@@ -1389,8 +1619,6 @@
         // ========== دالة تحديث واجهة المستخدم ==========
         function updateAllUI() {
             if (!userData) return;
-            
-            console.log('🔄 تحديث الواجهة بالبيانات:', userData);
             
             // تحديث الملف الشخصي
             const profileBalance = document.getElementById("profileBalance");
@@ -1439,12 +1667,6 @@
             if (linkInput && userData.id) {
                 linkInput.value = `https://t.me/${BOT_USERNAME}/${MINI_APP_NAME}?startapp=${userData.id}`;
             }
-            
-            console.log('✅ تم تحديث الواجهة:', {
-                balance: userData.balance,
-                referrals: userData.referrals_count,
-                referralBalance: userData.referral_balance
-            });
         }
 
         // ========== نظام الإحالة ==========
@@ -1452,12 +1674,8 @@
             const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
             
             try {
-                // البحث عن المحيل
                 const referrerData = await findUserById(referrerId);
-                if (!referrerData) {
-                    console.error('المحيل غير موجود');
-                    return false;
-                }
+                if (!referrerData) return false;
                 
                 const newReferralBalance = (referrerData.referral_balance || 0) + points;
                 const newBalance = (referrerData.balance || 0) + points;
@@ -1472,10 +1690,7 @@
                     })
                     .eq('id', referrerId);
                     
-                if (updateError) {
-                    console.error('خطأ في تحديث المحيل:', updateError);
-                    return false;
-                }
+                if (updateError) return false;
                 
                 const { error: referralError } = await supabaseClient
                     .from('referrals')
@@ -1486,12 +1701,14 @@
                         is_new_user: isNewUser
                     });
                     
-                if (referralError) {
-                    console.error('خطأ في تسجيل الإحالة:', referralError);
-                    return false;
-                }
+                if (referralError) return false;
                 
-                console.log(`✅ تمت الإحالة: +${points} نقطة للمحيل`);
+                // تحديث حقل referred_by للمستخدم الجديد
+                await supabaseClient
+                    .from('users')
+                    .update({ referred_by: referrerId })
+                    .eq('id', newUserId);
+                
                 return true;
                 
             } catch (e) {
@@ -1500,7 +1717,7 @@
             }
         }
 
-        // ========== نظام التصويت ==========
+        // ========== نظام التصويت (محدث لإزالة vote_type) ==========
         async function loadTodayVotes() {
             if (!telegramUser) return;
             
@@ -1563,7 +1780,7 @@
             }
         }
 
-        async function addVote(coinIndex, voteType) {
+        async function addVote(coinIndex) {
             if (!telegramUser) {
                 showToast("الرجاء تسجيل الدخول أولاً");
                 return false;
@@ -1610,7 +1827,6 @@
                 if (userData) {
                     const newBalance = (userData.balance || 0) + VOTE_REWARD;
                     userData.balance = newBalance;
-                    
                     document.getElementById("profileBalance").innerText = newBalance;
                     
                     await supabaseClient
@@ -1619,17 +1835,18 @@
                         .eq('id', userData.id);
                 }
                 
+                // حفظ بدون vote_type (متوافق مع قاعدة البيانات)
                 await supabaseClient
                     .from('daily_votes')
                     .upsert({
                         user_id: telegramUser.id,
                         vote_date: today,
                         votes_count: newCount,
-                        coins_voted: newVotes,
-                        vote_type: voteType
+                        coins_voted: newVotes
                     }, { onConflict: 'user_id, vote_date' });
                 
-                showToast(`✅ تم التصويت! +${VOTE_REWARD} نقاط`);
+                const t = translations[currentLang];
+                showToast(t.voteSuccess);
                 playSound();
                 
                 return true;
@@ -1641,13 +1858,13 @@
             }
         }
 
-        async function handleVote(index, type) {
+        async function handleVote(index) {
             if (selectedIndex !== index) {
                 showToast("اختر العملة أولاً");
                 return;
             }
             
-            const success = await addVote(index, type);
+            const success = await addVote(index);
             
             if (success && voteContainers[index]) {
                 voteContainers[index].classList.remove("selected");
@@ -1711,27 +1928,27 @@
                     return;
                 }
 
-                // البحث عن المستخدم أو إنشاؤه
-                userData = await upsertUser(tgUser);
+                userData = await upsertUser(tgUser, referrerId);
                 
                 if (!userData) {
                     document.getElementById('splashMessage').innerText = 'خطأ في تسجيل المستخدم';
                     return;
                 }
 
+                const t = translations[currentLang];
+
                 if (!referrerId) {
-                    document.getElementById('splashMessage').innerText = 'مرحباً بك في OCLIN!';
+                    document.getElementById('splashMessage').innerText = t.welcomeBack;
                     updateAllUI();
                     return;
                 }
                 
                 if (referrerId === tgUser.id) {
-                    document.getElementById('splashMessage').innerText = 'لا يمكنك استخدام رابطك الخاص!';
+                    document.getElementById('splashMessage').innerText = t.invalidSelfReferral;
                     updateAllUI();
                     return;
                 }
 
-                // التحقق من وجود إحالة سابقة
                 const { data: existingReferral } = await supabaseClient
                     .from('referrals')
                     .select('id')
@@ -1739,24 +1956,21 @@
                     .maybeSingle();
 
                 if (existingReferral) {
-                    document.getElementById('splashMessage').innerText = '⚠️ لقد استخدمت رابط إحالة من قبل!';
+                    document.getElementById('splashMessage').innerText = t.referralUsed;
                     updateAllUI();
                     return;
                 }
 
-                // تحديد ما إذا كان المستخدم جديد
-                const isNewUser = userData.balance === 0 && 
-                                  userData.referral_balance === 0 && 
-                                  userData.referrals_count === 0;
+                const isNewUser = userData.created_at && 
+                    (new Date() - new Date(userData.created_at)) < 5 * 60 * 1000;
                 
                 const success = await handleReferral(referrerId, tgUser.id, isNewUser);
 
                 if (success) {
-                    // تحديث بيانات المستخدم بعد الإحالة
                     userData = await findUserById(tgUser.id);
                     
                     const points = isNewUser ? REFERRAL_REWARD_NEW : REFERRAL_REWARD_EXISTING;
-                    const message = `🎉 تم تفعيل رابط الإحالة! +${points} نقطة للمحيل`;
+                    const message = t.referralSuccess.replace('{points}', points);
                     document.getElementById('splashMessage').innerText = message;
                     showReferralNotification(message);
                     playSound();
@@ -1791,11 +2005,13 @@
         }
 
         function connectWallet() {
-            showToast("🔜 قريباً: ربط المحافظ الرقمية");
+            const t = translations[currentLang];
+            showToast(t.comingSoon);
         }
 
         function withdraw() {
-            showToast("🔜 قريباً: السحب متاح");
+            const t = translations[currentLang];
+            showToast(t.comingSoon);
         }
 
         // ========== نظام جلب العملات ==========
@@ -1957,8 +2173,10 @@
         }
 
         function displayCoins(coins) {
+            const t = translations[currentLang];
+            
             if (!coins || coins.length === 0) {
-                coinsGrid.innerHTML = '<p style="color:white;text-align:center; padding: 20px;">لا توجد عملات متاحة</p>';
+                coinsGrid.innerHTML = `<p style="color:white;text-align:center; padding: 20px;">${t.noCoins}</p>`;
                 return;
             }
 
@@ -1999,35 +2217,35 @@
 
                 const marketCapFormatted = coin.marketCap > 1000000 
                     ? `${(coin.marketCap / 1000000).toFixed(2)}M` 
-                    : coin.marketCap > 0 ? `${(coin.marketCap / 1000).toFixed(0)}K` : 'غير معروف';
+                    : coin.marketCap > 0 ? `${(coin.marketCap / 1000).toFixed(0)}K` : t.unknown;
 
                 const volumeFormatted = coin.volume24h > 1000000 
                     ? `${(coin.volume24h / 1000000).toFixed(2)}M` 
-                    : coin.volume24h > 0 ? `${(coin.volume24h / 1000).toFixed(0)}K` : 'غير معروف';
+                    : coin.volume24h > 0 ? `${(coin.volume24h / 1000).toFixed(0)}K` : t.unknown;
 
                 const liquidityFormatted = coin.liquidity > 1000000 
                     ? `${(coin.liquidity / 1000000).toFixed(2)}M` 
-                    : coin.liquidity > 0 ? `${(coin.liquidity / 1000).toFixed(0)}K` : 'غير معروف';
+                    : coin.liquidity > 0 ? `${(coin.liquidity / 1000).toFixed(0)}K` : t.unknown;
 
-                let createdText = 'غير معروف';
+                let createdText = t.unknown;
                 let ageBadge = '';
                 
                 if (coin.createdAt) {
                     const ageHours = coin.createdHours;
                     if (ageHours < 1) {
-                        createdText = 'منذ أقل من ساعة';
-                        ageBadge = '<span class="age-badge" style="background:#2ecc71;">🆕 جديد جداً</span>';
+                        createdText = t.ageLessThanHour;
+                        ageBadge = '<span class="age-badge" style="background:#2ecc71;">🆕 New</span>';
                     } else if (ageHours < 6) {
-                        createdText = `منذ ${ageHours} ساعة`;
-                        ageBadge = '<span class="age-badge" style="background:#f1c40f;">✨ جديد</span>';
+                        createdText = `${ageHours} ${t.hoursAgo}`;
+                        ageBadge = '<span class="age-badge" style="background:#f1c40f;">✨ New</span>';
                     } else if (ageHours < 24) {
-                        createdText = `منذ ${ageHours} ساعة`;
-                        ageBadge = '<span class="age-badge" style="background:#e67e22;">🌟 حديث</span>';
+                        createdText = `${ageHours} ${t.hoursAgo}`;
+                        ageBadge = '<span class="age-badge" style="background:#e67e22;">🌟 Recent</span>';
                     } else {
                         const days = Math.floor(ageHours / 24);
-                        createdText = `منذ ${days} يوم`;
+                        createdText = `${days} ${t.daysAgo}`;
                         if (days < 3) {
-                            ageBadge = '<span class="age-badge" style="background:#9b59b6;">⭐ جديد</span>';
+                            ageBadge = '<span class="age-badge" style="background:#9b59b6;">⭐ New</span>';
                         }
                     }
                 }
@@ -2046,16 +2264,16 @@
                             ${coin.priceChange ? `<span style="font-size: 11px; margin-right: 5px;">${coin.priceChange >= 0 ? '▲' : '▼'} ${Math.abs(coin.priceChange).toFixed(2)}%</span>` : ''}
                         </div>
                         <div class="coin-market-cap">
-                            💰 قيمة سوقية: $${marketCapFormatted}
+                            💰 ${t.marketCap}: $${marketCapFormatted}
                         </div>
                         <div class="coin-volume">
-                            📊 حجم تداول: $${volumeFormatted}
+                            📊 ${t.volume}: $${volumeFormatted}
                         </div>
                         <div class="coin-liquidity">
-                            💧 سيولة: $${liquidityFormatted}
+                            💧 ${t.liquidity}: $${liquidityFormatted}
                         </div>
                         <div class="coin-created">
-                            🕒 ${createdText}
+                            🕒 ${t.created}: ${createdText}
                         </div>
                     </div>
                 `;
@@ -2063,8 +2281,7 @@
                 const voteOptions = document.createElement("div");
                 voteOptions.className = "vote-options";
                 voteOptions.innerHTML = `
-                    <div class="vote-btn vote-up" onclick="handleVote(${i}, 'up')">⬆️ صعود</div>
-                    <div class="vote-btn vote-down" onclick="handleVote(${i}, 'down')">⬇️ هبوط</div>
+                    <div class="vote-btn vote-up" onclick="handleVote(${i})">🗳️ ${t.up}</div>
                 `;
 
                 container.appendChild(coinCard);
@@ -2088,7 +2305,7 @@
             }
         }
 
-        // ========== نتائج التصويت ==========
+        // ========== نتائج التصويت (محدثة بدون vote_type) ==========
         async function fetchVoteResults() {
             try {
                 const yesterday = new Date();
@@ -2109,41 +2326,33 @@
                 
                 if (!votes || votes.length === 0) return [];
                 
-                const results = new Map();
+                const voteCounts = new Map();
                 let totalVotes = 0;
                 
                 votes.forEach(vote => {
-                    if (!vote.coins_voted || vote.coins_voted.length === 0) return;
+                    if (!vote.coins_voted || !Array.isArray(vote.coins_voted)) return;
                     
                     vote.coins_voted.forEach(coinIndex => {
                         const coin = allCoins[coinIndex];
                         if (!coin) return;
                         
                         totalVotes++;
-                        
-                        if (!results.has(coin.id)) {
-                            results.set(coin.id, {
-                                id: coin.id,
-                                name: coin.name,
-                                symbol: coin.symbol,
-                                image: coin.image,
-                                upVotes: 0,
-                                downVotes: 0,
-                                totalVotes: 0
-                            });
-                        }
-                        
-                        const result = results.get(coin.id);
-                        if (vote.vote_type === 'up') {
-                            result.upVotes++;
-                        } else if (vote.vote_type === 'down') {
-                            result.downVotes++;
-                        }
-                        result.totalVotes++;
+                        const currentCount = voteCounts.get(coin.id) || 0;
+                        voteCounts.set(coin.id, currentCount + 1);
                     });
                 });
                 
-                const resultsArray = Array.from(results.values());
+                const resultsArray = Array.from(voteCounts.entries()).map(([id, count]) => {
+                    const coin = allCoins.find(c => c.id === id);
+                    return {
+                        id,
+                        name: coin?.name || 'Unknown',
+                        symbol: coin?.symbol || '???',
+                        image: coin?.image || null,
+                        totalVotes: count
+                    };
+                });
+                
                 resultsArray.sort((a, b) => b.totalVotes - a.totalVotes);
                 
                 document.getElementById('totalVotesCount').innerText = totalVotes;
@@ -2163,16 +2372,17 @@
 
         async function displayResults() {
             const resultsGrid = document.getElementById('resultsGrid');
+            const t = translations[currentLang];
             
             if (!allCoins || allCoins.length === 0) {
-                resultsGrid.innerHTML = '<div class="empty-results">جاري تحميل العملات...</div>';
+                resultsGrid.innerHTML = `<div class="empty-results">${t.loadingCoins}</div>`;
                 return;
             }
             
             const results = await fetchVoteResults();
             
             if (!results || results.length === 0) {
-                resultsGrid.innerHTML = '<div class="empty-results">لا توجد نتائج للتصويتات بعد</div>';
+                resultsGrid.innerHTML = `<div class="empty-results">${t.noResults}</div>`;
                 return;
             }
             
@@ -2198,8 +2408,7 @@
                             </div>
                             <div class="result-item-symbol">${result.symbol.toUpperCase()}</div>
                             <div class="result-item-votes">
-                                <span class="vote-up-count">⬆️ ${result.upVotes}</span>
-                                <span class="vote-down-count">⬇️ ${result.downVotes}</span>
+                                <span class="vote-up-count">⬆️ ${result.totalVotes}</span>
                             </div>
                         </div>
                         <div class="result-item-total">${result.totalVotes}</div>
@@ -2212,30 +2421,33 @@
 
         // ========== دوال المهام ==========
         const socialLinks = [
-            { name: 'يوتيوب', username: '@oclin_official', url: 'https://youtube.com/@oclin', reward: 5, icon: '📺' },
-            { name: 'تليكرام', username: '@oclin_channel', url: 'https://t.me/oclin_channel', reward: 5, icon: '📱' },
-            { name: 'X', username: '@oclin', url: 'https://x.com/oclin', reward: 5, icon: '🐦' },
-            { name: 'انستغرام', username: '@oclin', url: 'https://instagram.com/oclin', reward: 5, icon: '📷' }
+            { name: 'يوتيوب', nameEn: 'YouTube', username: '@oclin_official', url: 'https://youtube.com/@oclin', reward: 5, icon: '📺' },
+            { name: 'تليكرام', nameEn: 'Telegram', username: '@oclin_channel', url: 'https://t.me/oclin_channel', reward: 5, icon: '📱' },
+            { name: 'X', nameEn: 'X', username: '@oclin', url: 'https://x.com/oclin', reward: 5, icon: '🐦' },
+            { name: 'انستغرام', nameEn: 'Instagram', username: '@oclin', url: 'https://instagram.com/oclin', reward: 5, icon: '📷' }
         ];
 
         const samplePosts = [
-            { platform: 'يوتيوب', username: '@oclin', content: '🚀 شرح جديد: كيف تربح من التصويت على العملات!', time: 'منذ ساعة', avatar: '📺' },
-            { platform: 'تليكرام', username: '@oclin', content: '🪙 تم إضافة 5 عملات جديدة للتصويت!', time: 'منذ 3 ساعات', avatar: '📱' },
-            { platform: 'X', username: '@oclin', content: '🔥 مسابقة كبرى! 1000 نقطة للفائزين الخمسة', time: 'منذ 5 ساعات', avatar: '🐦' }
+            { platform: 'يوتيوب', platformEn: 'YouTube', username: '@oclin', content: '🚀 شرح جديد: كيف تربح من التصويت على العملات!', contentEn: '🚀 New tutorial: How to earn from voting on coins!', time: 'منذ ساعة', timeEn: '1 hour ago', avatar: '📺' },
+            { platform: 'تليكرام', platformEn: 'Telegram', username: '@oclin', content: '🪙 تم إضافة 5 عملات جديدة للتصويت!', contentEn: '🪙 5 new coins added for voting!', time: 'منذ 3 ساعات', timeEn: '3 hours ago', avatar: '📱' },
+            { platform: 'X', platformEn: 'X', username: '@oclin', content: '🔥 مسابقة كبرى! 1000 نقطة للفائزين الخمسة', contentEn: '🔥 Big contest! 1000 points for top 5 winners', time: 'منذ 5 ساعات', timeEn: '5 hours ago', avatar: '🐦' }
         ];
 
         function initTasksPage() {
+            const t = translations[currentLang];
             const socialGrid = document.getElementById('socialLinksGrid');
             socialGrid.innerHTML = '';
 
             socialLinks.forEach(link => {
+                const name = currentLang === 'ar' ? link.name : link.nameEn;
+                
                 const card = document.createElement('div');
                 card.className = 'social-link-card';
                 card.innerHTML = `
                     <div class="social-icon">${link.icon}</div>
-                    <div class="social-name">${link.name}</div>
+                    <div class="social-name">${name}</div>
                     <div class="social-username">${link.username}</div>
-                    <div class="social-reward">+${link.reward} نقاط</div>
+                    <div class="social-reward">+${link.reward} ${t.pointsLabel}</div>
                 `;
                 card.onclick = () => window.open(link.url, '_blank');
                 socialGrid.appendChild(card);
@@ -2245,19 +2457,23 @@
             postsGrid.innerHTML = '';
 
             samplePosts.forEach((post, index) => {
+                const platform = currentLang === 'ar' ? post.platform : post.platformEn;
+                const content = currentLang === 'ar' ? post.content : post.contentEn;
+                const time = currentLang === 'ar' ? post.time : post.timeEn;
+                
                 const postDiv = document.createElement('div');
                 postDiv.className = 'post-card';
                 postDiv.innerHTML = `
                     <div class="post-header">
                         <div class="post-avatar">${post.avatar}</div>
                         <div class="post-info">
-                            <div class="post-platform">${post.platform}</div>
-                            <div class="post-time">${post.time}</div>
+                            <div class="post-platform">${platform}</div>
+                            <div class="post-time">${time}</div>
                         </div>
                     </div>
-                    <div class="post-content">${post.content}</div>
+                    <div class="post-content">${content}</div>
                     <div class="post-actions">
-                        <button class="post-action-btn" onclick="likePost(${index})">👍 إعجاب +5</button>
+                        <button class="post-action-btn" onclick="likePost(${index})">👍 ${t.up} +5</button>
                     </div>
                 `;
                 postsGrid.appendChild(postDiv);
@@ -2276,7 +2492,8 @@
                 .eq('id', userData.id);
             
             document.getElementById("profileBalance").innerText = newBalance;
-            showToast("✅ +5 نقاط");
+            const t = translations[currentLang];
+            showToast(`✅ +5 ${t.pointsLabel}`);
         }
 
         // ========== إظهار الصفحات ==========
@@ -2297,7 +2514,6 @@
             if (page === 'referral' && userData) {
                 await displayReferrals();
             } else if (page === 'profile') {
-                // تحديث البيانات عند فتح الملف الشخصي
                 if (telegramUser) {
                     userData = await upsertUser(telegramUser);
                     updateAllUI();
@@ -2320,6 +2536,9 @@
         // ========== دالة البدء ==========
         async function init() {
             try {
+                // تطبيق اللغة المحفوظة
+                updateLanguage();
+                
                 const connected = await testConnection();
                 if (!connected) {
                     document.getElementById('splashMessage').innerText = '⚠️ مشكلة في الاتصال بقاعدة البيانات، جاري المحاولة...';
