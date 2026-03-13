@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -332,10 +333,6 @@
         .vote-up {
             border-color: #2ecc71;
             color: #2ecc71;
-        }
-        .vote-down {
-            border-color: #e74c3c;
-            color: #e74c3c;
         }
 
         .profile-card {
@@ -963,14 +960,6 @@
 
         .vote-up-count {
             color: #2ecc71;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .vote-down-count {
-            color: #e74c3c;
             font-size: 13px;
             display: flex;
             align-items: center;
@@ -1717,7 +1706,7 @@
             }
         }
 
-        // ========== نظام التصويت (محدث لإزالة vote_type) ==========
+        // ========== نظام التصويت (تم تعديله: UP فقط + 5 تصويتات كل 24 ساعة) ==========
         async function loadTodayVotes() {
             if (!telegramUser) return;
             
@@ -1835,7 +1824,7 @@
                         .eq('id', userData.id);
                 }
                 
-                // حفظ بدون vote_type (متوافق مع قاعدة البيانات)
+                // حفظ في قاعدة البيانات
                 await supabaseClient
                     .from('daily_votes')
                     .upsert({
@@ -2305,7 +2294,7 @@
             }
         }
 
-        // ========== نتائج التصويت (محدثة بدون vote_type) ==========
+        // ========== نتائج التصويت (محدثة: عرض أعلى 3 عملات مع تايمر 24 ساعة) ==========
         async function fetchVoteResults() {
             try {
                 const yesterday = new Date();
@@ -2353,7 +2342,11 @@
                     };
                 });
                 
+                // ترتيب تنازلي حسب عدد الأصوات
                 resultsArray.sort((a, b) => b.totalVotes - a.totalVotes);
+                
+                // عرض أعلى 3 فقط
+                const top3 = resultsArray.slice(0, 3);
                 
                 document.getElementById('totalVotesCount').innerText = totalVotes;
                 document.getElementById('uniqueCoinsCount').innerText = resultsArray.length;
@@ -2362,7 +2355,7 @@
                 document.getElementById('resultsDate').innerText = 
                     `${today.toLocaleDateString('ar-IQ')}`;
                 
-                return resultsArray;
+                return top3;
                 
             } catch (e) {
                 console.error('خطأ في معالجة النتائج:', e);
@@ -2388,7 +2381,7 @@
             
             let html = '';
             
-            results.slice(0, 10).forEach((result, index) => {
+            results.forEach((result, index) => {
                 let winnerBadge = '';
                 if (index === 0) winnerBadge = '<span class="result-badge-winner">🥇 1st</span>';
                 else if (index === 1) winnerBadge = '<span class="result-badge-winner">🥈 2nd</span>';
@@ -2576,3 +2569,4 @@
     </script>
 </body>
 </html>
+```
