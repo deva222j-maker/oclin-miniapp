@@ -334,6 +334,11 @@
             border-color: #2ecc71;
             color: #2ecc71;
         }
+        
+        .vote-down {
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
 
         .profile-card {
             background: rgba(255, 255, 255, 0.05);
@@ -1706,7 +1711,7 @@
             }
         }
 
-        // ========== نظام التصويت (تم تعديله: UP فقط + 5 تصويتات كل 24 ساعة) ==========
+        // ========== نظام التصويت (تم تعديله: UP و DOWN) ==========
         async function loadTodayVotes() {
             if (!telegramUser) return;
             
@@ -1769,7 +1774,7 @@
             }
         }
 
-        async function addVote(coinIndex) {
+        async function addVote(coinIndex, voteType) {
             if (!telegramUser) {
                 showToast("الرجاء تسجيل الدخول أولاً");
                 return false;
@@ -1847,13 +1852,13 @@
             }
         }
 
-        async function handleVote(index) {
+        async function handleVote(index, type) {
             if (selectedIndex !== index) {
                 showToast("اختر العملة أولاً");
                 return;
             }
             
-            const success = await addVote(index);
+            const success = await addVote(index, type);
             
             if (success && voteContainers[index]) {
                 voteContainers[index].classList.remove("selected");
@@ -2270,7 +2275,8 @@
                 const voteOptions = document.createElement("div");
                 voteOptions.className = "vote-options";
                 voteOptions.innerHTML = `
-                    <div class="vote-btn vote-up" onclick="handleVote(${i})">🗳️ ${t.up}</div>
+                    <div class="vote-btn vote-up" onclick="handleVote(${i}, 'up')">⬆️ ${t.up}</div>
+                    <div class="vote-btn vote-down" onclick="handleVote(${i}, 'down')">⬇️ ${t.down}</div>
                 `;
 
                 container.appendChild(coinCard);
@@ -2294,7 +2300,7 @@
             }
         }
 
-        // ========== نتائج التصويت (محدثة: عرض أعلى 3 عملات مع تايمر 24 ساعة) ==========
+        // ========== نتائج التصويت ==========
         async function fetchVoteResults() {
             try {
                 const yesterday = new Date();
@@ -2569,4 +2575,3 @@
     </script>
 </body>
 </html>
-```
