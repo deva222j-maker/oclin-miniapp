@@ -1843,6 +1843,11 @@
                 showToast(t.voteSuccess);
                 playSound();
                 
+                // تحديث صفحة النتائج إذا كانت مفتوحة
+                if (!document.getElementById('resultsPage').classList.contains('hidden')) {
+                    displayResults();
+                }
+                
                 return true;
                 
             } catch (e) {
@@ -2300,7 +2305,7 @@
             }
         }
 
-        // ========== نتائج التصويت ==========
+        // ========== نتائج التصويت (محدثة لعرض جميع العملات المصوت عليها مع تحديث فوري) ==========
         async function fetchVoteResults() {
             try {
                 const yesterday = new Date();
@@ -2351,9 +2356,6 @@
                 // ترتيب تنازلي حسب عدد الأصوات
                 resultsArray.sort((a, b) => b.totalVotes - a.totalVotes);
                 
-                // عرض أعلى 3 فقط
-                const top3 = resultsArray.slice(0, 3);
-                
                 document.getElementById('totalVotesCount').innerText = totalVotes;
                 document.getElementById('uniqueCoinsCount').innerText = resultsArray.length;
                 
@@ -2361,7 +2363,7 @@
                 document.getElementById('resultsDate').innerText = 
                     `${today.toLocaleDateString('ar-IQ')}`;
                 
-                return top3;
+                return resultsArray; // نرجع جميع العملات المصوت عليها
                 
             } catch (e) {
                 console.error('خطأ في معالجة النتائج:', e);
@@ -2575,3 +2577,4 @@
     </script>
 </body>
 </html>
+```
