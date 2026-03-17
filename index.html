@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -971,6 +970,14 @@
             gap: 4px;
         }
 
+        .vote-down-count {
+            color: #e74c3c;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
         .result-item-total {
             color: white;
             font-size: 16px;
@@ -986,12 +993,60 @@
             border-radius: 20px;
             font-size: 11px;
             font-weight: 700;
+            margin-right: 8px;
+        }
+
+        .result-badge-winner-gold {
+            background: linear-gradient(135deg, #f1c40f, #f39c12);
+        }
+        
+        .result-badge-winner-silver {
+            background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+        }
+        
+        .result-badge-winner-bronze {
+            background: linear-gradient(135deg, #e67e22, #d35400);
         }
 
         .empty-results {
             text-align: center;
             color: #a5b3d9;
             padding: 40px;
+        }
+
+        .last-reset {
+            font-size: 12px;
+            color: #8B5CF6;
+            margin-top: 5px;
+        }
+
+        .next-reset {
+            font-size: 12px;
+            color: #f39c12;
+            margin-top: 5px;
+        }
+
+        .winner-announcement {
+            background: linear-gradient(135deg, #f1c40f20, #f39c1220);
+            border: 1px solid #f1c40f;
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .winner-announcement .coin-name {
+            font-size: 18px;
+            font-weight: 800;
+            color: #f1c40f;
+        }
+
+        .winner-announcement .reward {
+            font-size: 24px;
+            font-weight: 800;
+            color: #2ecc71;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -1094,8 +1149,15 @@
                 <div class="tasks-container">
                     <div class="tasks-section-title" id="followUsTitle">📱 تابعنا على</div>
                     <div class="social-links-grid" id="socialLinksGrid"></div>
+                    
+                    <!-- قسم المنشورات الحقيقية -->
                     <div class="tasks-section-title" id="latestPostsTitle">📄 أحدث المنشورات</div>
-                    <div class="posts-grid" id="postsGrid"></div>
+                    <div class="last-reset" id="postsLastUpdate"></div>
+                    <div class="posts-grid" id="postsGrid">
+                        <div class="post-card" style="text-align: center; color: #a5b3d9;">
+                            جاري تحميل المنشورات...
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1105,6 +1167,16 @@
                     <div class="results-header">
                         <div class="results-title" id="resultsTitle">📊 نتائج التصويتات</div>
                         <div class="results-date" id="resultsDate">آخر 24 ساعة</div>
+                    </div>
+
+                    <!-- وقت التحديث القادم -->
+                    <div class="next-reset" id="nextReset">التحديث القادم: خلال 24 ساعة</div>
+
+                    <!-- إعلان الفائز -->
+                    <div id="winnerAnnouncement" class="winner-announcement hidden">
+                        <span>🏆 الفائز لهذه الدورة 🏆</span>
+                        <div class="coin-name" id="winnerName"></div>
+                        <div class="reward" id="winnerReward">+10 نقاط</div>
                     </div>
 
                     <div class="results-stats">
@@ -1212,7 +1284,11 @@
                 invalidSelfReferral: "لا يمكنك استخدام رابطك الخاص!",
                 referralUsed: "⚠️ لقد استخدمت هذا الرابط من قبل!",
                 referralOtherUsed: "⚠️ لقد استخدمت رابط إحالة آخر من قبل",
-                referralSuccess: "🎉 تم تفعيل رابط الإحالة! +{points} نقطة للمحيل"
+                referralSuccess: "🎉 تم تفعيل رابط الإحالة! +{points} نقطة للمحيل",
+                winnerAnnouncement: "🏆 الفائز لهذه الدورة 🏆",
+                nextReset: "التحديث القادم: خلال 24 ساعة",
+                loadingPosts: "جاري تحميل المنشورات...",
+                noPosts: "لا توجد منشورات حالياً"
             },
             en: {
                 splashLoading: "Loading...",
@@ -1271,7 +1347,11 @@
                 invalidSelfReferral: "You can't use your own link!",
                 referralUsed: "⚠️ You've already used this link!",
                 referralOtherUsed: "⚠️ You've already used another referral link",
-                referralSuccess: "🎉 Referral activated! +{points} points for referrer"
+                referralSuccess: "🎉 Referral activated! +{points} points for referrer",
+                winnerAnnouncement: "🏆 Winner of this round 🏆",
+                nextReset: "Next update: in 24 hours",
+                loadingPosts: "Loading posts...",
+                noPosts: "No posts available"
             }
         };
 
@@ -1330,6 +1410,7 @@
             document.getElementById('navTasks').innerText = t.navTasks;
             document.getElementById('navProfile').innerText = t.navProfile;
             document.getElementById('navReferral').innerText = t.navReferral;
+            document.getElementById('nextReset').innerText = t.nextReset;
 
             // تحديث المحتوى الديناميكي
             if (!document.getElementById('homePage').classList.contains('hidden')) {
@@ -1340,6 +1421,7 @@
             }
             if (!document.getElementById('tasksPage').classList.contains('hidden')) {
                 initTasksPage();
+                fetchRealPosts(); // جلب المنشورات الحقيقية
             }
             if (!document.getElementById('referralPage').classList.contains('hidden')) {
                 displayReferrals();
@@ -1356,6 +1438,7 @@
         // ========== الإعدادات الثابتة ==========
         const DAILY_LIMIT = 5;
         const VOTE_REWARD = 10;
+        const WINNER_BONUS = 10; // 10 نقاط إضافية للفائز
         const REFERRAL_REWARD_NEW = 15;
         const REFERRAL_REWARD_EXISTING = 1;
         const BOT_USERNAME = "oclin_vote_bot";
@@ -1375,6 +1458,11 @@
         // متغيرات للتحكم بالتصويت
         let todayVotes = [];
         let votesCount = 0;
+
+        // متغيرات النتائج
+        let lastResultsDate = null;
+        let lastWinnerId = null;
+        let resultsUpdateInterval = null;
 
         // ========== دوال مساعدة ==========
         function showToast(msg) {
@@ -1711,7 +1799,7 @@
             }
         }
 
-        // ========== نظام التصويت (تم تعديله: UP و DOWN) ==========
+        // ========== نظام التصويت ==========
         async function loadTodayVotes() {
             if (!telegramUser) return;
             
@@ -2305,7 +2393,270 @@
             }
         }
 
-        // ========== نتائج التصويت (محدثة لعرض جميع العملات المصوت عليها مع تحديث فوري) ==========
+        // ========== نظام جلب المنشورات الحقيقية ==========
+        async function fetchRealPosts() {
+            const postsGrid = document.getElementById('postsGrid');
+            const t = translations[currentLang];
+            
+            try {
+                // هنا نستخدم APIs حقيقية للمنشورات
+                // حالياً نستخدم API تجريبي لجلب آخر المنشورات
+                
+                // مثال: جلب من يوتيوب
+                const youtubeResponse = await fetch('https://www.googleapis.com/youtube/v3/search?key=YOUR_YOUTUBE_API_KEY&channelId=YOUR_CHANNEL_ID&part=snippet,id&order=date&maxResults=5');
+                
+                // مثال: جلب من تويتر
+                const twitterResponse = await fetch('https://api.twitter.com/2/users/YOUR_USER_ID/tweets?max_results=5', {
+                    headers: {
+                        'Authorization': 'Bearer YOUR_BEARER_TOKEN'
+                    }
+                });
+                
+                // حالياً نستخدم بيانات تجريبية للتجربة
+                // يمكنك استبدالها ب APIs حقيقية
+                
+                const mockPosts = [
+                    {
+                        platform: 'يوتيوب',
+                        platformEn: 'YouTube',
+                        username: '@oclin_official',
+                        content: '🚀 شرح جديد: كيف تربح من التصويت على العملات! شاهد الآن',
+                        contentEn: '🚀 New tutorial: How to earn from voting on coins! Watch now',
+                        time: 'منذ ساعة',
+                        timeEn: '1 hour ago',
+                        avatar: '📺',
+                        url: 'https://youtube.com/watch?v=example1',
+                        likes: 45
+                    },
+                    {
+                        platform: 'تليكرام',
+                        platformEn: 'Telegram',
+                        username: '@oclin_channel',
+                        content: '🪙 تم إضافة 5 عملات جديدة للتصويت! سارع بالتصويت',
+                        contentEn: '🪙 5 new coins added for voting! Vote now',
+                        time: 'منذ 3 ساعات',
+                        timeEn: '3 hours ago',
+                        avatar: '📱',
+                        url: 'https://t.me/oclin_channel/123',
+                        likes: 32
+                    },
+                    {
+                        platform: 'X',
+                        platformEn: 'X',
+                        username: '@oclin_bot',
+                        content: '🔥 مسابقة كبرى! 1000 نقطة للفائزين الخمسة الأوائل',
+                        contentEn: '🔥 Big contest! 1000 points for top 5 winners',
+                        time: 'منذ 5 ساعات',
+                        timeEn: '5 hours ago',
+                        avatar: '🐦',
+                        url: 'https://x.com/oclin_bot/status/123456',
+                        likes: 78
+                    },
+                    {
+                        platform: 'تيك توك',
+                        platformEn: 'TikTok',
+                        username: '@oclin_official',
+                        content: '🎵 طريقة التصويت السهلة! جربها الآن',
+                        contentEn: '🎵 Easy voting method! Try it now',
+                        time: 'منذ 8 ساعات',
+                        timeEn: '8 hours ago',
+                        avatar: '📷',
+                        url: 'https://tiktok.com/@oclin_official/video/123456',
+                        likes: 156
+                    }
+                ];
+                
+                postsGrid.innerHTML = '';
+                
+                mockPosts.forEach((post, index) => {
+                    const platform = currentLang === 'ar' ? post.platform : post.platformEn;
+                    const content = currentLang === 'ar' ? post.content : post.contentEn;
+                    const time = currentLang === 'ar' ? post.time : post.timeEn;
+                    
+                    const postDiv = document.createElement('div');
+                    postDiv.className = 'post-card';
+                    postDiv.innerHTML = `
+                        <div class="post-header" onclick="window.open('${post.url}', '_blank')" style="cursor: pointer;">
+                            <div class="post-avatar">${post.avatar}</div>
+                            <div class="post-info">
+                                <div class="post-platform">${platform}</div>
+                                <div class="post-time">${time}</div>
+                            </div>
+                        </div>
+                        <div class="post-content">${content}</div>
+                        <div class="post-actions">
+                            <button class="post-action-btn" onclick="likePost(${index})">
+                                👍 ${t.up} +5 (${post.likes})
+                            </button>
+                            <button class="post-action-btn" onclick="sharePost('${post.url}')">
+                                🔗 مشاركة
+                            </button>
+                        </div>
+                    `;
+                    postsGrid.appendChild(postDiv);
+                });
+                
+                document.getElementById('postsLastUpdate').innerHTML = 
+                    `آخر تحديث: ${new Date().toLocaleTimeString('ar-IQ')}`;
+                
+            } catch (error) {
+                console.error('خطأ في جلب المنشورات:', error);
+                postsGrid.innerHTML = `<div class="post-card" style="text-align: center; color: #a5b3d9;">${t.noPosts}</div>`;
+            }
+        }
+
+        function sharePost(url) {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Oclin Bot',
+                    url: url
+                }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast("✅ تم نسخ الرابط!");
+                });
+            }
+        }
+
+        async function likePost(index) {
+            if (!userData) return;
+
+            const newBalance = (userData.balance || 0) + 5;
+            userData.balance = newBalance;
+            
+            await supabaseClient
+                .from('users')
+                .update({ balance: newBalance })
+                .eq('id', userData.id);
+            
+            document.getElementById("profileBalance").innerText = newBalance;
+            const t = translations[currentLang];
+            showToast(`✅ +5 ${t.pointsLabel}`);
+        }
+
+        // ========== نتائج التصويت مع نظام الـ 24 ساعة والنقاط الإضافية ==========
+        async function checkAndResetResults() {
+            const lastReset = localStorage.getItem('lastResultsReset');
+            const now = new Date();
+            
+            if (!lastReset) {
+                localStorage.setItem('lastResultsReset', now.toISOString());
+                return;
+            }
+            
+            const lastResetDate = new Date(lastReset);
+            const hoursSinceReset = (now - lastResetDate) / (1000 * 60 * 60);
+            
+            if (hoursSinceReset >= 24) {
+                await declareWinner();
+                localStorage.setItem('lastResultsReset', now.toISOString());
+            }
+            
+            // تحديث وقت التحديث القادم
+            const nextReset = new Date(lastResetDate);
+            nextReset.setHours(nextReset.getHours() + 24);
+            const hoursLeft = Math.max(0, (nextReset - now) / (1000 * 60 * 60));
+            
+            if (hoursLeft > 0) {
+                const hours = Math.floor(hoursLeft);
+                const minutes = Math.floor((hoursLeft - hours) * 60);
+                document.getElementById('nextReset').innerText = 
+                    `${translations[currentLang].nextReset} (${hours}h ${minutes}m)`;
+            }
+        }
+
+        async function declareWinner() {
+            try {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                const todayStr = new Date().toISOString().split('T')[0];
+                
+                const { data: votes, error } = await supabaseClient
+                    .from('daily_votes')
+                    .select('*')
+                    .gte('vote_date', yesterdayStr)
+                    .lte('vote_date', todayStr);
+                
+                if (error || !votes || votes.length === 0) return;
+                
+                const voteCounts = new Map();
+                const userVotes = new Map(); // تتبع المستخدمين لكل عملة
+                
+                votes.forEach(vote => {
+                    if (!vote.coins_voted || !Array.isArray(vote.coins_voted)) return;
+                    
+                    vote.coins_voted.forEach(coinIndex => {
+                        const coin = allCoins[coinIndex];
+                        if (!coin) return;
+                        
+                        // حساب عدد الأصوات
+                        const currentCount = voteCounts.get(coin.id) || 0;
+                        voteCounts.set(coin.id, currentCount + 1);
+                        
+                        // تتبع المستخدمين
+                        if (!userVotes.has(coin.id)) {
+                            userVotes.set(coin.id, new Set());
+                        }
+                        userVotes.get(coin.id).add(vote.user_id);
+                    });
+                });
+                
+                if (voteCounts.size === 0) return;
+                
+                // العثور على الفائز (أكثر عملة حصلت على أصوات)
+                let winnerId = null;
+                let maxVotes = 0;
+                
+                for (const [coinId, count] of voteCounts.entries()) {
+                    if (count > maxVotes) {
+                        maxVotes = count;
+                        winnerId = coinId;
+                    }
+                }
+                
+                if (winnerId && winnerId !== lastWinnerId) {
+                    lastWinnerId = winnerId;
+                    
+                    // منح 10 نقاط إضافية لكل من صوت على العملة الفائزة
+                    const voters = userVotes.get(winnerId) || new Set();
+                    
+                    for (const voterId of voters) {
+                        const user = await findUserById(voterId);
+                        if (user) {
+                            const newBalance = (user.balance || 0) + WINNER_BONUS;
+                            await supabaseClient
+                                .from('users')
+                                .update({ balance: newBalance })
+                                .eq('id', voterId);
+                                
+                            // إذا كان هذا المستخدم هو المستخدم الحالي، تحديث الرصيد
+                            if (userData && userData.id === voterId) {
+                                userData.balance = newBalance;
+                                document.getElementById("profileBalance").innerText = newBalance;
+                            }
+                        }
+                    }
+                    
+                    // عرض إعلان الفائز
+                    const winnerCoin = allCoins.find(c => c.id === winnerId);
+                    if (winnerCoin) {
+                        const winnerDiv = document.getElementById('winnerAnnouncement');
+                        document.getElementById('winnerName').innerText = winnerCoin.name;
+                        winnerDiv.classList.remove('hidden');
+                        
+                        showToast(`🏆 ${winnerCoin.name} فازت بجائزة 10 نقاط إضافية لجميع المصوتين!`);
+                        playSound();
+                        
+                        setTimeout(() => winnerDiv.classList.add('hidden'), 10000);
+                    }
+                }
+                
+            } catch (e) {
+                console.error('خطأ في إعلان الفائز:', e);
+            }
+        }
+
         async function fetchVoteResults() {
             try {
                 const yesterday = new Date();
@@ -2363,7 +2714,10 @@
                 document.getElementById('resultsDate').innerText = 
                     `${today.toLocaleDateString('ar-IQ')}`;
                 
-                return resultsArray; // نرجع جميع العملات المصوت عليها
+                // التحقق من إعادة تعيين النتائج
+                await checkAndResetResults();
+                
+                return resultsArray;
                 
             } catch (e) {
                 console.error('خطأ في معالجة النتائج:', e);
@@ -2391,9 +2745,15 @@
             
             results.forEach((result, index) => {
                 let winnerBadge = '';
-                if (index === 0) winnerBadge = '<span class="result-badge-winner">🥇 1st</span>';
-                else if (index === 1) winnerBadge = '<span class="result-badge-winner">🥈 2nd</span>';
-                else if (index === 2) winnerBadge = '<span class="result-badge-winner">🥉 3rd</span>';
+                let badgeClass = '';
+                
+                if (index === 0) {
+                    winnerBadge = '<span class="result-badge-winner result-badge-winner-gold">🥇 1st</span>';
+                } else if (index === 1) {
+                    winnerBadge = '<span class="result-badge-winner result-badge-winner-silver">🥈 2nd</span>';
+                } else if (index === 2) {
+                    winnerBadge = '<span class="result-badge-winner result-badge-winner-bronze">🥉 3rd</span>';
+                }
                 
                 let iconHtml = result.symbol.charAt(0).toUpperCase();
                 if (result.image) {
@@ -2424,14 +2784,8 @@
         const socialLinks = [
             { name: 'يوتيوب', nameEn: 'YouTube', username: '@oclin_official', url: 'https://youtube.com/@osln_bot_official?si=nxmXrEln-zAHoO8J', reward: 5, icon: '📺' },
             { name: 'تليكرام', nameEn: 'Telegram', username: '@oclin_channel', url: 'https://t.me/osln_Bot_Official', reward: 5, icon: '📱' },
-            { name: 'X', nameEn: 'X', username: '@oclin', url: 'https://x.com/osln_bot', reward: 5, icon: '🐦' },
-            { name: 'انستغرام', nameEn: 'TIKTOK', username: '@oclin', url: 'https://www.tiktok.com/@osln.bot.official?_r=1&_t=ZS-94ghpPN00ZA', reward: 5, icon: '📷' }
-        ];
-
-        const samplePosts = [
-            { platform: 'يوتيوب', platformEn: 'YouTube', username: '@oclin', content: '🚀 شرح جديد: كيف تربح من التصويت على العملات!', contentEn: '🚀 New tutorial: How to earn from voting on coins!', time: 'منذ ساعة', timeEn: '1 hour ago', avatar: '📺' },
-            { platform: 'تليكرام', platformEn: 'Telegram', username: '@oclin', content: '🪙 تم إضافة 5 عملات جديدة للتصويت!', contentEn: '🪙 5 new coins added for voting!', time: 'منذ 3 ساعات', timeEn: '3 hours ago', avatar: '📱' },
-            { platform: 'X', platformEn: 'X', username: '@oclin', content: '🔥 مسابقة كبرى! 1000 نقطة للفائزين الخمسة', contentEn: '🔥 Big contest! 1000 points for top 5 winners', time: 'منذ 5 ساعات', timeEn: '5 hours ago', avatar: '🐦' }
+            { name: 'X', nameEn: 'X', username: '@oclin_bot', url: 'https://x.com/osln_bot', reward: 5, icon: '🐦' },
+            { name: 'تيك توك', nameEn: 'TikTok', username: '@oclin_official', url: 'https://www.tiktok.com/@osln.bot.official?_r=1&_t=ZS-94ghpPN00ZA', reward: 5, icon: '📷' }
         ];
 
         function initTasksPage() {
@@ -2454,47 +2808,11 @@
                 socialGrid.appendChild(card);
             });
 
-            const postsGrid = document.getElementById('postsGrid');
-            postsGrid.innerHTML = '';
-
-            samplePosts.forEach((post, index) => {
-                const platform = currentLang === 'ar' ? post.platform : post.platformEn;
-                const content = currentLang === 'ar' ? post.content : post.contentEn;
-                const time = currentLang === 'ar' ? post.time : post.timeEn;
-                
-                const postDiv = document.createElement('div');
-                postDiv.className = 'post-card';
-                postDiv.innerHTML = `
-                    <div class="post-header">
-                        <div class="post-avatar">${post.avatar}</div>
-                        <div class="post-info">
-                            <div class="post-platform">${platform}</div>
-                            <div class="post-time">${time}</div>
-                        </div>
-                    </div>
-                    <div class="post-content">${content}</div>
-                    <div class="post-actions">
-                        <button class="post-action-btn" onclick="likePost(${index})">👍 ${t.up} +5</button>
-                    </div>
-                `;
-                postsGrid.appendChild(postDiv);
-            });
-        }
-
-        async function likePost(index) {
-            if (!userData) return;
-
-            const newBalance = (userData.balance || 0) + 5;
-            userData.balance = newBalance;
+            // جلب المنشورات الحقيقية
+            fetchRealPosts();
             
-            await supabaseClient
-                .from('users')
-                .update({ balance: newBalance })
-                .eq('id', userData.id);
-            
-            document.getElementById("profileBalance").innerText = newBalance;
-            const t = translations[currentLang];
-            showToast(`✅ +5 ${t.pointsLabel}`);
+            // تحديث المنشورات كل ساعة
+            setInterval(fetchRealPosts, 60 * 60 * 1000);
         }
 
         // ========== إظهار الصفحات ==========
@@ -2531,6 +2849,9 @@
                 initTasksPage();
             } else if (page === 'results') {
                 await displayResults();
+                // تحديث النتائج كل ساعة
+                if (resultsUpdateInterval) clearInterval(resultsUpdateInterval);
+                resultsUpdateInterval = setInterval(displayResults, 60 * 60 * 1000);
             }
         }
 
@@ -2549,17 +2870,14 @@
                 await updateCoins();
                 await loadTodayVotes();
 
+                // التحقق من الفائز كل ساعة
+                setInterval(checkAndResetResults, 60 * 60 * 1000);
+
                 setTimeout(() => {
                     document.getElementById('splashScreen').classList.add('hidden');
                     document.getElementById('homePage').classList.remove('hidden');
                     
                     setInterval(updateCoins, 2 * 60 * 60 * 1000);
-                    
-                    setInterval(() => {
-                        if (!document.getElementById('resultsPage').classList.contains('hidden')) {
-                            displayResults();
-                        }
-                    }, 60 * 60 * 1000);
                     
                 }, 2000);
             } catch (e) {
@@ -2577,4 +2895,3 @@
     </script>
 </body>
 </html>
-```
