@@ -1355,11 +1355,11 @@
             }
         };
 
-        let currentLang = localStorage.getItem('oclin_lang') || 'ar';
+        let currentLang = localStorage.getItem('osln_lang') || 'ar';
 
         function toggleLanguage() {
             currentLang = currentLang === 'ar' ? 'en' : 'ar';
-            localStorage.setItem('oclin_lang', currentLang);
+            localStorage.setItem('osln_lang', currentLang);
             updateLanguage();
         }
 
