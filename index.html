@@ -664,82 +664,6 @@
             font-weight: 700;
         }
 
-        .posts-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .post-card {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 20px;
-            padding: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .post-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .post-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #8B5CF6, #EC4899);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-
-        .post-info {
-            flex: 1;
-        }
-
-        .post-platform {
-            color: white;
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        .post-time {
-            color: #a5b3d9;
-            font-size: 12px;
-        }
-
-        .post-content {
-            color: white;
-            font-size: 14px;
-            margin-bottom: 15px;
-            line-height: 1.5;
-            padding-right: 52px;
-        }
-
-        .post-actions {
-            display: flex;
-            gap: 15px;
-            padding-right: 52px;
-        }
-
-        .post-action-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .post-action-btn:hover {
-            background: rgba(139, 92, 246, 0.3);
-        }
-
         .bottom-nav {
             position: absolute;
             bottom: 10px;
@@ -1169,7 +1093,6 @@
                 <div class="tasks-container">
                     <div class="tasks-section-title" id="followUsTitle">📱 تابعنا على</div>
                     <div class="social-links-grid" id="socialLinksGrid"></div>
-                    </div>
                 </div>
             </div>
 
@@ -1181,10 +1104,8 @@
                         <div class="results-date" id="resultsDate">آخر 24 ساعة</div>
                     </div>
 
-                    <!-- وقت التحديث القادم -->
                     <div class="next-reset" id="nextReset">التحديث القادم: خلال 24 ساعة</div>
 
-                    <!-- إعلان الفائز -->
                     <div id="winnerAnnouncement" class="winner-announcement hidden">
                         <span>🏆 الفائز لهذه الدورة 🏆</span>
                         <div class="coin-name" id="winnerName"></div>
@@ -1204,7 +1125,6 @@
 
                     <div class="results-grid" id="resultsGrid"></div>
 
-                    <!-- قسم أفضل 3 عملات من التصويت السابق -->
                     <div class="top-coins-section" id="topCoinsSection">
                         <div class="top-coins-title" id="topCoinsTitle">🏆 أفضل 3 عملات من التصويت السابق</div>
                         <div class="results-grid" id="topCoinsGrid"></div>
@@ -1213,7 +1133,6 @@
             </div>
         </div>
 
-        <!-- القائمة السفلية -->
         <div class="bottom-nav">
             <div class="nav-item active" onclick="showPage('home', event)">
                 🏠 <span id="navHome">الرئيسية</span>
@@ -1266,7 +1185,6 @@
                 loadingReferrals: "جاري تحميل القائمة...",
                 noReferrals: "لا يوجد مدعوين بعد",
                 followUsTitle: "📱 تابعنا على",
-                latestPostsTitle: "📄 أحدث المنشورات",
                 resultsTitle: "📊 نتائج التصويتات",
                 totalVotesLabel: "إجمالي التصويتات",
                 votedCoinsLabel: "عملات مصوت عليها",
@@ -1305,8 +1223,6 @@
                 referralSuccess: "🎉 تم تفعيل رابط الإحالة! +{points} نقطة للمحيل",
                 winnerAnnouncement: "🏆 الفائز لهذه الدورة 🏆",
                 nextReset: "التحديث القادم: خلال 24 ساعة",
-                loadingPosts: "جاري تحميل المنشورات...",
-                noPosts: "لا توجد منشورات حالياً",
                 topCoinsTitle: "🏆 أفضل 3 عملات من التصويت السابق",
                 voteUp: "صعود",
                 voteDown: "هبوط"
@@ -1332,7 +1248,6 @@
                 loadingReferrals: "Loading list...",
                 noReferrals: "No referrals yet",
                 followUsTitle: "📱 Follow Us On",
-                latestPostsTitle: "📄 Latest Posts",
                 resultsTitle: "📊 Voting Results",
                 totalVotesLabel: "Total Votes",
                 votedCoinsLabel: "Voted Coins",
@@ -1371,8 +1286,6 @@
                 referralSuccess: "🎉 Referral activated! +{points} points for referrer",
                 winnerAnnouncement: "🏆 Winner of this round 🏆",
                 nextReset: "Next update: in 24 hours",
-                loadingPosts: "Loading posts...",
-                noPosts: "No posts available",
                 topCoinsTitle: "🏆 Top 3 Coins from Previous Voting",
                 voteUp: "Up",
                 voteDown: "Down"
@@ -1405,7 +1318,6 @@
                 document.documentElement.dir = 'ltr';
             }
 
-            // تحديث النصوص الثابتة
             document.getElementById('splashMessage').innerText = t.splashLoading;
             document.getElementById('welcomeMessage').childNodes[0].textContent = t.welcomeMessage + ' ';
             document.getElementById('votesRemainingLabel').innerText = t.votesRemainingLabel;
@@ -1425,7 +1337,6 @@
             document.getElementById('referralsListTitle').innerText = t.referralsListTitle;
             document.getElementById('loadingReferrals').innerText = t.loadingReferrals;
             document.getElementById('followUsTitle').innerText = t.followUsTitle;
-            document.getElementById('latestPostsTitle').innerText = t.latestPostsTitle;
             document.getElementById('resultsTitle').innerText = t.resultsTitle;
             document.getElementById('totalVotesLabel').innerText = t.totalVotesLabel;
             document.getElementById('votedCoinsLabel').innerText = t.votedCoinsLabel;
@@ -1437,7 +1348,6 @@
             document.getElementById('nextReset').innerText = t.nextReset;
             document.getElementById('topCoinsTitle').innerText = t.topCoinsTitle;
 
-            // تحديث المحتوى الديناميكي
             if (!document.getElementById('homePage').classList.contains('hidden')) {
                 displayCoins(allCoins);
             }
@@ -1447,7 +1357,6 @@
             }
             if (!document.getElementById('tasksPage').classList.contains('hidden')) {
                 initTasksPage();
-                fetchRealPosts();
             }
             if (!document.getElementById('referralPage').classList.contains('hidden')) {
                 displayReferrals();
@@ -1464,7 +1373,7 @@
         const DAILY_LIMIT = 5;
         const VOTE_REWARD = 10;
         const WINNER_BONUS = 10;
-        const REFERRAL_REWARD_NEW = 20; // ✅ تم التعديل: من 15 إلى 20 نقطة
+        const REFERRAL_REWARD_NEW = 20;
         const REFERRAL_REWARD_EXISTING = 1;
         
         const BOT_USERNAME = "Official_osln_bot";
@@ -1488,10 +1397,8 @@
         let lastWinnerId = null;
         let resultsUpdateInterval = null;
         
-        // تخزين التصويتات مع نوع الصعود/الهبوط
-        let voteHistory = []; // { coinId, coinIndex, voteType, userId, timestamp }
+        let voteHistory = [];
 
-        // ========== دوال مساعدة ==========
         function showToast(msg) {
             const t = translations[currentLang];
             const toast = document.getElementById("toast");
@@ -1558,7 +1465,6 @@
             return null;
         }
 
-        // ========== دوال Supabase الأساسية ==========
         async function testConnection() {
             try {
                 const { data, error } = await supabaseClient
@@ -1813,7 +1719,6 @@
             }
         }
 
-        // ========== نظام التصويت مع حفظ نوع التصويت ==========
         async function loadTodayVotes() {
             if (!telegramUser) return;
             
@@ -1965,7 +1870,7 @@
                 playSound();
                 
                 if (!document.getElementById('resultsPage').classList.contains('hidden')) {
-                    displayResults();
+                    await displayResults();
                     displayTopCoins();
                 }
                 
@@ -2028,7 +1933,6 @@
             selectedIndex = index;
         }
 
-        // ========== نظام الإحالة ==========
         async function checkReferral() {
             try {
                 let referrerId = null;
@@ -2265,8 +2169,6 @@
                 return;
             }
             
-            const now = Date.now();
-            
             if (currentFilter === 'all') {
                 filteredCoins = [...allCoins];
             } else {
@@ -2418,8 +2320,15 @@
             });
         }
 
+        async function updateCoins() {
+            const newCoins = await fetchAllCoins();
+            if (newCoins.length > 0) {
+                allCoins = newCoins;
+                applyFilter();
+            }
+        }
 
-        // ========== نتائج التصويت مع حفظ أفضل 3 عملات ==========
+        // ========== نتائج التصويت ==========
         async function checkAndResetResults() {
             const lastReset = localStorage.getItem('lastResultsReset');
             const now = new Date();
@@ -2433,16 +2342,12 @@
             const hoursSinceReset = (now - lastResetDate) / (1000 * 60 * 60);
             
             if (hoursSinceReset >= 24) {
-                // حفظ أفضل 3 عملات قبل التصفير
                 await saveTopCoins();
-                // إعلان الفائز
                 await declareWinner();
-                // تصفير التصويتات
                 await resetDailyVotes();
                 localStorage.setItem('lastResultsReset', now.toISOString());
             }
             
-            // تحديث وقت التحديث القادم
             const nextReset = new Date(lastResetDate);
             nextReset.setHours(nextReset.getHours() + 24);
             const hoursLeft = Math.max(0, (nextReset - now) / (1000 * 60 * 60));
@@ -2455,7 +2360,6 @@
             }
         }
 
-        // دالة لحفظ أفضل 3 عملات في التخزين المحلي
         async function saveTopCoins() {
             try {
                 const yesterday = new Date();
@@ -2499,13 +2403,11 @@
                 resultsArray.sort((a, b) => b.totalVotes - a.totalVotes);
                 const topThree = resultsArray.slice(0, 3);
                 
-                // حفظ أفضل 3 عملات في localStorage
                 localStorage.setItem('topCoinsPrevious', JSON.stringify({
                     coins: topThree,
                     date: new Date().toISOString()
                 }));
                 
-                // عرض أفضل 3 عملات في صفحة النتائج
                 displayTopCoins();
                 
             } catch (e) {
@@ -2513,7 +2415,6 @@
             }
         }
 
-        // عرض أفضل 3 عملات من التصويت السابق
         function displayTopCoins() {
             const topCoinsGrid = document.getElementById('topCoinsGrid');
             const t = translations[currentLang];
@@ -2572,12 +2473,10 @@
             topCoinsGrid.innerHTML = html;
         }
 
-        // دالة لتصفير التصويتات اليومية
         async function resetDailyVotes() {
             try {
                 const today = new Date().toISOString().split('T')[0];
                 
-                // حذف التصويتات القديمة
                 const { error } = await supabaseClient
                     .from('daily_votes')
                     .delete()
@@ -2587,7 +2486,6 @@
                     console.error('خطأ في تصفير التصويتات:', error);
                 }
                 
-                // تصفير localStorage للمستخدم الحالي
                 if (telegramUser) {
                     const todayStr = new Date().toISOString().split('T')[0];
                     const storageKey = `votes_${telegramUser.id}_${todayStr}`;
@@ -2812,8 +2710,8 @@
             { name: 'يوتيوب', nameEn: 'YouTube', username: '@Official_osln_bot', url: 'https://youtube.com/@osln_bot_official?si=nxmXrEln-zAHoO8J', reward: 5, icon: '📺' },
             { name: 'تليكرام', nameEn: 'Telegram', username: '@Official_osln_bot', url: 'https://t.me/Official_osln_bot', reward: 5, icon: '📱' },
             { name: 'X', nameEn: 'X', username: '@osln_bot', url: 'https://x.com/osln_bot', reward: 5, icon: '🐦' },
+            { name: 'X', nameEn: 'X', username: '@Official', url: 'https://x.com/waduod0', reward: 5, icon: '🎁' },
             { name: 'تيك توك', nameEn: 'TikTok', username: '@osln.bot.official', url: 'https://www.tiktok.com/@osln.bot.official', reward: 5, icon: '📷' }
-            { name: 'X', nameEn: 'X', username: '@Official', url: 'https://x.com/waduod0', reward: 5, icon: '🐦' },
         ];
 
         function initTasksPage() {
@@ -2835,9 +2733,6 @@
                 card.onclick = () => window.open(link.url, '_blank');
                 socialGrid.appendChild(card);
             });
-
-            fetchRealPosts();
-            setInterval(fetchRealPosts, 60 * 60 * 1000);
         }
 
         // ========== إظهار الصفحات ==========
